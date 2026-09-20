@@ -1,0 +1,19 @@
+{
+  "name": "lavanta-naturals-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n \"backend,frontend\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "npm --prefix Frontend run dev",
+    "dev:server": "npm --prefix Backend run dev",
+    "build": "npm --prefix Frontend run build && npm --prefix Backend run build",
+    "build:client": "npm --prefix Frontend run build",
+    "build:server": "npm --prefix Backend run build",
+    "seed": "npm --prefix Backend run seed",
+    "test": "npm --prefix Backend run test:phase13"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}

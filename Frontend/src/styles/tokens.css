@@ -1,0 +1,68 @@
+:root {
+  /* Brand Colors from Lavanta Naturals Official Guidelines */
+  --color-primary: #69C43F;              /* Lavanta Green */
+  --color-primary-rgb: 105, 196, 63;
+  --color-primary-hover: #4FAF32;        /* Deep Green for hover/selected */
+  --color-primary-deep: #3E8E25;
+  --color-soft-green: #EAF7E5;           /* Soft Green */
+  --color-soft-green-rgb: 234, 247, 229;
+  
+  /* Lavanta Lavender Accents (Used subtly for badges / selected items) */
+  --color-lavender: #E8D8FF;
+  --color-lavender-rgb: 232, 216, 255;
+  --color-soft-lavender: #F5EEFF;
+  --color-lavender-dark: #6D4CBA;
+  
+  /* Backgrounds & Surfaces (Light Only) */
+  --bg-app: #FAFBF8;                     /* Soft page background */
+  --bg-surface: #FFFFFF;                 /* Cards, Sidebar & Header */
+  --bg-surface-elevated: #FFFFFF;
+  --bg-subtle: #F4F5F2;                  /* Soft neutral */
+  --border-color: #E5E8E3;               /* Very subtle neutral border */
+  --border-subtle: #EDF0EA;
+  --border-focus: #69C43F;
+
+  /* Typography Colors */
+  --color-text-primary: #172235;          /* Dark navy/slate */
+  --color-text-secondary: #667085;        /* Neutral gray */
+  --color-text-muted: #98A2B3;
+  --color-text-inverted: #FFFFFF;
+
+  /* Semantic Statuses */
+  --color-success: #5EAD45;
+  --color-success-bg: #EAF7E5;
+  --color-warning: #D69B35;
+  --color-warning-bg: #FDF6EA;
+  --color-danger: #D65B5B;
+  --color-danger-bg: #FDF0F0;
+  --color-info: #5B8FD6;
+  --color-info-bg: #EFF5FC;
+
+  /* Typography: Clean Modern Sans-Serif */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Elevations / Shadows (Soft and subtle) */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.03);
+  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.08);
+
+  /* Radius Tokens (Clean 10-14px) */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+
+  /* Layout dimensions */
+  --sidebar-width-expanded: 250px;
+  --sidebar-width-collapsed: 68px;
+  --header-height: 64px;
+}
