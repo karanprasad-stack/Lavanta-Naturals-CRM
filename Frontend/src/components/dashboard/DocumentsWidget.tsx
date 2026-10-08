@@ -41,7 +41,7 @@ export const DocumentsWidget: React.FC<DocumentsWidgetProps> = ({ maxItems = 4 }
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
         padding: '1.5rem',
@@ -59,11 +59,11 @@ export const DocumentsWidget: React.FC<DocumentsWidgetProps> = ({ maxItems = 4 }
               width: '32px',
               height: '32px',
               borderRadius: 'var(--radius-xs)',
-              background: '#F0FDF4',
+              background: 'rgba(88, 200, 58, 0.14)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--color-primary-deep)'
+              color: 'var(--color-primary)'
             }}
           >
             <FileText size={17} />
@@ -88,7 +88,7 @@ export const DocumentsWidget: React.FC<DocumentsWidgetProps> = ({ maxItems = 4 }
           variant="ghost"
           size="sm"
           onClick={() => navigate('/documents')}
-          style={{ fontSize: '0.8rem' }}
+          style={{ fontSize: '0.8rem', color: 'var(--color-primary)' }}
         >
           View Knowledge Hub →
         </Button>
@@ -97,21 +97,21 @@ export const DocumentsWidget: React.FC<DocumentsWidgetProps> = ({ maxItems = 4 }
       {/* Summary KPI Pills */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
-          <div style={{ padding: '0.75rem 1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Published Docs</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-primary-deep)', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-primary)', marginTop: '2px' }}>
               {summary.totalPublished}
             </div>
           </div>
-          <div style={{ padding: '0.75rem 1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Important Pinned</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#D97706', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFC45C', marginTop: '2px' }}>
               {summary.importantDocuments?.length || 0}
             </div>
           </div>
-          <div style={{ padding: '0.75rem 1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
             <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>My Favorites</div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#7C3AED', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#C4B5FD', marginTop: '2px' }}>
               {summary.myFavoritesCount || 0}
             </div>
           </div>
@@ -140,20 +140,21 @@ export const DocumentsWidget: React.FC<DocumentsWidgetProps> = ({ maxItems = 4 }
                 padding: '0.65rem 0.85rem',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-color)',
-                background: '#FFFFFF',
+                background: 'var(--bg-surface-elevated)',
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
-              className="luxury-card"
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
-                <FileText size={16} color="var(--color-primary-deep)" style={{ flexShrink: 0 }} />
+                <FileText size={16} color="var(--color-primary)" style={{ flexShrink: 0 }} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {doc.title}
                     </span>
-                    {doc.isPinned && <Pin size={11} color="#D97706" />}
+                    {doc.isPinned && <Pin size={11} color="#FFC45C" />}
                   </div>
                   <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '1px' }}>
                     {doc.category} • {formatFileSize(doc.fileSize)} • Updated {new Date(doc.updatedAt).toLocaleDateString()}

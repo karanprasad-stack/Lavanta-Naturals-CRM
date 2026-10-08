@@ -87,7 +87,7 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
         padding: '1.5rem',
@@ -111,11 +111,11 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: '#F0FDF4',
+              background: 'rgba(88, 200, 58, 0.14)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid #DCFCE7'
+              border: '1px solid rgba(88, 200, 58, 0.3)'
             }}
           >
             <Activity size={18} color="var(--color-primary-deep)" />
@@ -143,8 +143,8 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
 
       {isLoading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '1rem 0' }}>
-          <div style={{ height: '36px', background: '#F8FAFC', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
-          <div style={{ height: '36px', background: '#F8FAFC', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '36px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '36px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -156,9 +156,9 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
                 gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
                 gap: '8px',
                 padding: '10px 12px',
-                background: '#F8FAFC',
+                background: 'var(--bg-surface-elevated)',
                 borderRadius: '8px',
-                border: '1px solid #EDF2F7'
+                border: '1px solid var(--border-color)'
               }}
             >
               <div style={{ textAlign: 'center' }}>
@@ -228,9 +228,9 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
                 style={{
                   padding: '1rem',
                   textAlign: 'center',
-                  background: '#FAFBF8',
+                  background: 'var(--bg-surface-elevated)',
                   borderRadius: '6px',
-                  border: '1px dashed #E2E8F0',
+                  border: '1px dashed var(--border-color)',
                   fontSize: '0.8rem',
                   color: 'var(--color-text-muted)'
                 }}
@@ -248,19 +248,21 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       padding: '10px 12px',
-                      background: '#FFFFFF',
+                      background: 'var(--bg-surface-elevated)',
                       borderRadius: '8px',
-                      border: '1px solid #E2E8F0',
+                      border: '1px solid var(--border-color)',
                       cursor: 'pointer',
                       transition: 'border-color 0.15s, transform 0.15s',
                       gap: '12px'
                     }}
                     onMouseEnter={e => {
                       e.currentTarget.style.borderColor = 'var(--color-primary)';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                       e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
@@ -334,7 +336,8 @@ export const WorkActivityWidget: React.FC<WorkActivityWidgetProps> = ({ maxItems
                       fontSize: '0.78rem',
                       padding: '6px 8px',
                       borderRadius: '6px',
-                      background: '#FAFBF8'
+                      background: 'var(--bg-surface-elevated)',
+                      border: '1px solid var(--border-subtle)'
                     }}
                   >
                     <div style={{ marginTop: '2px' }}>{getActivityIcon(act.type)}</div>

@@ -3,10 +3,9 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { ProductModel } from '../models/Product.js';
 import { ProductCategoryModel } from '../models/ProductCategory.js';
-import { InventoryMovementModel } from '../models/InventoryMovement.js';
 import { ProductActivityModel } from '../models/ProductActivity.js';
 import { slugify } from '../utils/slug.js';
-import { logProductActivity, handleStockAlertNotifications } from '../utils/inventoryNotifications.js';
+import { logProductActivity } from '../utils/inventoryNotifications.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
 /**
@@ -20,8 +19,6 @@ export const getProducts = async (
     const {
       search,
       category,
-      stockStatus,
-      status,
       page = '1',
       limit = '25',
       sortBy = 'createdAt',
@@ -33,13 +30,6 @@ export const getProducts = async (
     const skip = (pageNum - 1) * limitNum;
 
     const query: any = {};
-
-    // Status filter - by default exclude ARCHIVED unless explicitly requested
-    if (status) {
-      query.status = status;
-    } else {
-      query.status = { $ne: 'ARCHIVED' };
-    }
 
     // Category filter
     if (category) {
@@ -59,26 +49,8 @@ export const getProducts = async (
       ];
     }
 
-    // Stock status derived filter
-    if (stockStatus) {
-      if (stockStatus === 'OUT_OF_STOCK') {
-        query.stockQuantity = 0;
-      } else if (stockStatus === 'LOW_STOCK') {
-        query.$expr = {
-          $and: [
-            { $gt: ['$stockQuantity', 0] },
-            { $lte: ['$stockQuantity', '$lowStockThreshold'] }
-          ]
-        };
-      } else if (stockStatus === 'IN_STOCK') {
-        query.$expr = {
-          $gt: ['$stockQuantity', '$lowStockThreshold']
-        };
-      }
-    }
-
     // Sorting
-    const sortField = ['name', 'createdAt', 'sellingPrice', 'stockQuantity'].includes(
+    const sortField = ['name', 'createdAt', 'sellingPrice'].includes(
       sortBy as string
     )
       ? (sortBy as string)
@@ -87,6 +59,7 @@ export const getProducts = async (
 
     const [products, total] = await Promise.all([
       ProductModel.find(query)
+        .select('-stockQuantity -lowStockThreshold -status')
         .populate('categoryId', 'name description')
         .populate('createdBy', 'name email role')
         .sort({ [sortField]: sortDirection })
@@ -131,11 +104,13 @@ export const getProductById = async (
     let product = null;
     if (mongoose.Types.ObjectId.isValid(id)) {
       product = await ProductModel.findById(id)
+        .select('-stockQuantity -lowStockThreshold -status')
         .populate('categoryId', 'name description')
         .populate('createdBy', 'name email role')
         .populate('documentIds', 'title fileName fileUrl fileType category');
     } else {
       product = await ProductModel.findOne({ slug: id.toLowerCase() })
+        .select('-stockQuantity -lowStockThreshold -status')
         .populate('categoryId', 'name description')
         .populate('createdBy', 'name email role')
         .populate('documentIds', 'title fileName fileUrl fileType category');
@@ -145,12 +120,6 @@ export const getProductById = async (
       res.status(404).json({ success: false, message: 'Product not found' });
       return;
     }
-
-    // Retrieve recent inventory movements
-    const recentMovements = await InventoryMovementModel.find({ productId: product._id })
-      .sort({ createdAt: -1 })
-      .limit(15)
-      .populate('performedBy', 'name email role');
 
     // Retrieve recent product activities
     const recentActivities = await ProductActivityModel.find({ productId: product._id })
@@ -162,7 +131,6 @@ export const getProductById = async (
       success: true,
       data: {
         product,
-        recentMovements,
         recentActivities
       }
     });
@@ -176,7 +144,7 @@ export const getProductById = async (
 };
 
 /**
- * Create a new product with optional opening stock
+ * Create a new product (catalog only)
  */
 export const createProduct = async (
   req: AuthenticatedRequest,
@@ -193,12 +161,9 @@ export const createProduct = async (
       unit,
       sellingPrice,
       costPrice,
-      openingStock = 0,
-      lowStockThreshold = 10,
       tags = [],
       images = [],
-      documentIds = [],
-      status = 'ACTIVE'
+      documentIds = []
     } = req.body;
 
     // Validation
@@ -245,18 +210,6 @@ export const createProduct = async (
       return;
     }
 
-    const initialStock = Number(openingStock) || 0;
-    if (initialStock < 0) {
-      res.status(400).json({ success: false, message: 'Opening stock cannot be negative' });
-      return;
-    }
-
-    const threshold = Number(lowStockThreshold) || 10;
-    if (threshold < 0) {
-      res.status(400).json({ success: false, message: 'Low stock threshold cannot be negative' });
-      return;
-    }
-
     // Generate unique slug
     let baseSlug = slugify(name.trim());
     if (!baseSlug) baseSlug = slugify(cleanSku);
@@ -277,38 +230,15 @@ export const createProduct = async (
       unit: unit || 'PIECE',
       sellingPrice: sPrice,
       costPrice: cPrice,
-      stockQuantity: initialStock,
-      lowStockThreshold: threshold,
-      status: status || 'ACTIVE',
       images: Array.isArray(images) ? images : [],
       tags: Array.isArray(tags) ? tags : [],
       documentIds: Array.isArray(documentIds) ? documentIds : [],
       createdBy: user._id
     });
 
-    // If opening stock > 0, create OPENING_STOCK inventory movement
-    if (initialStock > 0) {
-      await InventoryMovementModel.create({
-        productId: product._id,
-        type: 'OPENING_STOCK',
-        quantity: initialStock,
-        previousQuantity: 0,
-        newQuantity: initialStock,
-        reason: 'Initial opening stock at product creation',
-        reference: `INIT-${cleanSku}`,
-        notes: `Recorded automatically on product initialization by ${user.name}`,
-        performedBy: user._id,
-        createdAt: new Date()
-      });
-
-      // Stock alerts if opening stock is low
-      await handleStockAlertNotifications(product, 0, initialStock, user._id);
-    }
-
     // Log Activity
     await logProductActivity(product._id, user._id, 'PRODUCT_CREATED', {
       sku: product.sku,
-      initialStock,
       price: product.sellingPrice
     });
 
@@ -316,7 +246,7 @@ export const createProduct = async (
       action: 'PRODUCT_CREATED',
       entityType: 'PRODUCT',
       entityId: product._id.toString(),
-      metadata: { name: product.name, sku: product.sku, sellingPrice: product.sellingPrice, initialStock }
+      metadata: { name: product.name, sku: product.sku, sellingPrice: product.sellingPrice }
     });
 
     const populatedProduct = await ProductModel.findById(product._id)
@@ -338,7 +268,7 @@ export const createProduct = async (
 };
 
 /**
- * Update an existing product (strictly forbids direct stockQuantity modification)
+ * Update an existing product
  */
 export const updateProduct = async (
   req: AuthenticatedRequest,
@@ -356,12 +286,9 @@ export const updateProduct = async (
       unit,
       sellingPrice,
       costPrice,
-      lowStockThreshold,
       tags,
       images,
-      documentIds,
-      status,
-      stockQuantity // Explicitly ignored for safety
+      documentIds
     } = req.body;
 
     const product = await ProductModel.findById(id);
@@ -427,28 +354,15 @@ export const updateProduct = async (
       product.costPrice = cPrice;
     }
 
-    if (lowStockThreshold !== undefined) {
-      const threshold = Number(lowStockThreshold);
-      if (isNaN(threshold) || threshold < 0) {
-        res.status(400).json({ success: false, message: 'Low stock threshold must be >= 0' });
-        return;
-      }
-      product.lowStockThreshold = threshold;
-    }
-
     if (tags !== undefined && Array.isArray(tags)) product.tags = tags;
     if (images !== undefined && Array.isArray(images)) product.images = images;
     if (documentIds !== undefined && Array.isArray(documentIds)) product.documentIds = documentIds;
-    if (status && ['ACTIVE', 'INACTIVE', 'ARCHIVED'].includes(status)) {
-      product.status = status;
-    }
 
-    // NOTICE: We deliberately ignore stockQuantity in this endpoint to maintain an unbroken audit trail.
     await product.save();
 
     // Log Activity
     await logProductActivity(product._id, user._id, 'PRODUCT_UPDATED', {
-      updatedFields: Object.keys(req.body).filter(k => k !== 'stockQuantity')
+      updatedFields: Object.keys(req.body)
     });
 
     const updatedProduct = await ProductModel.findById(product._id)
@@ -458,7 +372,7 @@ export const updateProduct = async (
 
     res.status(200).json({
       success: true,
-      message: 'Product updated successfully (stock quantity preserved; use inventory movements to adjust stock)',
+      message: 'Product updated successfully',
       data: updatedProduct
     });
   } catch (error: any) {
@@ -471,8 +385,7 @@ export const updateProduct = async (
 };
 
 /**
- * Delete or Archive a product.
- * If product has inventory movements, it is archived to preserve history.
+ * Delete a product permanently
  */
 export const deleteProduct = async (
   req: AuthenticatedRequest,
@@ -488,29 +401,14 @@ export const deleteProduct = async (
       return;
     }
 
-    const movementCount = await InventoryMovementModel.countDocuments({ productId: id });
-
-    if (movementCount > 0) {
-      // Archive instead of hard delete
-      product.status = 'ARCHIVED';
-      await product.save();
-
-      await logProductActivity(product._id, user._id, 'PRODUCT_ARCHIVED', {
-        reason: 'Product archived because historical inventory movements exist',
-        movementCount
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Product archived successfully. Historical inventory movements have been preserved.',
-        action: 'ARCHIVED',
-        data: product
-      });
-      return;
-    }
-
-    // No movement history exists: safe to hard delete
     await ProductModel.findByIdAndDelete(id);
+
+    await logAuditEvent(req, {
+      action: 'PRODUCT_DELETED',
+      entityType: 'PRODUCT',
+      entityId: id,
+      metadata: { name: product.name, sku: product.sku }
+    });
 
     res.status(200).json({
       success: true,
@@ -520,7 +418,7 @@ export const deleteProduct = async (
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to delete/archive product',
+      message: 'Failed to delete product',
       error: error.message
     });
   }

@@ -10,18 +10,37 @@ import {
   Lock,
   Save,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Sliders,
+  Sun,
+  Moon,
+  AlertTriangle,
+  LogOut
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { LavantaLogo } from '../../components/ui/LavantaLogo';
+import { RoleWorkspaceAccessPage } from './RoleWorkspaceAccessPage';
+import { useLocation } from 'react-router-dom';
+import { useTheme } from '../../context/ThemeContext';
 
-type SettingsTab = 'profile' | 'security' | 'notifications' | 'appearance';
+type SettingsTab = 'profile' | 'security' | 'notifications' | 'appearance' | 'workspace';
 
 export const SettingsPage: React.FC = () => {
   const { currentUser, updateCurrentUser } = useAuth();
+  const { theme, setTheme, isDark } = useTheme();
   const { showToast } = useToast();
+  const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
+  const isFounder = userRole === 'FOUNDER';
+
+  const searchParams = new URLSearchParams(location.search);
+  const initialTab = searchParams.get('tab') as SettingsTab;
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>(
+    (initialTab === 'workspace' && isFounder) ? 'workspace' : 'profile'
+  );
 
   // Profile Form State
   const [name, setName] = useState(currentUser?.name || '');
@@ -40,8 +59,7 @@ export const SettingsPage: React.FC = () => {
     tasks: true,
     announcements: true,
     goals: true,
-    documents: true,
-    inventory: true,
+    orders: true,
     expenses: true
   });
 
@@ -106,6 +124,10 @@ export const SettingsPage: React.FC = () => {
     showToast('Notification preferences saved successfully', 'success');
   };
 
+  const handleRevokeSessions = () => {
+    showToast('All other active browser sessions have been revoked', 'info');
+  };
+
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Header */}
@@ -134,14 +156,15 @@ export const SettingsPage: React.FC = () => {
             padding: '0.6rem 1rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
-            background: activeTab === 'profile' ? '#E8F5E9' : 'transparent',
-            color: activeTab === 'profile' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+            background: activeTab === 'profile' ? 'var(--color-soft-green)' : 'transparent',
+            color: activeTab === 'profile' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.15s ease'
           }}
         >
           <User size={16} />
@@ -154,14 +177,15 @@ export const SettingsPage: React.FC = () => {
             padding: '0.6rem 1rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
-            background: activeTab === 'security' ? '#E8F5E9' : 'transparent',
-            color: activeTab === 'security' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+            background: activeTab === 'security' ? 'var(--color-soft-green)' : 'transparent',
+            color: activeTab === 'security' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.15s ease'
           }}
         >
           <Shield size={16} />
@@ -174,14 +198,15 @@ export const SettingsPage: React.FC = () => {
             padding: '0.6rem 1rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
-            background: activeTab === 'notifications' ? '#E8F5E9' : 'transparent',
-            color: activeTab === 'notifications' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+            background: activeTab === 'notifications' ? 'var(--color-soft-green)' : 'transparent',
+            color: activeTab === 'notifications' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.15s ease'
           }}
         >
           <Bell size={16} />
@@ -194,19 +219,43 @@ export const SettingsPage: React.FC = () => {
             padding: '0.6rem 1rem',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
-            background: activeTab === 'appearance' ? '#E8F5E9' : 'transparent',
-            color: activeTab === 'appearance' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+            background: activeTab === 'appearance' ? 'var(--color-soft-green)' : 'transparent',
+            color: activeTab === 'appearance' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
             fontWeight: 600,
             fontSize: '0.85rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px'
+            gap: '6px',
+            transition: 'all 0.15s ease'
           }}
         >
           <Palette size={16} />
           Appearance
         </button>
+
+        {isFounder && (
+          <button
+            onClick={() => setActiveTab('workspace')}
+            style={{
+              padding: '0.6rem 1rem',
+              borderRadius: 'var(--radius-sm)',
+              border: 'none',
+              background: activeTab === 'workspace' ? 'var(--color-soft-green)' : 'transparent',
+              color: activeTab === 'workspace' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <Sliders size={16} />
+            Role & Workspace Access
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Profile */}
@@ -214,7 +263,7 @@ export const SettingsPage: React.FC = () => {
         <form
           onSubmit={handleSaveProfile}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.75rem',
@@ -230,14 +279,15 @@ export const SettingsPage: React.FC = () => {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                background: '#E8F5E9',
+                background: 'var(--color-soft-green)',
                 color: 'var(--color-primary)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '1.5rem',
                 fontWeight: 700,
-                overflow: 'hidden'
+                overflow: 'hidden',
+                border: '1px solid var(--border-color)'
               }}
             >
               {profilePhoto ? (
@@ -283,7 +333,7 @@ export const SettingsPage: React.FC = () => {
                 className="input-field"
                 value={currentUser?.email || ''}
                 disabled
-                style={{ backgroundColor: '#FAFBF8', cursor: 'not-allowed' }}
+                style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-muted)', cursor: 'not-allowed', borderColor: 'var(--border-color)' }}
               />
             </div>
 
@@ -322,7 +372,7 @@ export const SettingsPage: React.FC = () => {
                 className="input-field"
                 value={currentUser?.department || ''}
                 disabled
-                style={{ backgroundColor: '#FAFBF8', cursor: 'not-allowed' }}
+                style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-muted)', cursor: 'not-allowed', borderColor: 'var(--border-color)' }}
               />
             </div>
 
@@ -335,7 +385,7 @@ export const SettingsPage: React.FC = () => {
                 className="input-field"
                 value={currentUser?.joiningDate || ''}
                 disabled
-                style={{ backgroundColor: '#FAFBF8', cursor: 'not-allowed' }}
+                style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-muted)', cursor: 'not-allowed', borderColor: 'var(--border-color)' }}
               />
             </div>
           </div>
@@ -356,91 +406,132 @@ export const SettingsPage: React.FC = () => {
 
       {/* Tab 2: Security */}
       {activeTab === 'security' && (
-        <form
-          onSubmit={handleSavePassword}
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            padding: '1.75rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem',
-            boxShadow: 'var(--shadow-xs)'
-          }}
-        >
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-              Password & Authentication Credentials
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: 'var(--color-text-secondary)' }}>
-              Choose a strong password to protect your workspace account.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <form
+            onSubmit={handleSavePassword}
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Password & Authentication Credentials
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: 'var(--color-text-secondary)' }}>
+                Choose a strong password to protect your workspace account.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '480px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                  Current Password
+                </label>
+                <input
+                  type="password"
+                  className="input-field"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  required
+                  placeholder="Enter current password"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  className="input-field"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  placeholder="At least 6 characters"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  className="input-field"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Re-enter new password"
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                icon={<Lock size={16} />}
+                disabled={savingPassword}
+              >
+                {savingPassword ? 'Updating Password...' : 'Update Password'}
+              </Button>
+            </div>
+          </form>
+
+          {/* Danger Zone */}
+          <div
+            style={{
+              borderRadius: 'var(--radius-md)',
+              padding: '1.5rem',
+              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+              border: '1px solid rgba(239, 68, 68, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={18} color="#FF8585" />
+              <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#FF8585' }}>
+                Danger Zone: Session & Device Access
+              </h3>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.825rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+              Revoke active credentials and forcibly terminate all other authenticated sessions across web and mobile clients.
             </p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '480px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Current Password
-              </label>
-              <input
-                type="password"
-                className="input-field"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                required
-                placeholder="Enter current password"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                New Password
-              </label>
-              <input
-                type="password"
-                className="input-field"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                required
-                placeholder="At least 6 characters"
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                className="input-field"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                required
-                placeholder="Re-enter new password"
-              />
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                icon={<LogOut size={15} />}
+                onClick={handleRevokeSessions}
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#FF8585'
+                }}
+              >
+                Revoke All Other Sessions
+              </Button>
             </div>
           </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-start', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              icon={<Lock size={16} />}
-              disabled={savingPassword}
-            >
-              {savingPassword ? 'Updating Password...' : 'Update Password'}
-            </Button>
-          </div>
-        </form>
+        </div>
       )}
 
       {/* Tab 3: Notifications */}
       {activeTab === 'notifications' && (
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.75rem',
@@ -464,8 +555,7 @@ export const SettingsPage: React.FC = () => {
               { key: 'tasks', label: 'Task Assignments & Updates', desc: 'Alerts when tasks are assigned, started, or completed' },
               { key: 'announcements', label: 'Company Announcements', desc: 'Urgent company broadcasts and department bulletins' },
               { key: 'goals', label: 'Goals & OKR Milestones', desc: 'Quarterly objective progress and at-risk notifications' },
-              { key: 'documents', label: 'Document Library Updates', desc: 'New SOPs, formulation sheets, and policies shared with you' },
-              { key: 'inventory', label: 'Inventory & Stock Alerts', desc: 'Low-stock and out-of-stock warnings for catalog products' },
+              { key: 'orders', label: 'Order & Multi-Channel Sales Updates', desc: 'New orders and delivery milestone updates across sales channels' },
               { key: 'expenses', label: 'Expense Claim Approvals', desc: 'Status updates on submitted operational reimbursements' }
             ].map(item => (
               <label
@@ -477,7 +567,7 @@ export const SettingsPage: React.FC = () => {
                   padding: '12px',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  background: '#FAFBF8',
+                  background: 'var(--bg-surface-elevated)',
                   cursor: 'pointer'
                 }}
               >
@@ -517,37 +607,181 @@ export const SettingsPage: React.FC = () => {
       {activeTab === 'appearance' && (
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.75rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.25rem',
+            gap: '1.75rem',
             boxShadow: 'var(--shadow-xs)'
           }}
         >
           <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-              Brand & Visual Identity
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              Appearance & Theme
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.825rem', color: 'var(--color-text-secondary)' }}>
-              Lavanta Naturals platform adheres strictly to the official natural light luxury design system.
+              Customize your workspace visual experience. Changes are saved automatically and synchronized across all CRM modules.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-            <div style={{ padding: '1rem', borderRadius: '8px', border: '2px solid var(--color-primary)', background: '#FAFBF8' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>Lavanta Natural</span>
-                <CheckCircle2 size={16} color="var(--color-primary)" />
-              </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                Active workspace theme: Clean botanical light background, herbal emerald accents, and clear typography.
+          <div>
+            <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.75rem' }}>
+              Color Theme
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              {/* Light Mode Card */}
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                style={{
+                  textAlign: 'left',
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  border: !isDark ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  background: !isDark ? 'var(--color-soft-green)' : 'var(--bg-surface-elevated)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      background: !isDark ? '#FFFBEB' : 'var(--bg-subtle)',
+                      color: '#D97706',
+                      display: 'flex'
+                    }}>
+                      <Sun size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>Natural Light</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Default brand palette</div>
+                    </div>
+                  </div>
+                  {!isDark && (
+                    <div style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center' }}>
+                      <CheckCircle2 size={18} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview Thumbnail */}
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: '#FAFBF8',
+                  border: '1px solid #EAEFE9',
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#58C83A' }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ height: '8px', width: '60%', background: '#1B2533', borderRadius: '3px' }} />
+                    <div style={{ height: '6px', width: '90%', background: '#94A3B8', borderRadius: '3px' }} />
+                  </div>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                  Botanical freshness with warm cream background, crisp typography, and organic herbal green accents.
+                </p>
+              </button>
+
+              {/* Dark Mode Card */}
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                style={{
+                  textAlign: 'left',
+                  padding: '1.25rem',
+                  borderRadius: '12px',
+                  border: isDark ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  background: isDark ? 'rgba(88, 200, 58, 0.12)' : 'var(--bg-surface-elevated)',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                      padding: '8px',
+                      borderRadius: '8px',
+                      background: isDark ? 'rgba(245, 158, 11, 0.15)' : '#1E293B',
+                      color: '#FBBF24',
+                      display: 'flex'
+                    }}>
+                      <Moon size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>Obsidian Slate (Dark)</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Low-glare luxury</div>
+                    </div>
+                  </div>
+                  {isDark && (
+                    <div style={{ color: 'var(--color-primary)', display: 'flex', alignItems: 'center' }}>
+                      <CheckCircle2 size={18} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview Thumbnail */}
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: '#070B14',
+                  border: '1px solid #1E2B3D',
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: '#58C83A' }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ height: '8px', width: '60%', background: '#F4F7FA', borderRadius: '3px' }} />
+                    <div style={{ height: '6px', width: '90%', background: '#6F8097', borderRadius: '3px' }} />
+                  </div>
+                </div>
+
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--color-text-secondary)', lineHeight: 1.4 }}>
+                  Rich deep slate surfaces with vibrant emerald contrast, optimized for reduced eye strain during extended CRM operations.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.25rem' }}>
+            <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              Brand & Visual Identity
+            </h4>
+            <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border-color)', background: 'var(--bg-surface-elevated)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              <LavantaLogo variant="brand-image" size="lg" />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>Official Brand Logo & Mark</span>
+                  <CheckCircle2 size={16} color="var(--color-primary)" />
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', lineHeight: 1.45 }}>
+                  Lavanta Naturals™ registered emblem and typography used across all workspace applications, official documents, and internal portals.
+                </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tab 5: Role & Workspace Access (Founder Only) */}
+      {activeTab === 'workspace' && isFounder && (
+        <RoleWorkspaceAccessPage />
       )}
     </div>
   );

@@ -21,7 +21,6 @@ import { Badge } from '../ui/Badge';
 import { CalendarWidget } from './CalendarWidget';
 import { WorkActivityWidget } from './WorkActivityWidget';
 import { GoalsWidget } from './GoalsWidget';
-import { DocumentsWidget } from './DocumentsWidget';
 
 interface HRDashboardProps {
   data: HRDashboardData;
@@ -48,7 +47,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -102,7 +101,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           whileHover={{ y: -2 }}
           onClick={() => navigate('/team?role=EMPLOYEE')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -134,7 +133,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           whileHover={{ y: -2 }}
           onClick={() => navigate('/team?role=INTERN')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -166,7 +165,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           whileHover={{ y: -2 }}
           onClick={() => navigate('/team?status=ACTIVE')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -198,7 +197,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           whileHover={{ y: -2 }}
           onClick={() => navigate('/team')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -233,7 +232,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           {/* Team Directory Preview */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -271,7 +270,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
                     padding: '0.75rem 1rem',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
-                    background: '#FFFFFF',
+                    background: 'var(--bg-surface-elevated)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -308,7 +307,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           {/* HR Work Overview */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -328,25 +327,25 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Assigned</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '2px' }}>{data.hrWorkOverview.tasksAssigned}</div>
               </div>
-              <div style={{ background: '#F5F3FF', border: '1px solid #EDE9FE', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#6D28D9', textTransform: 'uppercase' }}>In Progress</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6D28D9', marginTop: '2px' }}>{data.hrWorkOverview.tasksInProgress}</div>
+              <div style={{ background: 'var(--color-soft-lavender)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-lavender-dark)', textTransform: 'uppercase' }}>In Progress</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-lavender-dark)', marginTop: '2px' }}>{data.hrWorkOverview.tasksInProgress}</div>
               </div>
-              <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#16A34A', textTransform: 'uppercase' }}>Completed</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', marginTop: '2px' }}>{data.hrWorkOverview.tasksCompleted}</div>
+              <div style={{ background: 'var(--color-soft-green)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>Completed</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-deep)', marginTop: '2px' }}>{data.hrWorkOverview.tasksCompleted}</div>
               </div>
-              <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#DC2626', textTransform: 'uppercase' }}>Overdue</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#DC2626', marginTop: '2px' }}>{data.hrWorkOverview.overdueTasks}</div>
+              <div style={{ background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-danger)', textTransform: 'uppercase' }}>Overdue</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-danger)', marginTop: '2px' }}>{data.hrWorkOverview.overdueTasks}</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
               <span>Assign onboarding milestones and evaluate intern deliverables directly in Phase 4.</span>
               <Button variant="outline" size="sm" onClick={() => onQuickAction('assign_task')}>
                 Assign Task
@@ -360,7 +359,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           {/* HR Quick Actions */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -417,7 +416,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           {/* Recent Joiners Spotlight */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -438,7 +437,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
                   onClick={() => navigate(`/team/${j.id}`)}
                   style={{
                     padding: '0.75rem',
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
@@ -477,9 +476,6 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
       </div>
       {/* Phase 9: Goals & OKRs Widget */}
       <GoalsWidget maxItems={4} />
-
-      {/* Phase 10: Documents & Company Knowledge Widget */}
-      <DocumentsWidget maxItems={4} />
 
       {/* Phase 8: Work Activity Monitoring Widget */}
       <WorkActivityWidget maxItems={4} />

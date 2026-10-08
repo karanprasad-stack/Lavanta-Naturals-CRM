@@ -103,6 +103,8 @@ export const taskController = {
         if (s === 'OVERDUE') {
           query.status = { $nin: ['COMPLETED', 'CANCELLED'] };
           query.deadline = { $lt: now };
+        } else if (s === 'ACTIVE') {
+          query.status = { $in: ['TODO', 'IN_PROGRESS'] };
         } else if (s !== 'ALL') {
           query.status = s;
         }
@@ -408,7 +410,7 @@ export const taskController = {
         return;
       }
 
-      const { title, description, priority, deadline, assignedTo } = req.body;
+      const { title, description, priority, deadline, assignedTo, status } = req.body;
       const updates: Record<string, any> = {};
       const activities: Array<{ type: TaskActivityType; message: string }> = [];
 
@@ -418,6 +420,19 @@ export const taskController = {
 
       if (description !== undefined) {
         updates.description = description.trim();
+      }
+
+      if (status && ['TODO', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(status.toUpperCase())) {
+        const s = status.toUpperCase() as TaskStatus;
+        if (s !== task.status) {
+          updates.status = s;
+          if (s === 'IN_PROGRESS' && !task.startedAt) updates.startedAt = new Date();
+          if (s === 'COMPLETED' && !task.completedAt) updates.completedAt = new Date();
+          activities.push({
+            type: 'STATUS_CHANGED' as any,
+            message: `${user.name} changed status from ${task.status} to ${s}.`
+          });
+        }
       }
 
       if (priority && ['HIGH', 'MEDIUM', 'LOW'].includes(priority.toUpperCase())) {

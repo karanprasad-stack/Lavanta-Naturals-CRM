@@ -21,7 +21,6 @@ import { Badge } from '../ui/Badge';
 import { CalendarWidget } from './CalendarWidget';
 import { WorkActivityWidget } from './WorkActivityWidget';
 import { GoalsWidget } from './GoalsWidget';
-import { DocumentsWidget } from './DocumentsWidget';
 
 interface InternDashboardProps {
   data: InternDashboardData;
@@ -47,7 +46,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -101,7 +100,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           whileHover={{ y: -2 }}
           onClick={() => onQuickAction('view_tasks')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -133,7 +132,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           whileHover={{ y: -2 }}
           onClick={() => onQuickAction('view_tasks')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -165,7 +164,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           whileHover={{ y: -2 }}
           onClick={() => onQuickAction('view_tasks')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -197,7 +196,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           whileHover={{ y: -2 }}
           onClick={() => onQuickAction('view_tasks')}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -232,7 +231,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           {/* Important Assigned Tasks */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -271,7 +270,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
                       padding: '0.85rem 1rem',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
-                      background: '#FAFBF8',
+                      background: 'var(--bg-surface-elevated)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
@@ -303,7 +302,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           {/* Intern Mentorship & Learning Note */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -339,7 +338,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           {/* Quick Actions */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -396,7 +395,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           {/* Upcoming Schedule */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -418,7 +417,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
                     style={{
                       padding: '0.65rem 0.75rem',
                       borderRadius: 'var(--radius-sm)',
-                      background: '#FAFBF8',
+                      background: 'var(--bg-surface-elevated)',
                       border: '1px solid var(--border-color)',
                       fontSize: '0.8rem'
                     }}
@@ -442,7 +441,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           {/* Cohort Announcements */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -462,7 +461,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
                   key={notice.id}
                   style={{
                     padding: '0.75rem',
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
                     fontSize: '0.8rem'
@@ -486,9 +485,6 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
       </div>
       {/* Phase 9: Goals & OKRs Widget */}
       <GoalsWidget maxItems={4} />
-
-      {/* Phase 10: Documents & Company Knowledge Widget */}
-      <DocumentsWidget maxItems={4} />
 
       {/* Phase 8: Personal Work Activity Widget */}
       <WorkActivityWidget maxItems={4} />

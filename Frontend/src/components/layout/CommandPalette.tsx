@@ -6,7 +6,6 @@ import {
   Users,
   CheckSquare,
   Package,
-  FileText,
   Video,
   Lightbulb,
   Bell,
@@ -21,11 +20,10 @@ import {
   X
 } from 'lucide-react';
 import { useCommandPalette } from '../../context/CommandPaletteContext';
-import { mockUsers, mockTasks, mockOrders, mockMeetings, mockNotices, mockIdeas, mockDocuments } from '../../data/mockData';
-import { documentService, DocumentItem, formatFileSize } from '../../services/documentService';
+import { mockUsers, mockTasks, mockOrders, mockMeetings, mockNotices, mockIdeas } from '../../data/mockData';
 import { productService } from '../../services/productService';
 import { searchService } from '../../services/searchService';
-import { ProductItem } from '../../types/inventory';
+import { ProductItem } from '../../types/product';
 
 interface SearchResultItem {
   id: string;
@@ -43,16 +41,11 @@ export const CommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
   const [serverResults, setServerResults] = useState<SearchResultItem[] | null>(null);
-  const [realDocs, setRealDocs] = useState<DocumentItem[]>([]);
   const [realProducts, setRealProducts] = useState<ProductItem[]>([]);
   const debounceTimerRef = useRef<any>(null);
 
   useEffect(() => {
     if (isOpen) {
-      documentService.getDocuments({ limit: 50 }).then(res => {
-        if (res?.data) setRealDocs(res.data);
-      }).catch(() => {});
-
       productService.getProducts({ limit: 50 }).then(res => {
         if (res?.products) setRealProducts(res.products);
       }).catch(() => {});
@@ -93,7 +86,7 @@ export const CommandPalette: React.FC = () => {
           id: `prod-${p._id}`,
           category: 'PRODUCTS',
           title: p.name,
-          subtitle: `${p.sku} • Stock: ${p.stockQuantity} ${p.unit.toLowerCase()}s • ₹${p.sellingPrice}`,
+          subtitle: `${p.sku} • ₹${p.sellingPrice}`,
           url: `/products/${p._id}`,
           icon: <Package size={16} color="var(--color-primary)" />
         });
@@ -174,31 +167,6 @@ export const CommandPalette: React.FC = () => {
       });
     });
 
-    // Documents
-    if (realDocs.length > 0) {
-      realDocs.forEach(d => {
-        list.push({
-          id: `d-${d._id}`,
-          category: 'DOCUMENTS',
-          title: d.title,
-          subtitle: `${d.category} • ${d.fileType} (${formatFileSize(d.fileSize)}) • by ${d.uploadedBy?.name || 'Lavanta'}`,
-          url: `/documents/${d._id}`,
-          icon: <FileText size={16} color="var(--color-primary-deep)" />
-        });
-      });
-    } else {
-      mockDocuments.forEach(d => {
-        list.push({
-          id: `d-${d.id}`,
-          category: 'DOCUMENTS',
-          title: d.title,
-          subtitle: `${d.category} • ${d.fileType} (${d.fileSize})`,
-          url: '/documents',
-          icon: <FileText size={16} color="var(--color-text-secondary)" />
-        });
-      });
-    }
-
     // Notices
     mockNotices.forEach(n => {
       list.push({
@@ -224,14 +192,13 @@ export const CommandPalette: React.FC = () => {
     });
 
     return list;
-  }, [realProducts, realDocs]);
+  }, [realProducts]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'PEOPLE': return <Users size={16} color="var(--color-sage)" />;
       case 'TASKS': return <CheckSquare size={16} color="var(--color-primary)" />;
       case 'ANNOUNCEMENTS': return <Megaphone size={16} color="var(--color-warning)" />;
-      case 'DOCUMENTS': return <FileText size={16} color="var(--color-primary-deep)" />;
       case 'GOALS': return <Target size={16} color="#7C3AED" />;
       case 'PRODUCTS': return <Package size={16} color="#16A34A" />;
       case 'ORDERS': return <ShoppingBag size={16} color="#D97706" />;

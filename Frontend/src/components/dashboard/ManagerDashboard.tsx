@@ -21,8 +21,6 @@ import { Badge } from '../ui/Badge';
 import { CalendarWidget } from './CalendarWidget';
 import { WorkActivityWidget } from './WorkActivityWidget';
 import { GoalsWidget } from './GoalsWidget';
-import { DocumentsWidget } from './DocumentsWidget';
-import { InventoryWidget } from './InventoryWidget';
 import { SalesWidget } from './SalesWidget';
 import { ExpenseWidget } from './ExpenseWidget';
 
@@ -52,7 +50,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -106,7 +104,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           whileHover={{ y: -2 }}
           onClick={() => navigate(`/team?department=${encodeURIComponent(dept)}`)}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -138,7 +136,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           whileHover={{ y: -2 }}
           onClick={() => navigate(`/team?department=${encodeURIComponent(dept)}&role=EMPLOYEE`)}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -170,7 +168,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           whileHover={{ y: -2 }}
           onClick={() => navigate(`/team?department=${encodeURIComponent(dept)}&role=INTERN`)}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -202,7 +200,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           whileHover={{ y: -2 }}
           onClick={() => navigate(`/team?department=${encodeURIComponent(dept)}&status=ACTIVE`)}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.25rem 1.5rem',
@@ -237,7 +235,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           {/* Team Task Overview */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -257,25 +255,25 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+              <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Assigned</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '2px' }}>{data.teamTaskOverview.assigned}</div>
               </div>
-              <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#16A34A', textTransform: 'uppercase' }}>In Progress</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', marginTop: '2px' }}>{data.teamTaskOverview.inProgress}</div>
+              <div style={{ background: 'var(--color-soft-green)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>In Progress</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-deep)', marginTop: '2px' }}>{data.teamTaskOverview.inProgress}</div>
               </div>
-              <div style={{ background: '#F0FDF4', border: '1px solid #DCFCE7', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#16A34A', textTransform: 'uppercase' }}>Completed</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#16A34A', marginTop: '2px' }}>{data.teamTaskOverview.completed}</div>
+              <div style={{ background: 'var(--color-soft-green)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>Completed</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-deep)', marginTop: '2px' }}>{data.teamTaskOverview.completed}</div>
               </div>
-              <div style={{ background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#DC2626', textTransform: 'uppercase' }}>Overdue</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#DC2626', marginTop: '2px' }}>{data.teamTaskOverview.overdue}</div>
+              <div style={{ background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-danger)', textTransform: 'uppercase' }}>Overdue</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-danger)', marginTop: '2px' }}>{data.teamTaskOverview.overdue}</div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
               <span>Assign direct tasks to team members and monitor real-time completion.</span>
               <Button variant="primary" size="sm" onClick={() => onQuickAction('assign_task')}>
                 + Assign Task
@@ -286,7 +284,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           {/* Managed Team Members */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem 1.75rem',
@@ -324,7 +322,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
                     padding: '0.75rem 1rem',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
-                    background: '#FFFFFF',
+                    background: 'var(--bg-surface)',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
@@ -364,7 +362,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           {/* Manager Quick Actions */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -421,7 +419,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
           {/* Department Information Card */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -455,14 +453,8 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
         <ExpenseWidget expenseOverview={data.expenseOverview} />
       </div>
 
-      {/* Phase 11: Inventory Summary Widget */}
-      <InventoryWidget />
-
       {/* Phase 9: Goals & OKRs Widget */}
       <GoalsWidget maxItems={4} />
-
-      {/* Phase 10: Documents & Company Knowledge Widget */}
-      <DocumentsWidget maxItems={4} />
 
       {/* Phase 8: Work Activity Monitoring Widget */}
       <WorkActivityWidget maxItems={4} />

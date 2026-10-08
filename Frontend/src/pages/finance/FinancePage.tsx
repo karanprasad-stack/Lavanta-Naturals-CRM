@@ -26,7 +26,8 @@ import {
   Legend
 } from 'recharts';
 import { financeService } from '../../services/financeService';
-import { FinanceSummary, FinanceTrendPoint, ExpenseBreakdownResponse } from '../../types/finance';
+import { FinanceSummary, FinanceTrendPoint, ExpenseBreakdownResponse, ChannelProfitabilityResponse } from '../../types/finance';
+import { SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
@@ -41,6 +42,7 @@ export const FinancePage: React.FC = () => {
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [trends, setTrends] = useState<FinanceTrendPoint[]>([]);
   const [breakdown, setBreakdown] = useState<ExpenseBreakdownResponse | null>(null);
+  const [channelProfitability, setChannelProfitability] = useState<ChannelProfitabilityResponse | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [loading, setLoading] = useState(true);
 
@@ -49,14 +51,16 @@ export const FinancePage: React.FC = () => {
   const loadFinanceData = async () => {
     try {
       setLoading(true);
-      const [sumData, trendData, breakData] = await Promise.all([
+      const [sumData, trendData, breakData, channelData] = await Promise.all([
         financeService.getFinanceSummary(),
         financeService.getFinanceTrends(timeRange),
-        financeService.getExpenseBreakdown()
+        financeService.getExpenseBreakdown(),
+        financeService.getChannelProfitability()
       ]);
       setSummary(sumData);
       setTrends(trendData);
       setBreakdown(breakData);
+      setChannelProfitability(channelData);
     } catch (err: any) {
       showToast(err.message || 'Failed to load financial intelligence', 'error');
     } finally {
@@ -274,6 +278,103 @@ export const FinancePage: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Channel Commercial Contribution & Profitability */}
+      <div className="luxury-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--color-primary)', margin: 0 }}>
+              Sales Channel Profitability & Unit Contribution
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+              Recognized Revenue minus Marketplace Fees and Channel Direct Expenses
+            </span>
+          </div>
+          {channelProfitability && (
+            <Badge variant="forest">
+              Total Net Contribution: ₹{channelProfitability.totalContribution.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </Badge>
+          )}
+        </div>
+
+        {!channelProfitability || channelProfitability.channels.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#6B7280', fontSize: '0.875rem' }}>
+            No recognized commercial sales to calculate channel contribution.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '0.75rem 1.5rem' }}>Channel</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Gross Revenue</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Marketplace Fees</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Direct Expenses</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Net Contribution</th>
+                  <th style={{ padding: '0.75rem 1.5rem', textAlign: 'right' }}>Contribution Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {channelProfitability.channels.map((ch) => {
+                  const channelKey = ch.channel as SalesChannel;
+                  const cfg = SALES_CHANNEL_CONFIGS[channelKey] || SALES_CHANNEL_CONFIGS.WEBSITE;
+
+                  return (
+                    <tr key={ch.channel} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '0.9rem 1.5rem', fontWeight: 600 }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          backgroundColor: `${cfg.color}15`,
+                          color: cfg.color,
+                          border: `1px solid ${cfg.color}40`
+                        }}>
+                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: cfg.color }} />
+                          {ch.displayName || (ch as any).channelName || cfg.displayName || cfg.name}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+                        ₹{ch.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', color: ch.channelFees > 0 ? '#B45309' : '#9CA3AF' }}>
+                        {ch.channelFees > 0 ? `-₹${ch.channelFees.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', color: ch.allocatedExpenses > 0 ? '#DC2626' : '#9CA3AF' }}>
+                        {ch.allocatedExpenses > 0 ? `-₹${ch.allocatedExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: ((ch as any).netContribution ?? (ch as any).contribution ?? 0) >= 0 ? '#15803D' : '#DC2626' }}>
+                        ₹{((ch as any).netContribution ?? (ch as any).contribution ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '0.9rem 1.5rem', textAlign: 'right' }}>
+                        {(() => {
+                          const margin = (ch as any).contributionMarginPercent ?? (ch as any).contributionMargin ?? 0;
+                          return (
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              backgroundColor: margin >= 50 ? '#DCFCE7' : margin >= 20 ? '#FEF3C7' : '#FEE2E2',
+                              color: margin >= 50 ? '#15803D' : margin >= 20 ? '#92400E' : '#DC2626'
+                            }}>
+                              {margin}%
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Expense Breakdown by Category */}

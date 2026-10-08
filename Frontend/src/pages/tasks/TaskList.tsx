@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, CheckSquare, Sparkles, AlertCircle } from 'lucide-react';
 import { Task, TaskCounters, TaskFilterParams, TaskStatus } from '../../types/task';
 import { User } from '../../types';
@@ -12,6 +12,7 @@ import { TaskFiltersBar } from '../../components/tasks/TaskFiltersBar';
 import { TaskTable } from '../../components/tasks/TaskTable';
 import { KanbanBoard } from '../../components/tasks/KanbanBoard';
 import { TaskCreateDrawer } from '../../components/tasks/TaskCreateDrawer';
+import { TaskEditModal } from '../../components/tasks/TaskEditModal';
 import { TaskCompleteModal } from '../../components/tasks/TaskCompleteModal';
 import { TaskSkeleton } from '../../components/tasks/TaskSkeleton';
 import { Button } from '../../components/ui/Button';
@@ -32,14 +33,38 @@ export const TaskList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Helper to parse status query parameter
+  const getInitialStatus = (): string => {
+    const s = (searchParams.get('status') || '').toUpperCase();
+    if (s === 'OVERDUE') return 'OVERDUE';
+    if (s === 'ACTIVE') return 'ACTIVE';
+    if (s === 'IN_PROGRESS' || s === 'IN-PROGRESS') return 'IN_PROGRESS';
+    if (s === 'TODO' || s === 'TO_DO' || s === 'TO-DO') return 'TODO';
+    if (s === 'COMPLETED') return 'COMPLETED';
+    return 'ALL';
+  };
+
   // Filters State
   const [filters, setFilters] = useState<TaskFilterParams>({
-    search: '',
-    status: 'ALL',
-    priority: 'ALL',
-    assignee: 'ALL',
-    deadline: 'all'
+    search: searchParams.get('search') || '',
+    status: getInitialStatus(),
+    priority: searchParams.get('priority') || 'ALL',
+    assignee: searchParams.get('assignee') || 'ALL',
+    deadline: searchParams.get('deadline') || 'all'
   });
+
+  // Sync state if URL search parameters change externally
+  useEffect(() => {
+    const urlStatus = getInitialStatus();
+    setFilters(prev => {
+      if (prev.status !== urlStatus) {
+        return { ...prev, status: urlStatus };
+      }
+      return prev;
+    });
+  }, [searchParams]);
 
   // View Mode: Table vs Kanban (persisted in localStorage)
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>(() => {
@@ -49,6 +74,7 @@ export const TaskList: React.FC = () => {
   // Drawer / Modals State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [completeModalTask, setCompleteModalTask] = useState<Task | null>(null);
+  const [editModalTask, setEditModalTask] = useState<Task | null>(null);
   const [teamMembers, setTeamMembers] = useState<User[]>([]);
 
   const userRole = (currentUser?.role || activeRole || 'EMPLOYEE').toUpperCase();
@@ -88,6 +114,15 @@ export const TaskList: React.FC = () => {
 
   const handleFilterChange = (key: keyof TaskFilterParams, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+    const newParams = new URLSearchParams(searchParams);
+    if (key === 'status') {
+      if (value === 'ALL') {
+        newParams.delete('status');
+      } else {
+        newParams.set('status', value.toLowerCase());
+      }
+      setSearchParams(newParams, { replace: true });
+    }
   };
 
   const handleResetFilters = () => {
@@ -98,6 +133,7 @@ export const TaskList: React.FC = () => {
       assignee: 'ALL',
       deadline: 'all'
     });
+    setSearchParams({}, { replace: true });
   };
 
   const handleViewModeChange = (mode: 'table' | 'kanban') => {
@@ -116,7 +152,17 @@ export const TaskList: React.FC = () => {
     }
   };
 
-  const handleStatusDrop = async (taskId: string, newStatus: TaskStatus) => {
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await taskService.cancelTask(taskId);
+      showToast('Task cancelled successfully.', 'success');
+      fetchTasks();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to cancel task.', 'error');
+    }
+  };
+
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
     try {
       if (newStatus === 'IN_PROGRESS') {
         await taskService.startTask(taskId);
@@ -128,43 +174,45 @@ export const TaskList: React.FC = () => {
         }
       } else if (newStatus === 'CANCELLED') {
         await taskService.cancelTask(taskId);
+      } else {
+        await taskService.updateTask(taskId, { status: newStatus });
       }
+      showToast(`Task status updated to ${newStatus}.`, 'success');
       fetchTasks();
     } catch (err: any) {
       showToast(err?.message || 'Failed to update task status.', 'error');
     }
   };
 
+  const handleStatusDrop = async (taskId: string, newStatus: TaskStatus) => {
+    await handleStatusChange(taskId, newStatus);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1440px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '1440px', margin: '0 auto' }}>
       {/* 1. Page Header */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: 'var(--shadow-xs)'
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-deep)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              {isManagement ? 'Team Task Management & Delegation' : 'Personal Workspace Agenda'}
-            </span>
-          </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            {isManagement ? 'Tasks & Deliverables' : 'My Assigned Tasks'}
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            Tasks
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: '4px 0 0' }}>
             {isManagement
-              ? 'Assign, monitor, and manage operational tasks across departments.'
-              : 'Execute assigned deliverables, submit proof of work, and track completion.'}
+              ? 'Manage and track work across your team.'
+              : 'Manage and track your assigned work.'}
           </p>
         </div>
 
@@ -175,52 +223,19 @@ export const TaskList: React.FC = () => {
             icon={<Plus size={16} />}
             onClick={() => setIsCreateOpen(true)}
           >
-            Assign Task
+            + Create Task
           </Button>
         )}
       </div>
 
-      {/* 2. Task Counters Bar */}
+      {/* 2. Task Summary Counters (Active, In Progress, Completed, Overdue) */}
       <TaskCountersBar
         counters={counters}
         activeStatus={filters.status || 'ALL'}
         onSelectStatus={statusKey => handleFilterChange('status', statusKey)}
       />
 
-      {/* 3. Compact Management Monitoring Banner */}
-      {isManagement && (
-        <div
-          style={{
-            background: '#FAFBF8',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-color)',
-            padding: '0.75rem 1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '0.825rem',
-            color: 'var(--color-text-secondary)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} color="var(--color-primary-deep)" />
-            <span>
-              <strong>Operations Pulse:</strong>{' '}
-              {counters.inProgress} active task{counters.inProgress === 1 ? '' : 's'} underway across units.{' '}
-              {counters.overdue > 0 && (
-                <span style={{ color: '#DC2626', fontWeight: 700 }}>
-                  ⚠️ {counters.overdue} task{counters.overdue === 1 ? ' is' : 's are'} overdue.
-                </span>
-              )}
-            </span>
-          </div>
-          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-            Real-time MongoDB Sync
-          </span>
-        </div>
-      )}
-
-      {/* 4. Filters & View Toggle Bar */}
+      {/* 3. Filters & View Toggle Bar */}
       <TaskFiltersBar
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -256,17 +271,24 @@ export const TaskList: React.FC = () => {
           tasks={tasks}
           isManagement={isManagement}
           currentUserId={currentUserId}
+          currentUser={currentUser}
           onStartTask={handleStartTask}
           onOpenCompleteModal={task => setCompleteModalTask(task)}
+          onEditTask={task => setEditModalTask(task)}
+          onDeleteTask={handleDeleteTask}
+          onStatusChange={handleStatusChange}
         />
       ) : (
         <KanbanBoard
           tasks={tasks}
           isManagement={isManagement}
           currentUserId={currentUserId}
+          currentUser={currentUser}
           onStartTask={handleStartTask}
           onOpenCompleteModal={task => setCompleteModalTask(task)}
           onStatusChange={handleStatusDrop}
+          onEditTask={task => setEditModalTask(task)}
+          onDeleteTask={handleDeleteTask}
         />
       )}
 
@@ -291,6 +313,18 @@ export const TaskList: React.FC = () => {
           fetchTasks();
           setCompleteModalTask(null);
         }}
+      />
+
+      {/* 8. Task Edit Modal (Management only) */}
+      <TaskEditModal
+        task={editModalTask}
+        isOpen={Boolean(editModalTask)}
+        onClose={() => setEditModalTask(null)}
+        onUpdated={() => {
+          fetchTasks();
+          setEditModalTask(null);
+        }}
+        teamMembers={teamMembers}
       />
     </div>
   );

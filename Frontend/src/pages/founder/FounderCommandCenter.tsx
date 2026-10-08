@@ -126,8 +126,10 @@ export const FounderCommandCenter: React.FC = () => {
     teamOverview,
     activeWork,
     goalsOverview,
-    inventoryOverview,
     salesOverview,
+    salesByChannel = [],
+    recentOrders = [],
+    recentExpenses = [],
     expenseOverview,
     financialSummary,
     announcements,
@@ -148,7 +150,7 @@ export const FounderCommandCenter: React.FC = () => {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -180,7 +182,7 @@ export const FounderCommandCenter: React.FC = () => {
             style={{
               padding: '6px 12px',
               borderRadius: '8px',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated)',
               border: '1px solid var(--border-color)',
               fontSize: '0.85rem',
               color: 'var(--color-text-secondary)',
@@ -214,22 +216,63 @@ export const FounderCommandCenter: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* 2. Top Company Overview Cards (Clickable) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+      {/* 2. Top Executive Business Overview Cards (Clickable to canonical modules) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
         {[
-          { label: 'Team Members', value: companyOverview.teamMembers, url: '/team', color: '#16A34A', bg: '#DCFCE7', icon: <Users size={16} /> },
-          { label: 'Active Tasks', value: companyOverview.activeTasks, url: '/tasks', color: '#2563EB', bg: '#DBEAFE', icon: <CheckSquare size={16} /> },
-          { label: 'Overdue Tasks', value: companyOverview.overdueTasks, url: '/tasks?status=OVERDUE', color: '#DC2626', bg: '#FEE2E2', icon: <AlertTriangle size={16} /> },
-          { label: 'Active Goals', value: companyOverview.activeGoals, url: '/goals', color: '#7C3AED', bg: '#F3E8FF', icon: <Target size={16} /> },
-          { label: 'Low Stock', value: companyOverview.lowStock, url: '/inventory?stock=LOW', color: '#D97706', bg: '#FEF3C7', icon: <Package size={16} /> },
-          { label: 'Pending Orders', value: companyOverview.pendingOrders, url: '/orders', color: '#059669', bg: '#D1FAE5', icon: <ShoppingBag size={16} /> },
-          { label: 'Pending Expenses', value: companyOverview.pendingExpenses, url: '/expenses', color: '#EA580C', bg: '#FFEDD5', icon: <Receipt size={16} /> }
+          {
+            label: 'Total Sales',
+            value: `₹${(financialSummary.recognizedRevenue || 0).toLocaleString()}`,
+            url: '/sales',
+            color: '#16A34A',
+            bg: 'rgba(22, 163, 74, 0.14)',
+            icon: <DollarSign size={16} />
+          },
+          {
+            label: 'Total Orders',
+            value: salesOverview?.totalOrders ?? companyOverview?.totalOrders ?? 0,
+            url: '/orders',
+            color: '#2563EB',
+            bg: 'rgba(37, 99, 235, 0.14)',
+            icon: <ShoppingBag size={16} />
+          },
+          {
+            label: 'Pending Orders',
+            value: companyOverview.pendingOrders ?? 0,
+            url: '/orders?status=pending',
+            color: '#059669',
+            bg: 'rgba(5, 150, 105, 0.14)',
+            icon: <Clock size={16} />
+          },
+          {
+            label: 'Total Expenses',
+            value: `₹${(financialSummary.recognizedExpenses || 0).toLocaleString()}`,
+            url: '/expenses',
+            color: '#EA580C',
+            bg: 'rgba(234, 88, 12, 0.14)',
+            icon: <Receipt size={16} />
+          },
+          {
+            label: 'Active Tasks',
+            value: companyOverview.activeTasks,
+            url: '/tasks?status=active',
+            color: '#7C3AED',
+            bg: 'rgba(124, 58, 237, 0.14)',
+            icon: <CheckSquare size={16} />
+          },
+          {
+            label: 'Team Members',
+            value: companyOverview.teamMembers,
+            url: '/team',
+            color: '#0D9488',
+            bg: 'rgba(13, 148, 136, 0.14)',
+            icon: <Users size={16} />
+          }
         ].map((card, idx) => (
           <div
             key={idx}
             onClick={() => navigate(card.url)}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.15rem',
@@ -257,7 +300,7 @@ export const FounderCommandCenter: React.FC = () => {
                 {card.icon}
               </div>
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
               {card.value}
             </div>
           </div>
@@ -269,7 +312,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Task Status Distribution */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -300,7 +343,7 @@ export const FounderCommandCenter: React.FC = () => {
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                 <Tooltip
                   formatter={(value: any) => [`${value} tasks`, 'Count']}
-                  contentStyle={{ backgroundColor: '#FAFBF8', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '0.8rem' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--color-text-primary)', fontSize: '0.8rem' }}
                 />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                   {taskDistData.map((entry, index) => (
@@ -315,7 +358,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Active Work ("Tasks In Progress") */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -323,10 +366,18 @@ export const FounderCommandCenter: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-              Tasks In Progress
-            </h3>
-            <Badge variant="lavender" size="sm">{activeWork.length} active</Badge>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                Tasks In Progress
+              </h3>
+              <Badge variant="lavender" size="sm">{activeWork.length} active</Badge>
+            </div>
+            <button
+              onClick={() => navigate('/tasks?status=active')}
+              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+            >
+              View Tasks →
+            </button>
           </div>
 
           {activeWork.length === 0 ? (
@@ -343,7 +394,7 @@ export const FounderCommandCenter: React.FC = () => {
                     padding: '10px 12px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color)',
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -369,123 +420,285 @@ export const FounderCommandCenter: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Business Overview: Sales & Inventory */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
-        {/* Sales & Revenue Trend */}
-        <div
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            padding: '1.5rem',
-            boxShadow: 'var(--shadow-xs)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Revenue Operations (Last 7 Days)
-              </h3>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
-                <span>Today: <strong>₹{salesOverview.todayRevenue.toLocaleString()}</strong></span>
-                <span>This Month: <strong>₹{salesOverview.monthRevenue.toLocaleString()}</strong></span>
+      {/* 4. Business Overview: Multi-Channel Sales & Recent Transactions */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {/* Sales Trend and Sales by Channel Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
+          {/* Sales & Revenue Trend */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Revenue Operations (Last 7 Days)
+                </h3>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '4px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+                  <span>Today: <strong>₹{salesOverview.todayRevenue.toLocaleString()}</strong></span>
+                  <span>This Month: <strong>₹{salesOverview.monthRevenue.toLocaleString()}</strong></span>
+                </div>
               </div>
+
+              <button
+                onClick={() => navigate('/sales-analytics')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Analytics →
+              </button>
             </div>
 
-            <button
-              onClick={() => navigate('/sales')}
-              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Sales Hub →
-            </button>
+            <div style={{ height: '170px', width: '100%' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={salesOverview.salesTrend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="founderSalesGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#16A34A" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#16A34A" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip
+                    formatter={(val: any) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
+                    contentStyle={{ backgroundColor: 'var(--bg-surface-elevated)', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--color-text-primary)', fontSize: '0.8rem' }}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#16A34A" strokeWidth={2} fillOpacity={1} fill="url(#founderSalesGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          <div style={{ height: '170px', width: '100%' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesOverview.salesTrend} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="founderSalesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#16A34A" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#16A34A" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip
-                  formatter={(val: any) => [`₹${Number(val).toLocaleString()}`, 'Revenue']}
-                  contentStyle={{ backgroundColor: '#FAFBF8', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '0.8rem' }}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#16A34A" strokeWidth={2} fillOpacity={1} fill="url(#founderSalesGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          {/* Sales by Channel Card */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Sales by Sales Channel
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                  Commercial share across Website, Amazon, Flipkart
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/sales-analytics')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Channel Details →
+              </button>
+            </div>
+
+            {salesByChannel.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                No channel sales recorded yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {salesByChannel.map((ch) => (
+                  <div
+                    key={ch.channel}
+                    onClick={() => navigate('/sales-analytics')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                        {ch.displayName}
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--color-primary-deep)' }}>
+                        ₹{ch.revenue.toLocaleString()} ({ch.sharePercent}%)
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '5px', backgroundColor: '#E2E8F0', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.min(ch.sharePercent, 100)}%`,
+                          height: '100%',
+                          backgroundColor: (ch as any).color || 'var(--color-primary)',
+                          borderRadius: '3px'
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Low Stock Watchlist */}
-        <div
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            padding: '1.5rem',
-            boxShadow: 'var(--shadow-xs)'
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                Low Stock Watchlist
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Total Products: {inventoryOverview.totalProducts} • Out of Stock: {inventoryOverview.outOfStock}
-              </p>
+        {/* Recent Orders and Recent Expenses Feed */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.5rem' }}>
+          {/* Recent Orders Widget */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Recent Sales Orders
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                  Latest multi-channel booking transactions
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/orders')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                View Orders →
+              </button>
             </div>
 
-            <button
-              onClick={() => navigate('/inventory')}
-              style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Inventory →
-            </button>
-          </div>
-
-          {inventoryOverview.lowStockProducts.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#16A34A', fontSize: '0.85rem' }}>
-              All product stocks healthy and above thresholds!
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {inventoryOverview.lowStockProducts.map(p => (
-                <div
-                  key={p.id}
-                  onClick={() => navigate(`/products/${p.id}`)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border-color)',
-                    background: '#FAFBF8',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
-                      {p.name}
+            {recentOrders.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                No customer orders booked yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {recentOrders.map((ord) => (
+                  <div
+                    key={ord.id}
+                    onClick={() => navigate(`/orders/${ord.id}`)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                          {ord.orderNumber}
+                        </span>
+                        <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(22, 163, 74, 0.12)', color: '#16A34A', fontWeight: 600 }}>
+                          {ord.salesChannel}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                        {ord.customerName} {ord.externalOrderId ? `• Ext: ${ord.externalOrderId}` : ''}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                      SKU: {p.sku} • Threshold: {p.threshold}
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--color-primary)' }}>
+                        ₹{ord.total.toLocaleString()}
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: ord.orderStatus === 'DELIVERED' ? '#15803D' : '#D97706', fontWeight: 600 }}>
+                        {ord.orderStatus}
+                      </span>
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  <Badge variant={p.stockQuantity === 0 ? 'danger' : 'warning'}>
-                    {p.stockQuantity} Left
-                  </Badge>
-                </div>
-              ))}
+          {/* Recent Expenses Widget */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                  Recent Expenses
+                </h3>
+                <p style={{ margin: '2px 0 0', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                  Latest operational and platform costs
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/expenses')}
+                style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              >
+                View Expenses →
+              </button>
             </div>
-          )}
+
+            {recentExpenses.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>
+                No expense entries recorded yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {recentExpenses.map((exp) => (
+                  <div
+                    key={exp.id}
+                    onClick={() => navigate(`/expenses/${exp.id}`)}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                          {exp.title}
+                        </span>
+                        {exp.salesChannel && exp.salesChannel !== 'GENERAL' && (
+                          <span style={{ fontSize: '0.7rem', padding: '1px 6px', borderRadius: '4px', backgroundColor: 'rgba(234, 88, 12, 0.12)', color: '#EA580C', fontWeight: 600 }}>
+                            {exp.salesChannel}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                        {exp.category} • by {exp.submittedByName}
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#DC2626' }}>
+                        ₹{exp.amount.toLocaleString()}
+                      </div>
+                      <span style={{ fontSize: '0.7rem', color: exp.status === 'PAID' ? '#15803D' : '#D97706', fontWeight: 600 }}>
+                        {exp.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -494,7 +707,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Team Overview */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -514,10 +727,10 @@ export const FounderCommandCenter: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.8rem', background: '#F1F5F9', padding: '4px 8px', borderRadius: '4px' }}>Employees: <strong>{teamOverview.employees}</strong></span>
-            <span style={{ fontSize: '0.8rem', background: '#F1F5F9', padding: '4px 8px', borderRadius: '4px' }}>Interns: <strong>{teamOverview.interns}</strong></span>
-            <span style={{ fontSize: '0.8rem', background: '#F1F5F9', padding: '4px 8px', borderRadius: '4px' }}>Managers: <strong>{teamOverview.managers}</strong></span>
-            <span style={{ fontSize: '0.8rem', background: '#F1F5F9', padding: '4px 8px', borderRadius: '4px' }}>HR: <strong>{teamOverview.hr}</strong></span>
+            <span style={{ fontSize: '0.8rem', background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>Employees: <strong>{teamOverview.employees}</strong></span>
+            <span style={{ fontSize: '0.8rem', background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>Interns: <strong>{teamOverview.interns}</strong></span>
+            <span style={{ fontSize: '0.8rem', background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>Managers: <strong>{teamOverview.managers}</strong></span>
+            <span style={{ fontSize: '0.8rem', background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>HR: <strong>{teamOverview.hr}</strong></span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -532,12 +745,12 @@ export const FounderCommandCenter: React.FC = () => {
                   padding: '8px 10px',
                   borderRadius: '6px',
                   border: '1px solid var(--border-color)',
-                  background: '#FAFBF8',
+                  background: 'var(--bg-surface-elevated)',
                   cursor: 'pointer'
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--color-soft-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>
                     {m.name.charAt(0)}
                   </div>
                   <div>
@@ -561,7 +774,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Company Goals & OKRs */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -594,7 +807,7 @@ export const FounderCommandCenter: React.FC = () => {
                   padding: '10px 12px',
                   borderRadius: '8px',
                   border: '1px solid var(--border-color)',
-                  background: '#FAFBF8',
+                  background: 'var(--bg-surface-elevated)',
                   cursor: 'pointer'
                 }}
               >
@@ -628,7 +841,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Pending Expense Approvals with Quick Actions */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -645,10 +858,10 @@ export const FounderCommandCenter: React.FC = () => {
               </p>
             </div>
             <button
-              onClick={() => navigate('/expenses')}
+              onClick={() => navigate('/expenses?status=pending')}
               style={{ background: 'none', border: 'none', color: 'var(--color-primary)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
             >
-              Expenses Ledger →
+              Review Expenses →
             </button>
           </div>
 
@@ -665,7 +878,7 @@ export const FounderCommandCenter: React.FC = () => {
                     padding: '10px 12px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color)',
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
@@ -734,7 +947,7 @@ export const FounderCommandCenter: React.FC = () => {
         {/* Compact Operational Financial Summary */}
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
             padding: '1.5rem',
@@ -759,22 +972,22 @@ export const FounderCommandCenter: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
-            <div style={{ padding: '12px', borderRadius: '8px', background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+            <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(22, 163, 74, 0.12)', border: '1px solid rgba(22, 163, 74, 0.3)' }}>
               <span style={{ fontSize: '0.75rem', color: '#16A34A', fontWeight: 600 }}>Recognized Revenue</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#15803D', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-primary-deep)', marginTop: '4px' }}>
                 ₹{financialSummary.recognizedRevenue.toLocaleString()}
               </div>
             </div>
 
-            <div style={{ padding: '12px', borderRadius: '8px', background: '#FEF2F2', border: '1px solid #FECACA' }}>
+            <div style={{ padding: '12px', borderRadius: '8px', background: 'rgba(220, 38, 38, 0.12)', border: '1px solid rgba(220, 38, 38, 0.3)' }}>
               <span style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 600 }}>Committed Expenses</span>
-              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#B91C1C', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#FF8585', marginTop: '4px' }}>
                 ₹{financialSummary.recognizedExpenses.toLocaleString()}
               </div>
             </div>
           </div>
 
-          <div style={{ padding: '12px', borderRadius: '8px', background: '#FAFBF8', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '12px', borderRadius: '8px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>Net Operating Difference</span>
               <div style={{ fontSize: '1.15rem', fontWeight: 700, color: financialSummary.netOperatingDifference >= 0 ? '#15803D' : '#DC2626', marginTop: '2px' }}>
@@ -792,7 +1005,7 @@ export const FounderCommandCenter: React.FC = () => {
       {/* 7. Company Unified Activity Timeline */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.5rem',
@@ -826,15 +1039,15 @@ export const FounderCommandCenter: React.FC = () => {
                 padding: '10px 12px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
-                background: '#FAFBF8',
+                background: 'var(--bg-surface-elevated)',
                 cursor: act.link ? 'pointer' : 'default',
                 transition: 'background-color 0.15s'
               }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#F4F7F2')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FAFBF8')}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-hover-nested)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)')}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'var(--color-soft-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary)' }}>
                   {act.user.name.charAt(0)}
                 </div>
                 <div>
@@ -848,7 +1061,7 @@ export const FounderCommandCenter: React.FC = () => {
               </div>
 
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                {new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(act.timestamp || act.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
           ))}
@@ -858,7 +1071,7 @@ export const FounderCommandCenter: React.FC = () => {
       {/* 8. Announcements Summary */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.5rem',
@@ -889,7 +1102,7 @@ export const FounderCommandCenter: React.FC = () => {
                 padding: '12px',
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)',
-                background: '#FAFBF8',
+                background: 'var(--bg-surface-elevated)',
                 cursor: 'pointer'
               }}
             >
@@ -938,8 +1151,9 @@ export const FounderCommandCenter: React.FC = () => {
         >
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: '12px',
+              border: '1px solid var(--border-strong)',
               padding: '1.5rem',
               maxWidth: '440px',
               width: '100%',

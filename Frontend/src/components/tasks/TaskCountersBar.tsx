@@ -14,30 +14,24 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
   activeStatus,
   onSelectStatus
 }) => {
+  const activeCount = (counters.todo || 0) + (counters.inProgress || 0);
+
   const items = [
     {
-      key: 'ALL',
-      label: 'All Tasks',
-      count: counters.all,
+      key: 'ACTIVE',
+      label: 'Active',
+      count: activeCount,
       icon: <Layers size={16} />,
       color: 'var(--color-primary-deep)',
-      bg: '#F8FAFC'
-    },
-    {
-      key: 'TODO',
-      label: 'To Do',
-      count: counters.todo,
-      icon: <CheckSquare size={16} />,
-      color: '#B45309',
-      bg: '#FEF3C7'
+      bg: 'rgba(22, 163, 74, 0.1)'
     },
     {
       key: 'IN_PROGRESS',
       label: 'In Progress',
       count: counters.inProgress,
       icon: <Clock size={16} />,
-      color: 'var(--color-primary-deep)',
-      bg: '#F0FDF4'
+      color: '#0284C7',
+      bg: 'rgba(2, 132, 199, 0.1)'
     },
     {
       key: 'COMPLETED',
@@ -45,7 +39,7 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
       count: counters.completed,
       icon: <CheckCircle2 size={16} />,
       color: '#16A34A',
-      bg: '#DCFCE7'
+      bg: 'rgba(22, 163, 74, 0.1)'
     },
     {
       key: 'OVERDUE',
@@ -53,7 +47,7 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
       count: counters.overdue,
       icon: <AlertCircle size={16} />,
       color: '#DC2626',
-      bg: '#FEE2E2'
+      bg: 'rgba(220, 38, 38, 0.1)'
     }
   ];
 
@@ -73,7 +67,7 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
             whileHover={{ y: -2 }}
             onClick={() => onSelectStatus(isSelected ? 'ALL' : item.key)}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               border: isSelected
                 ? '2px solid var(--color-primary)'
                 : '1px solid var(--border-color)',

@@ -22,7 +22,7 @@ Lavanta Naturals is an enterprise-grade internal operations and management platf
 
 | Role | Scope & Permissions | Key Accessible Areas |
 | :--- | :--- | :--- |
-| **FOUNDER** | Complete executive platform control, system governance, and financials | Founder Cockpit (`/founder`), Security Audit (`/audit`), System Status (`/system`), Financials, Full Exports, All Modules |
+| **FOUNDER** | Complete executive platform control, system governance, and financials | Founder Dashboard (`/dashboard`), Security Audit (`/audit`), System Status (`/system`), Financials, Full Exports, All Modules |
 | **HR** | People operations, employee lifecycle, directory, and security oversight | Team Management (`/team`), Security Audit (`/audit`), Announcements, Documents, Tasks, Profile |
 | **MANAGER** | Department leadership, task dispatching, expense approvals, sales orders | Team Tasks (`/tasks`), Sales & Orders (`/orders`), Expense Approvals (`/expenses`), Goals (`/goals`), Work Activity |
 | **EMPLOYEE** | Personal productivity, assigned task execution, reimbursement claims | My Tasks, My Activity (`/my-activity`), My Goals (`/my-goals`), Expense Claims, Company Chat, Documents |
@@ -45,7 +45,7 @@ Lavanta Naturals is an enterprise-grade internal operations and management platf
 11. **Phase 11 — Products & Inventory**: Full Ayurvedic product catalog, SKU tracking, stock adjustments, stock in/out ledger, and low-stock alerts.
 12. **Phase 12 — Sales, Orders & Expenses**: Customer CRM, order confirmation with atomic stock deduction, expense approval workflows, and revenue analytics.
 13. **Phase 13 — Founder Command Center & Production Readiness**:
-    - **Founder Cockpit (`/founder`)**: 7 live operational KPIs, work distribution, active tasks in progress, pending expense approvals with inline actions, and financial pulse.
+    - **Unified Founder Dashboard (`/dashboard`)**: Single executive source of truth with 6 vital KPIs, priority attention triage, 7-day revenue momentum, work status distribution, and unified audit stream.
     - **Unified Activity Service**: Normalized real-time aggregation across 6 activity collections.
     - **Security Audit Trail (`/audit`)**: Tamper-evident logging of sensitive actions (`LOGIN`, `ROLE_CHANGED`, `STOCK_ADJUSTED`, `EXPENSE_APPROVED`, `EXPORT_GENERATED`).
     - **Global Multi-Entity Search (`⌘K`)**: Debounced server-side search across People, Tasks, Announcements, Documents, Goals, Products, and Orders.

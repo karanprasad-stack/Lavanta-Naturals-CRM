@@ -1,7 +1,11 @@
 const TOKEN_STORAGE_KEY = 'lavanta_jwt_token';
 
 export function getAuthToken(): string | null {
-  return localStorage.getItem(TOKEN_STORAGE_KEY);
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  if (!token || token === 'undefined' || token === 'null') {
+    return null;
+  }
+  return token;
 }
 
 export function setAuthToken(token: string): void {

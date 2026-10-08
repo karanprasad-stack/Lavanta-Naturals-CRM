@@ -12,13 +12,29 @@ import {
   Calendar,
   Clipboard,
   ChevronRight,
-  TrendingUp,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { activityService, MyActivityData, formatDuration } from '../../services/activityService';
-import { Badge } from '../../components/ui/Badge';
+import { activityService, MyActivityData } from '../../services/activityService';
 import { Button } from '../../components/ui/Button';
+
+// Compact relative time formatter
+function formatRelativeTime(dateInput: string | Date): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay === 1) return 'Yesterday';
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 export const MyActivityPage: React.FC = () => {
   const navigate = useNavigate();
@@ -26,7 +42,7 @@ export const MyActivityPage: React.FC = () => {
 
   const [data, setData] = useState<MyActivityData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'active' | 'completed' | 'overdue'>('active');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     loadMyActivity();
@@ -41,7 +57,13 @@ export const MyActivityPage: React.FC = () => {
       console.error('[MyActivityPage] Error:', err);
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadMyActivity();
   };
 
   const getActivityIcon = (type: string) => {
@@ -62,16 +84,7 @@ export const MyActivityPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '2rem 0' }}>
-        <div style={{ height: '120px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0', animation: 'pulse 1.5s infinite' }} />
-        <div style={{ height: '240px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0', animation: 'pulse 1.5s infinite' }} />
-      </div>
-    );
-  }
-
-  const { todaySummary, activeTasks, completedTasks, overdueTasks, recentActivities } = data || {
+  const { todaySummary, recentActivities } = data || {
     todaySummary: { assignedToday: 0, inProgress: 0, completed: 0, pending: 0, overdue: 0 },
     activeTasks: [],
     completedTasks: [],
@@ -80,321 +93,194 @@ export const MyActivityPage: React.FC = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', paddingBottom: '3rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '1440px', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* 1. Header */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1rem',
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: 'var(--shadow-xs)'
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-deep)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Personal Workspace
-            </span>
-            <Badge variant="green" size="sm">MY WORK</Badge>
-          </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            My Activity & Work Status
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            Work Activity
           </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
-            Track your tasks in progress, completed milestones, and recent workspace actions.
+          <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
+            See your recent workspace actions and deliverable updates.
           </p>
         </div>
 
         <Button
           variant="outline"
           size="sm"
-          onClick={loadMyActivity}
+          onClick={handleRefresh}
+          disabled={isRefreshing}
           style={{ gap: '6px' }}
         >
-          <RefreshCw size={14} />
+          <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
           <span>Refresh</span>
         </Button>
       </div>
 
-      {/* 2. Today's Work Summary Cards */}
+      {/* 2. Work Summary Cards (4 High-Level Metrics) */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '1rem'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+          gap: '0.85rem'
         }}
       >
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center', borderLeft: '4px solid #64748B' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Assigned Today</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '4px' }}>{todaySummary.assignedToday}</div>
+        {/* In Progress */}
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              In Progress
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0284C7', marginTop: '2px', lineHeight: 1.1 }}>
+              {todaySummary.inProgress}
+            </div>
+          </div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(2, 132, 199, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#0284C7' }}>
+            <Clock size={16} />
+          </div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center', borderLeft: '4px solid #0284C7' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#0369A1', textTransform: 'uppercase' }}>In Progress</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0284C7', marginTop: '4px' }}>{todaySummary.inProgress}</div>
+
+        {/* Completed Today */}
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Completed Today
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#16A34A', marginTop: '2px', lineHeight: 1.1 }}>
+              {todaySummary.completed}
+            </div>
+          </div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+            <CheckCircle2 size={16} />
+          </div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center', borderLeft: '4px solid #16A34A' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803D', textTransform: 'uppercase' }}>Completed</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#16A34A', marginTop: '4px' }}>{todaySummary.completed}</div>
+
+        {/* Pending */}
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Pending (To Do)
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#B45309', marginTop: '2px', lineHeight: 1.1 }}>
+              {todaySummary.pending}
+            </div>
+          </div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(180, 83, 9, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309' }}>
+            <Clipboard size={16} />
+          </div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center', borderLeft: '4px solid #D97706' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#B45309', textTransform: 'uppercase' }}>Pending (TODO)</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#D97706', marginTop: '4px' }}>{todaySummary.pending}</div>
-        </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center', borderLeft: `4px solid ${todaySummary.overdue > 0 ? '#DC2626' : '#94A3B8'}` }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#B91C1C', textTransform: 'uppercase' }}>Overdue</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: todaySummary.overdue > 0 ? '#DC2626' : '#64748B', marginTop: '4px' }}>{todaySummary.overdue}</div>
+
+        {/* Overdue */}
+        <div
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--shadow-xs)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Overdue
+            </div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: todaySummary.overdue > 0 ? '#DC2626' : 'var(--color-text-primary)', marginTop: '2px', lineHeight: 1.1 }}>
+              {todaySummary.overdue}
+            </div>
+          </div>
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(220, 38, 38, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
+            <AlertCircle size={16} />
+          </div>
         </div>
       </div>
 
-      {/* 3. Task Tabs: Active Work, Completed, Overdue */}
+      {/* 3. Recent Personal Activity Timeline */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.5rem',
+          padding: '1.25rem 1.5rem',
           boxShadow: 'var(--shadow-xs)'
         }}
       >
-        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px', marginBottom: '1.25rem' }}>
-          <button
-            onClick={() => setActiveTab('active')}
-            style={{
-              border: 'none',
-              background: activeTab === 'active' ? '#E0F2FE' : 'transparent',
-              color: activeTab === 'active' ? '#0369A1' : '#64748B',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Play size={14} />
-            <span>Currently Working ({activeTasks.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('completed')}
-            style={{
-              border: 'none',
-              background: activeTab === 'completed' ? '#DCFCE7' : 'transparent',
-              color: activeTab === 'completed' ? '#15803D' : '#64748B',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <CheckCircle2 size={14} />
-            <span>Completed Tasks ({completedTasks.length})</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('overdue')}
-            style={{
-              border: 'none',
-              background: activeTab === 'overdue' ? '#FEE2E2' : 'transparent',
-              color: activeTab === 'overdue' ? '#B91C1C' : '#64748B',
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              padding: '8px 14px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <AlertCircle size={14} />
-            <span>Overdue ({overdueTasks.length})</span>
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Activity size={16} color="var(--color-primary-deep)" />
+            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+              Recent Activity Timeline
+            </h2>
+          </div>
+          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+            {recentActivities.length} event{recentActivities.length === 1 ? '' : 's'} logged
+          </span>
         </div>
 
-        {/* Tab 1: Active Work */}
-        {activeTab === 'active' && (
-          <div>
-            {activeTasks.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', background: '#FAFBF8', borderRadius: '8px', color: '#64748B', fontSize: '0.85rem' }}>
-                You have no tasks in progress right now. Pick a task from "My Tasks" and click "Start Task" to begin!
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {activeTasks.map(task => (
-                  <div
-                    key={task._id}
-                    onClick={() => navigate(`/tasks/${task._id}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                      background: '#FFFFFF',
-                      transition: 'border-color 0.15s, transform 0.15s'
-                    }}
-                    onMouseEnter={e => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.borderColor = '#E2E8F0';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                    }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                          {task.title}
-                        </span>
-                        <Badge variant={task.priority === 'HIGH' ? 'warning' : 'neutral'} size="sm">
-                          {task.priority}
-                        </Badge>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.78rem', color: 'var(--color-text-secondary)' }}>
-                        <span style={{ color: '#0284C7', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <Clock size={12} />
-                          Active duration: {formatDuration(task.durationMs)}
-                        </span>
-                        <span>Deadline: {new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} color="#94A3B8" />
-                  </div>
-                ))}
-              </div>
-            )}
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '1rem 0' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ height: '48px', background: 'var(--bg-surface-elevated, #FAFBF8)', borderRadius: '6px', opacity: 0.6 }} />
+            ))}
           </div>
-        )}
-
-        {/* Tab 2: Completed Tasks */}
-        {activeTab === 'completed' && (
-          <div>
-            {completedTasks.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', background: '#FAFBF8', borderRadius: '8px', color: '#64748B', fontSize: '0.85rem' }}>
-                No completed tasks found in history yet.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {completedTasks.map(task => (
-                  <div
-                    key={task._id}
-                    onClick={() => navigate(`/tasks/${task._id}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid #E2E8F0',
-                      cursor: 'pointer',
-                      background: '#FFFFFF'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
-                          {task.title}
-                        </span>
-                        <Badge variant="green" size="sm">COMPLETED</Badge>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '12px' }}>
-                        <span>Completed: {task.completedAt ? new Date(task.completedAt).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Recently'}</span>
-                        {task.durationMs && (
-                          <span style={{ color: '#16A34A', fontWeight: 600 }}>
-                            Duration: {formatDuration(task.durationMs)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight size={18} color="#94A3B8" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 3: Overdue Tasks */}
-        {activeTab === 'overdue' && (
-          <div>
-            {overdueTasks.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', background: '#FAFBF8', borderRadius: '8px', color: '#16A34A', fontSize: '0.85rem' }}>
-                Awesome! You have zero overdue tasks!
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {overdueTasks.map(task => (
-                  <div
-                    key={task._id}
-                    onClick={() => navigate(`/tasks/${task._id}`)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '12px 16px',
-                      borderRadius: '8px',
-                      border: '1px solid #FEE2E2',
-                      cursor: 'pointer',
-                      background: '#FFF5F5'
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#B91C1C' }}>
-                          {task.title}
-                        </span>
-                        <Badge variant="warning" size="sm">OVERDUE</Badge>
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#B91C1C' }}>
-                        Passed deadline: {new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                    <ChevronRight size={18} color="#B91C1C" />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 4. Recent Personal Activity Timeline */}
-      <div
-        style={{
-          background: '#FFFFFF',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
-          boxShadow: 'var(--shadow-xs)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
-          <Activity size={18} color="var(--color-primary-deep)" />
-          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Recent Activity Log
-          </h2>
-        </div>
-
-        {recentActivities.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', background: '#FAFBF8', borderRadius: '8px', color: '#64748B', fontSize: '0.85rem' }}>
-            No recent actions logged yet.
+        ) : recentActivities.length === 0 ? (
+          <div style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+            <Clock size={28} color="var(--color-text-muted)" style={{ margin: '0 auto 8px' }} />
+            <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>No recent activity logged</div>
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+              Actions such as starting tasks, uploading proof of work, or commenting will appear here.
+            </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {recentActivities.map(act => (
               <div
                 key={act._id}
@@ -402,36 +288,57 @@ export const MyActivityPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '10px 12px',
                   borderRadius: '8px',
-                  background: '#FAFBF8',
-                  borderLeft: '3px solid var(--color-primary)'
+                  background: 'var(--bg-surface-elevated, #FAFBF8)',
+                  border: '1px solid var(--border-color)'
                 }}
               >
-                <div style={{ marginTop: '2px' }}>{getActivityIcon(act.type)}</div>
+                <div
+                  style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    marginTop: '2px'
+                  }}
+                >
+                  {getActivityIcon(act.type)}
+                </div>
+
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--color-text-primary)', lineHeight: 1.4 }}>
                     {act.message}
                   </div>
                   {act.taskId && (
                     <div
-                      onClick={() => navigate(`/tasks/${act.taskId._id}`)}
+                      onClick={() => navigate(`/tasks/${act.taskId?._id}`)}
                       style={{
-                        fontSize: '0.78rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '0.75rem',
                         color: '#0284C7',
                         fontWeight: 500,
-                        marginTop: '2px',
+                        marginTop: '4px',
                         cursor: 'pointer',
                         textDecoration: 'underline'
                       }}
                     >
-                      Task: {act.taskId.title}
+                      <span>Task: {act.taskId.title}</span>
+                      <ArrowRight size={11} />
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                  {new Date(act.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
+
+                <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginTop: '2px' }}>
+                  {formatRelativeTime(act.createdAt)}
+                </span>
               </div>
             ))}
           </div>
@@ -440,3 +347,5 @@ export const MyActivityPage: React.FC = () => {
     </div>
   );
 };
+
+export default MyActivityPage;

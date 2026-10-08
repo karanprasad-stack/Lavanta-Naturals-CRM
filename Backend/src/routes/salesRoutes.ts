@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate, authorize } from '../middleware/auth.js';
 import {
   getSalesSummary,
+  getSalesByChannel,
   getSalesTrends,
   getTopProducts
 } from '../controllers/salesController.js';
@@ -12,6 +13,7 @@ router.use(authenticate);
 
 // Sales metrics restricted to FOUNDER and MANAGER (plus HR for high-level top products)
 router.get('/sales/summary', authorize('FOUNDER', 'MANAGER'), getSalesSummary);
+router.get('/sales/channels', authorize('FOUNDER', 'MANAGER'), getSalesByChannel);
 router.get('/sales/trends', authorize('FOUNDER', 'MANAGER'), getSalesTrends);
 router.get('/sales/top-products', authorize('FOUNDER', 'MANAGER', 'HR'), getTopProducts);
 

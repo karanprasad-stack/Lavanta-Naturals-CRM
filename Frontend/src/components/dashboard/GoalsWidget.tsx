@@ -49,7 +49,7 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
         padding: '1.5rem',
@@ -73,14 +73,14 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
               width: '32px',
               height: '32px',
               borderRadius: '8px',
-              background: '#F0FDF4',
+              background: 'rgba(88, 200, 58, 0.14)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid #DCFCE7'
+              border: '1px solid rgba(88, 200, 58, 0.3)'
             }}
           >
-            <Target size={18} color="var(--color-primary-deep)" />
+            <Target size={18} color="var(--color-primary)" />
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
@@ -105,8 +105,8 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
 
       {isLoading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '1rem 0' }}>
-          <div style={{ height: '32px', background: '#F8FAFC', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
-          <div style={{ height: '32px', background: '#F8FAFC', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '32px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
+          <div style={{ height: '32px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', animation: 'pulse 1.5s infinite' }} />
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -118,40 +118,40 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
                 gap: '8px',
                 padding: '10px 12px',
-                background: '#F8FAFC',
+                background: 'var(--bg-surface-elevated)',
                 borderRadius: '8px',
-                border: '1px solid #EDF2F7'
+                border: '1px solid var(--border-color)'
               }}
             >
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   Active
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0284C7' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#60A5FA' }}>
                   {summary.activeGoals}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   At Risk
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: summary.atRiskGoals > 0 ? '#DC2626' : '#64748B' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: summary.atRiskGoals > 0 ? '#FF8585' : 'var(--color-text-muted)' }}>
                   {summary.atRiskGoals}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   Done
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#16A34A' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#86E56B' }}>
                   {summary.completedGoals}
                 </div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   Avg Progress
                 </div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-primary-deep)' }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-primary)' }}>
                   {summary.averageProgress}%
                 </div>
               </div>
@@ -160,7 +160,7 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
 
           {/* Goal items */}
           {goals.length === 0 ? (
-            <div style={{ padding: '1rem', textAlign: 'center', background: '#FAFBF8', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
+            <div style={{ padding: '1rem', textAlign: 'center', background: 'var(--bg-surface-elevated)', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>
               No goals established yet.
             </div>
           ) : (
@@ -172,17 +172,19 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
                   style={{
                     padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #E2E8F0',
-                    background: '#FFFFFF',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-surface-elevated)',
                     cursor: 'pointer',
                     transition: 'border-color 0.15s, transform 0.15s'
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.borderColor = 'var(--color-primary)';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-hover)';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = '#E2E8F0';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
@@ -195,17 +197,17 @@ export const GoalsWidget: React.FC<GoalsWidgetProps> = ({ maxItems = 3 }) => {
                     </Badge>
                   </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748B', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
                     <span>{goal.owner?.name}</span>
-                    <strong style={{ color: 'var(--color-primary-deep)' }}>{goal.progress}%</strong>
+                    <strong style={{ color: 'var(--color-primary)' }}>{goal.progress}%</strong>
                   </div>
 
-                  <div style={{ height: '5px', background: '#F1F5F9', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ height: '5px', background: 'var(--bg-input)', borderRadius: '3px', overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
                         width: `${goal.progress}%`,
-                        background: goal.status === 'AT_RISK' ? '#DC2626' : (goal.progress >= 100 ? '#16A34A' : 'var(--color-primary)'),
+                        background: goal.status === 'AT_RISK' ? '#EF4444' : (goal.progress >= 100 ? '#86E56B' : 'var(--color-primary)'),
                         borderRadius: '3px'
                       }}
                     />

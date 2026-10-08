@@ -24,10 +24,13 @@ import {
   Receipt,
   Compass,
   Server,
-  ShieldAlert
+  ShieldAlert,
+  Sliders,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useWorkspaceConfig } from '../../context/WorkspaceConfigContext';
 import { LavantaLogo } from '../ui/LavantaLogo';
 
 interface SidebarProps {
@@ -35,6 +38,14 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+}
+
+interface NavItemConfig {
+  label: string;
+  icon: React.ReactNode;
+  to: string;
+  moduleKey: string;
+  badge?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -45,75 +56,85 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { unreadCount } = useNotifications();
+  const { isModuleVisible, previewRole } = useWorkspaceConfig();
   const location = useLocation();
 
-  const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
-  const isManagement = userRole === 'FOUNDER' || userRole === 'HR' || userRole === 'MANAGER' || userRole === 'HR_MANAGER';
+  const realRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
+  // If previewing, active role displays as previewRole
+  const effectiveRole = previewRole || realRole;
+  const isManagement = effectiveRole === 'FOUNDER' || effectiveRole === 'HR' || effectiveRole === 'MANAGER' || effectiveRole === 'HR_MANAGER';
 
-  const navSections = [
+  const navSections: { title: string; items: NavItemConfig[] }[] = [
     {
       title: 'Workspace',
       items: [
-        ...(userRole === 'FOUNDER' ? [
-          { label: 'Founder Cockpit', icon: <Compass size={18} />, to: '/founder' }
-        ] : []),
-        { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard' },
+        { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard', moduleKey: 'dashboard' },
         { 
           label: isManagement ? 'Tasks' : 'My Tasks', 
           icon: <CheckSquare size={18} />, 
-          to: '/tasks' 
+          to: '/tasks',
+          moduleKey: 'tasks'
         },
         { 
           label: isManagement ? 'Work Activity' : 'My Activity', 
           icon: <Activity size={18} />, 
-          to: isManagement ? '/activity' : '/my-activity' 
+          to: isManagement ? '/activity' : '/my-activity',
+          moduleKey: 'workActivity'
         },
         { 
           label: isManagement ? 'Goals & OKRs' : 'My Goals', 
           icon: <Target size={18} />, 
-          to: isManagement ? '/goals' : '/my-goals' 
+          to: isManagement ? '/goals' : '/my-goals',
+          moduleKey: 'goals'
         },
-        { label: 'Documents', icon: <FileText size={18} />, to: '/documents' },
-        { label: 'Calendar', icon: <Calendar size={18} />, to: '/calendar' }
+        { label: 'Calendar', icon: <Calendar size={18} />, to: '/calendar', moduleKey: 'calendar' }
       ]
     },
     {
-      title: 'Catalog & Stock',
+      title: 'Catalog & Sales',
       items: [
-        { label: 'Products', icon: <Package size={18} />, to: '/products' },
-        ...(isManagement ? [{ label: 'Inventory', icon: <Layers size={18} />, to: '/inventory' }] : [])
+        { label: 'Products', icon: <Package size={18} />, to: '/products', moduleKey: 'products' },
+        { label: 'Orders', icon: <ShoppingBag size={18} />, to: '/orders', moduleKey: 'orders' },
+        { label: 'Sales Analytics', icon: <TrendingUp size={18} />, to: '/sales', moduleKey: 'salesAnalytics' }
       ]
     },
     {
-      title: 'Sales & Finance',
+      title: 'Finance',
       items: [
-        { label: 'Orders', icon: <ShoppingBag size={18} />, to: '/orders' },
-        ...((userRole === 'FOUNDER' || userRole === 'MANAGER') ? [
-          { label: 'Sales Analytics', icon: <TrendingUp size={18} />, to: '/sales' },
-          { label: 'Financials', icon: <DollarSign size={18} />, to: '/finance' }
-        ] : []),
-        { label: 'Expenses', icon: <Receipt size={18} />, to: '/expenses' }
+        { label: 'Expenses', icon: <Receipt size={18} />, to: '/expenses', moduleKey: 'expenses' },
+        { label: 'Financials', icon: <DollarSign size={18} />, to: '/finance', moduleKey: 'financials' }
       ]
     },
     {
       title: 'Communication',
       items: [
-        { label: 'Company Chat', icon: <MessageSquare size={18} />, to: '/chat' },
-        { label: 'Announcements', icon: <Megaphone size={18} />, to: '/announcements' },
-        { label: 'Notifications', icon: <Bell size={18} />, to: '/notifications', badge: unreadCount > 0 ? unreadCount : undefined }
+        { label: 'Company Chat', icon: <MessageSquare size={18} />, to: '/chat', moduleKey: 'companyChat' },
+        { label: 'Announcements', icon: <Megaphone size={18} />, to: '/announcements', moduleKey: 'announcements' },
+        { label: 'Notifications', icon: <Bell size={18} />, to: '/notifications', moduleKey: 'notifications', badge: unreadCount > 0 ? unreadCount : undefined }
       ]
     },
     {
-      title: 'Company & Operations',
+      title: 'Company',
       items: [
-        ...(isManagement ? [{ label: 'Team', icon: <Users size={18} />, to: '/team' }] : []),
-        ...(userRole === 'FOUNDER' || userRole === 'HR' ? [{ label: 'Security Audit', icon: <ShieldAlert size={18} />, to: '/audit' }] : []),
-        ...(userRole === 'FOUNDER' ? [{ label: 'System Status', icon: <Server size={18} />, to: '/system' }] : []),
-        { label: 'Profile', icon: <User size={18} />, to: '/profile' },
-        { label: 'Settings', icon: <Settings size={18} />, to: '/settings' }
+        { label: 'Team', icon: <Users size={18} />, to: '/team', moduleKey: 'team' },
+        { label: 'Security Audit', icon: <ShieldAlert size={18} />, to: '/audit', moduleKey: 'securityAudit' },
+        { label: 'System Status', icon: <Server size={18} />, to: '/system', moduleKey: 'systemStatus' },
+        ...(realRole === 'FOUNDER' && !previewRole ? [
+          { label: 'Workspace Access', icon: <Sliders size={18} />, to: '/settings/workspace-access', moduleKey: 'settings' }
+        ] : []),
+        { label: 'Profile', icon: <User size={18} />, to: '/profile', moduleKey: 'profile' },
+        { label: 'Settings', icon: <Settings size={18} />, to: '/settings', moduleKey: 'settings' }
       ]
     }
   ];
+
+  // Dynamic filter based on role workspace configuration
+  const filteredSections = navSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => isModuleVisible(item.moduleKey))
+    }))
+    .filter(section => section.items.length > 0);
 
   return (
     <>
@@ -166,9 +187,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
+        {/* Visual Preview Mode Badge for Founder */}
+        {previewRole && !isCollapsed && (
+          <div
+            style={{
+              margin: '0.5rem 0.85rem',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              backgroundColor: 'rgba(105, 196, 63, 0.12)',
+              border: '1px solid rgba(105, 196, 63, 0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.72rem',
+              color: 'var(--color-primary-deep, #3E8E25)',
+              fontWeight: 600
+            }}
+          >
+            <Eye size={13} />
+            <span>Previewing {previewRole}</span>
+          </div>
+        )}
+
         {/* Navigation Sections */}
         <div className="sidebar-nav">
-          {navSections.map((section, idx) => (
+          {filteredSections.map((section, idx) => (
             <div key={idx}>
               {!isCollapsed && <div className="nav-section-title">{section.title}</div>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -237,8 +280,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 }}
               >
                 <ShieldCheck size={12} color="var(--color-primary)" />
-                <span style={{ textTransform: 'capitalize' }}>
-                  {(currentUser?.role || 'EMPLOYEE').replace('_', ' ').toLowerCase()}
+                <span style={{ textTransform: 'capitalize', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
+                  {effectiveRole.replace('_', ' ').toLowerCase()}
+                  {previewRole ? ' (Preview)' : ''}
                 </span>
               </div>
             </div>

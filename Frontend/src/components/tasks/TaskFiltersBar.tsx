@@ -32,7 +32,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
         padding: '0.85rem 1.25rem',
@@ -55,7 +55,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
           />
           <input
             type="text"
-            placeholder="Search task title, description, or person..."
+            placeholder="Search tasks..."
             value={filters.search || ''}
             onChange={e => onFilterChange('search', e.target.value)}
             style={{
@@ -65,11 +65,34 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
               border: '1px solid var(--border-color)',
               fontSize: '0.85rem',
               outline: 'none',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated, #FAFBF8)',
               color: 'var(--color-text-primary)'
             }}
           />
         </div>
+
+        {/* Status Filter */}
+        <select
+          value={filters.status || 'ALL'}
+          onChange={e => onFilterChange('status', e.target.value)}
+          style={{
+            padding: '0.45rem 0.75rem',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            fontSize: '0.825rem',
+            background: 'var(--bg-surface)',
+            color: 'var(--color-text-primary)',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <option value="ALL">Status: All</option>
+          <option value="ACTIVE">Active</option>
+          <option value="TODO">To Do</option>
+          <option value="IN_PROGRESS">In Progress</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="OVERDUE">Overdue</option>
+        </select>
 
         {/* Priority Filter */}
         <select
@@ -80,7 +103,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
             fontSize: '0.825rem',
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             color: 'var(--color-text-primary)',
             outline: 'none',
             cursor: 'pointer'
@@ -102,7 +125,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
               fontSize: '0.825rem',
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               color: 'var(--color-text-primary)',
               outline: 'none',
               cursor: 'pointer'
@@ -126,13 +149,13 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
             fontSize: '0.825rem',
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             color: 'var(--color-text-primary)',
             outline: 'none',
             cursor: 'pointer'
           }}
         >
-          <option value="all">Deadline: All Time</option>
+          <option value="all">Due Date: All Time</option>
           <option value="today">Due Today</option>
           <option value="this_week">Due This Week</option>
           <option value="overdue">Past Overdue</option>
@@ -149,7 +172,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
               padding: '0.45rem 0.65rem',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated, #FAFBF8)',
               fontSize: '0.75rem',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer'
@@ -167,7 +190,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
         style={{
           display: 'flex',
           alignItems: 'center',
-          background: '#FAFBF8',
+          background: 'var(--bg-surface-elevated, #FAFBF8)',
           border: '1px solid var(--border-color)',
           borderRadius: 'var(--radius-sm)',
           padding: '2px'
@@ -182,7 +205,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
             padding: '0.35rem 0.75rem',
             borderRadius: 'calc(var(--radius-sm) - 2px)',
             border: 'none',
-            background: viewMode === 'table' ? '#FFFFFF' : 'transparent',
+            background: viewMode === 'table' ? 'var(--bg-surface)' : 'transparent',
             color: viewMode === 'table' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
             fontWeight: viewMode === 'table' ? 600 : 500,
             fontSize: '0.8rem',
@@ -204,7 +227,7 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
             padding: '0.35rem 0.75rem',
             borderRadius: 'calc(var(--radius-sm) - 2px)',
             border: 'none',
-            background: viewMode === 'kanban' ? '#FFFFFF' : 'transparent',
+            background: viewMode === 'kanban' ? 'var(--bg-surface)' : 'transparent',
             color: viewMode === 'kanban' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
             fontWeight: viewMode === 'kanban' ? 600 : 500,
             fontSize: '0.8rem',

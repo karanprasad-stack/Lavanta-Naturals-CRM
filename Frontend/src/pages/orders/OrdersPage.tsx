@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ShoppingBag,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { Order, OrderStatus, PaymentStatus } from '../../types/sales';
+import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
@@ -28,14 +29,34 @@ export const OrdersPage: React.FC = () => {
   const { showToast } = useToast();
   const { activeRole } = useAuth();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const getInitialStatus = (): string => {
+    const s = (searchParams.get('status') || '').toUpperCase();
+    if (['PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'].includes(s)) {
+      return s;
+    }
+    return 'ALL';
+  };
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(getInitialStatus());
+  const [channelFilter, setChannelFilter] = useState<string>('ALL');
   const [paymentFilter, setPaymentFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Sync state if URL search parameters change externally
+  useEffect(() => {
+    const urlStatus = getInitialStatus();
+    if (urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+      setPage(1);
+    }
+  }, [searchParams]);
 
   const canManageOrders = activeRole === 'FOUNDER' || activeRole === 'MANAGER';
 
@@ -45,23 +66,37 @@ export const OrdersPage: React.FC = () => {
       const res = await orderService.getOrders({
         search: search.trim() || undefined,
         orderStatus: statusFilter,
+        salesChannel: channelFilter !== 'ALL' ? (channelFilter as SalesChannel) : undefined,
         paymentStatus: paymentFilter,
         page,
         limit: 15
       });
-      setOrders(res.data);
-      setTotalPages(res.pagination.pages || 1);
-      setTotalCount(res.pagination.total || 0);
+      setOrders(Array.isArray(res.data) ? res.data : []);
+      setTotalPages(res.pagination?.pages || 1);
+      setTotalCount(res.pagination?.total || 0);
     } catch (err: any) {
+      setOrders([]);
       showToast(err.message || 'Failed to load orders', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleStatusFilterChange = (newStatus: string) => {
+    setStatusFilter(newStatus);
+    setPage(1);
+    const newParams = new URLSearchParams(searchParams);
+    if (newStatus === 'ALL') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', newStatus.toLowerCase());
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
   useEffect(() => {
     loadOrders();
-  }, [statusFilter, paymentFilter, page]);
+  }, [statusFilter, channelFilter, paymentFilter, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,10 +105,10 @@ export const OrdersPage: React.FC = () => {
   };
 
   const handleQuickConfirm = async (orderId: string, orderNumber: string) => {
-    if (!window.confirm(`Confirm order ${orderNumber}? This will immediately deduct inventory.`)) return;
+    if (!window.confirm(`Confirm order ${orderNumber}?`)) return;
     try {
       await orderService.confirmOrder(orderId);
-      showToast(`Order ${orderNumber} confirmed & stock deducted!`, 'success');
+      showToast(`Order ${orderNumber} confirmed!`, 'success');
       loadOrders();
     } catch (err: any) {
       showToast(err.message || 'Failed to confirm order', 'error');
@@ -149,7 +184,7 @@ export const OrdersPage: React.FC = () => {
             </h1>
           </div>
           <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-            Manage omnichannel orders, inventory fulfillment manifests, customer deliveries, and sales pipelines
+            Unified multi-channel order register consolidating sales across Website, Amazon, Flipkart, and more
           </p>
         </div>
 
@@ -172,6 +207,39 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Quick Status Filter Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        {[
+          { key: 'ALL', label: 'All Orders' },
+          { key: 'PENDING', label: 'Pending' },
+          { key: 'CONFIRMED', label: 'Confirmed' },
+          { key: 'PROCESSING', label: 'Processing' },
+          { key: 'SHIPPED', label: 'Shipped' },
+          { key: 'DELIVERED', label: 'Delivered' },
+          { key: 'CANCELLED', label: 'Cancelled' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => handleStatusFilterChange(tab.key)}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '9999px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid #E5E7EB',
+              background: statusFilter === tab.key ? 'var(--color-primary)' : '#FFFFFF',
+              color: statusFilter === tab.key ? '#FFFFFF' : 'var(--color-text-secondary)',
+              boxShadow: statusFilter === tab.key ? '0 1px 3px rgba(105, 196, 63, 0.25)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       {/* Filter and Search Bar */}
       <div className="luxury-card" style={{ padding: '1.25rem' }}>
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -179,7 +247,7 @@ export const OrdersPage: React.FC = () => {
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
             <input
               type="text"
-              placeholder="Search by order # (LN-2026-...), customer name, phone..."
+              placeholder="Search by order #, external ID, customer name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -194,13 +262,34 @@ export const OrdersPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Channel:</span>
+            <select
+              value={channelFilter}
+              onChange={(e) => {
+                setChannelFilter(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: '0.55rem 0.75rem',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                backgroundColor: '#FFFFFF',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Channels</option>
+              {SALES_CHANNELS.map((ch: any) => (
+                <option key={ch.code || ch.id} value={ch.code || ch.id}>{ch.displayName || ch.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status:</span>
             <select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
               style={{
                 padding: '0.55rem 0.75rem',
                 border: '1px solid #E5E7EB',
@@ -256,16 +345,16 @@ export const OrdersPage: React.FC = () => {
           <div style={{ padding: '3rem 0', display: 'flex', justifyContent: 'center' }}>
             <Loading size="lg" message="Loading sales orders..." />
           </div>
-        ) : orders.length === 0 ? (
+        ) : !Array.isArray(orders) || orders.length === 0 ? (
           <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#F3F4F6', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
               <Package size={24} />
             </div>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.25rem' }}>No orders found</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              {search || statusFilter !== 'ALL' || paymentFilter !== 'ALL'
+              {search || statusFilter !== 'ALL' || channelFilter !== 'ALL' || paymentFilter !== 'ALL'
                 ? 'Try adjusting your filters or search keywords.'
-                : 'No sales orders created yet. Get started by booking your first customer order.'}
+                : 'No sales orders created yet. Consolidate your first multi-channel order.'}
             </p>
             <Button variant="primary" size="sm" onClick={() => navigate('/orders/new')}>
               Create Order
@@ -277,6 +366,7 @@ export const OrdersPage: React.FC = () => {
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <th style={{ padding: '0.85rem 1.25rem' }}>Order #</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Channel</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Customer</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Date</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Items</th>
@@ -287,9 +377,11 @@ export const OrdersPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((ord) => {
+                {(Array.isArray(orders) ? orders : []).map((ord) => {
                   const customerObj = typeof ord.customerId === 'object' ? ord.customerId : null;
                   const totalUnits = ord.items.reduce((s, i) => s + i.quantity, 0);
+                  const channelKey = (ord.salesChannel || 'WEBSITE') as SalesChannel;
+                  const channelCfg = SALES_CHANNEL_CONFIGS[channelKey] || SALES_CHANNEL_CONFIGS.WEBSITE;
 
                   return (
                     <tr
@@ -313,11 +405,28 @@ export const OrdersPage: React.FC = () => {
                         >
                           {ord.orderNumber}
                         </button>
-                        {ord.inventoryDeducted && (
-                          <div style={{ fontSize: '0.7rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
-                            <CheckCircle2 size={11} /> Stock deducted
+                        {ord.externalOrderId && (
+                          <div style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '2px', fontFamily: 'monospace' }}>
+                            Ext: {ord.externalOrderId}
                           </div>
                         )}
+                      </td>
+                      <td style={{ padding: '1rem 1rem' }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '2px 8px',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          backgroundColor: `${channelCfg.color}15`,
+                          color: channelCfg.color,
+                          border: `1px solid ${channelCfg.color}40`
+                        }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: channelCfg.color }} />
+                          {channelCfg.name}
+                        </span>
                       </td>
                       <td style={{ padding: '1rem 1rem' }}>
                         <div style={{ fontWeight: 500, color: '#111827' }}>
@@ -370,7 +479,7 @@ export const OrdersPage: React.FC = () => {
 
                           {canManageOrders && ord.orderStatus === 'PENDING' && (
                             <button
-                              title="Confirm Order & Deduct Stock"
+                              title="Confirm Order"
                               onClick={() => handleQuickConfirm(ord._id, ord.orderNumber)}
                               style={{
                                 padding: '6px',

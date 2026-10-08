@@ -128,7 +128,7 @@ export const DashboardActionModal: React.FC<DashboardActionModalProps> = ({ acti
         <div
           style={{
             padding: '0.85rem 1rem',
-            background: '#FAFBF8',
+            background: 'var(--bg-surface-elevated)',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
             fontSize: '0.825rem',

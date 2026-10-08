@@ -14,7 +14,6 @@ import documentRoutes from './documentRoutes.js';
 import documentFolderRoutes from './documentFolderRoutes.js';
 import productCategoryRoutes from './productCategoryRoutes.js';
 import productRoutes from './productRoutes.js';
-import inventoryRoutes from './inventoryRoutes.js';
 import customerRoutes from './customerRoutes.js';
 import orderRoutes from './orderRoutes.js';
 import salesRoutes from './salesRoutes.js';
@@ -24,6 +23,7 @@ import founderRoutes from './founderRoutes.js';
 import searchRoutes from './searchRoutes.js';
 import auditRoutes from './auditRoutes.js';
 import exportRoutes from './exportRoutes.js';
+import roleWorkspaceRoutes from './roleWorkspaceRoutes.js';
 
 const apiRouter = Router();
 
@@ -34,6 +34,7 @@ apiRouter.use(healthRoutes);
 apiRouter.use(authRoutes);
 apiRouter.use(userRoutes);
 apiRouter.use(dashboardRoutes);
+apiRouter.use(roleWorkspaceRoutes);
 
 // Mount task management, announcements, chat, notifications, calendar, activity, goal & document routes
 apiRouter.use(taskRoutes);
@@ -46,10 +47,9 @@ apiRouter.use(goalRoutes);
 apiRouter.use(documentRoutes);
 apiRouter.use(documentFolderRoutes);
 
-// Mount products and inventory routes (Phase 11)
+// Mount products routes
 apiRouter.use(productCategoryRoutes);
 apiRouter.use(productRoutes);
-apiRouter.use(inventoryRoutes);
 
 // Mount sales, orders, and expense routes (Phase 12)
 apiRouter.use(customerRoutes);

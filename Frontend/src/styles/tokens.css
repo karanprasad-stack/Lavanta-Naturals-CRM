@@ -1,7 +1,7 @@
 :root {
   /* Brand Colors from Lavanta Naturals Official Guidelines */
-  --color-primary: #69C43F;              /* Lavanta Green */
-  --color-primary-rgb: 105, 196, 63;
+  --color-primary: #58C83A;              /* Lavanta Green */
+  --color-primary-rgb: 88, 200, 58;
   --color-primary-hover: #4FAF32;        /* Deep Green for hover/selected */
   --color-primary-deep: #3E8E25;
   --color-soft-green: #EAF7E5;           /* Soft Green */
@@ -13,14 +13,27 @@
   --color-soft-lavender: #F5EEFF;
   --color-lavender-dark: #6D4CBA;
   
-  /* Backgrounds & Surfaces (Light Only) */
-  --bg-app: #FAFBF8;                     /* Soft page background */
-  --bg-surface: #FFFFFF;                 /* Cards, Sidebar & Header */
-  --bg-surface-elevated: #FFFFFF;
-  --bg-subtle: #F4F5F2;                  /* Soft neutral */
+  /* Backgrounds & Surfaces (Light) */
+  --bg-app: #FAFBF8;                     /* Primary Page background */
+  --bg-main: #FAFBF8;                    /* Main content wrapper */
+  --bg-sidebar: #FFFFFF;                 /* Sidebar container */
+  --bg-header: #FFFFFF;                  /* Header bar */
+  --bg-surface: #FFFFFF;                 /* Cards, Panels, Table containers */
+  --bg-card: #FFFFFF;
+  --bg-surface-elevated: #FAFBF8;        /* Nested items, subtle cards */
+  --bg-card-secondary: #FAFBF8;
+  --bg-subtle: #F4F5F2;                  /* Inputs, subtle wrappers */
+  --bg-input: #FFFFFF;
+  --bg-hover: #F0F7EE;
+  --bg-hover-nested: #EBF4E8;
+  --bg-active: #EAF7E5;
+
+  /* Borders */
   --border-color: #E5E8E3;               /* Very subtle neutral border */
   --border-subtle: #EDF0EA;
-  --border-focus: #69C43F;
+  --border-strong: #CBD5E1;
+  --border-input: #E5E8E3;
+  --border-focus: #58C83A;
 
   /* Typography Colors */
   --color-text-primary: #172235;          /* Dark navy/slate */
@@ -31,12 +44,16 @@
   /* Semantic Statuses */
   --color-success: #5EAD45;
   --color-success-bg: #EAF7E5;
+  --color-success-border: rgba(94, 173, 69, 0.25);
   --color-warning: #D69B35;
   --color-warning-bg: #FDF6EA;
+  --color-warning-border: rgba(214, 155, 53, 0.25);
   --color-danger: #D65B5B;
   --color-danger-bg: #FDF0F0;
+  --color-danger-border: rgba(214, 91, 91, 0.25);
   --color-info: #5B8FD6;
   --color-info-bg: #EFF5FC;
+  --color-info-border: rgba(91, 143, 214, 0.25);
 
   /* Typography: Clean Modern Sans-Serif */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -48,8 +65,9 @@
   --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.03);
   --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 8px 24px rgba(16, 24, 40, 0.08);
+  --shadow-xl: 0 16px 36px rgba(16, 24, 40, 0.12);
 
-  /* Radius Tokens (Clean 10-14px) */
+  /* Radius Tokens */
   --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -61,8 +79,165 @@
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
 
-  /* Layout dimensions */
-  --sidebar-width-expanded: 250px;
-  --sidebar-width-collapsed: 68px;
-  --header-height: 64px;
+  /* Calendar Tokens (Light Mode) */
+  --cal-bg-page: #FAFBF8;
+  --cal-bg-container: #FFFFFF;
+  --cal-bg-sidebar: #FFFFFF;
+  --cal-bg-header: #FFFFFF;
+  --cal-bg-grid: #FFFFFF;
+  --cal-bg-cell: #FFFFFF;
+  --cal-bg-cell-hover: #F8FAFC;
+  --cal-bg-cell-selected: #F0FFF4;
+  --cal-border-grid: #F1F5F9;
+  --cal-border-header: #E2E8F0;
+  --cal-text-day-number: #1B2533;
+  --cal-text-muted-month: #CBD5E1;
+  --cal-btn-bg: #FFFFFF;
+  --cal-btn-border: #E2E8F0;
+  --cal-btn-text: #334155;
+  --cal-btn-hover: #F1F5F9;
+
+  /* Calendar Events (Light) */
+  --cal-event-green-bg: #EAF7E6;
+  --cal-event-green-border: rgba(88, 200, 58, 0.4);
+  --cal-event-green-text: #2D6A19;
+  --cal-event-green-dot: #58C83A;
+
+  --cal-event-blue-bg: #EFF6FF;
+  --cal-event-blue-border: rgba(59, 130, 246, 0.4);
+  --cal-event-blue-text: #1D4ED8;
+  --cal-event-blue-dot: #3B82F6;
+
+  --cal-event-yellow-bg: #FEF9C3;
+  --cal-event-yellow-border: rgba(245, 158, 11, 0.4);
+  --cal-event-yellow-text: #92400E;
+  --cal-event-yellow-dot: #F59E0B;
+
+  --cal-event-purple-bg: #EDE9FE;
+  --cal-event-purple-border: rgba(139, 92, 246, 0.4);
+  --cal-event-purple-text: #6D28D9;
+  --cal-event-purple-dot: #8B5CF6;
+
+  --cal-event-gray-bg: #F8FAFC;
+  --cal-event-gray-border: #E2E8F0;
+  --cal-event-gray-text: #334155;
+  --cal-event-gray-dot: #64748B;
+}
+
+/* ==========================================================================
+   Dark Mode Tokens (Deep Navy / Layered Slate Theme for Lavanta Naturals)
+   ========================================================================== */
+:root[data-theme="dark"],
+.dark {
+  /* Level 1: Page & Main Background */
+  --bg-app: #070B14;                     /* Primary deep navy-black page */
+  --bg-main: #0B1220;                    /* Main content background */
+  --bg-sidebar: #080E19;                 /* Sidebar container */
+  --bg-header: #0A101C;                  /* Header bar */
+
+  /* Level 2: Main Card / Surface */
+  --bg-surface: #101927;                 /* Cards, Panels, Table containers */
+  --bg-card: #101927;
+
+  /* Level 3: Nested Card / List Item / Elevated */
+  --bg-surface-elevated: #131E2D;        /* Nested items, list rows, tooltips, modals */
+  --bg-card-secondary: #131E2D;
+  --bg-subtle: #0D1624;                  /* Inputs, filter containers, subtle backgrounds */
+  --bg-input: #0D1624;
+
+  /* Level 4: Hover & Active */
+  --bg-hover: #162337;                   /* Card & button hover */
+  --bg-hover-nested: #172538;            /* Nested item hover */
+  --bg-active: rgba(91, 195, 55, 0.14);  /* Active sidebar item */
+
+  /* Borders */
+  --border-color: #1E2B3D;               /* Primary card / divider border */
+  --border-subtle: #172334;              /* Sidebar right, header bottom, subtle borders */
+  --border-strong: #263548;              /* Modal borders, active card borders */
+  --border-input: #243348;
+  --border-focus: #58C83A;
+
+  /* Typography Colors */
+  --color-text-primary: #F4F7FA;          /* Crisp primary text */
+  --color-text-secondary: #9AA9BD;        /* Muted blue-gray secondary text */
+  --color-text-muted: #6F8097;            /* Readable dark-gray muted text */
+  --color-text-inverted: #070B14;
+
+  /* Brand Accents adapted for Dark Contrast */
+  --color-primary: #58C83A;              /* Lavanta Green */
+  --color-primary-rgb: 88, 200, 58;
+  --color-primary-hover: #67D848;        /* Slightly brighter green on hover */
+  --color-primary-deep: #7BE05C;
+  --color-soft-green: rgba(88, 200, 58, 0.12);
+  --color-soft-green-rgb: 88, 200, 58;
+  --color-lavender-dark: #C4B5FD;
+  --color-soft-lavender: rgba(196, 181, 253, 0.14);
+
+  /* Semantic Status Badges & Indicators */
+  --color-success: #7BE05C;
+  --color-success-bg: rgba(88, 200, 58, 0.12);
+  --color-success-border: rgba(88, 200, 58, 0.30);
+
+  --color-warning: #FFC15A;
+  --color-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-warning-border: rgba(245, 158, 11, 0.30);
+
+  --color-danger: #FF8585;
+  --color-danger-bg: rgba(239, 68, 68, 0.12);
+  --color-danger-border: rgba(239, 68, 68, 0.30);
+
+  --color-info: #60A5FA;
+  --color-info-bg: rgba(59, 130, 246, 0.12);
+  --color-info-border: rgba(59, 130, 246, 0.30);
+
+  /* Elevations / Shadows for Dark */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --shadow-xl: 0 16px 36px rgba(0, 0, 0, 0.40);
+
+  /* Calendar Tokens (Deep Dark Mode) */
+  --cal-bg-page: #070B14;
+  --cal-bg-container: #101927;
+  --cal-bg-sidebar: #0A101C;
+  --cal-bg-header: #0A101C;
+  --cal-bg-grid: #101927;
+  --cal-bg-cell: #101927;
+  --cal-bg-cell-hover: #162337;
+  --cal-bg-cell-selected: rgba(88, 200, 58, 0.10);
+  --cal-border-grid: #1E2B3D;
+  --cal-border-header: #1E2B3D;
+  --cal-text-day-number: #DCE5EF;
+  --cal-text-muted-month: #53657A;
+  --cal-btn-bg: #0D1624;
+  --cal-btn-border: #263548;
+  --cal-btn-text: #AAB8C8;
+  --cal-btn-hover: #172538;
+
+  /* Calendar Events (Dark Tinted Colors) */
+  --cal-event-green-bg: rgba(88, 200, 58, 0.14);
+  --cal-event-green-border: rgba(88, 200, 58, 0.35);
+  --cal-event-green-text: #86E56B;
+  --cal-event-green-dot: #58C83A;
+
+  --cal-event-blue-bg: rgba(59, 130, 246, 0.14);
+  --cal-event-blue-border: rgba(59, 130, 246, 0.35);
+  --cal-event-blue-text: #82B5FF;
+  --cal-event-blue-dot: #60A5FA;
+
+  --cal-event-yellow-bg: rgba(245, 158, 11, 0.14);
+  --cal-event-yellow-border: rgba(245, 158, 11, 0.35);
+  --cal-event-yellow-text: #FFC45C;
+  --cal-event-yellow-dot: #F59E0B;
+
+  --cal-event-purple-bg: rgba(139, 92, 246, 0.14);
+  --cal-event-purple-border: rgba(139, 92, 246, 0.35);
+  --cal-event-purple-text: #C4B5FD;
+  --cal-event-purple-dot: #8B5CF6;
+
+  --cal-event-gray-bg: rgba(148, 163, 184, 0.12);
+  --cal-event-gray-border: rgba(148, 163, 184, 0.25);
+  --cal-event-gray-text: #CBD5E1;
+  --cal-event-gray-dot: #94A3B8;
 }

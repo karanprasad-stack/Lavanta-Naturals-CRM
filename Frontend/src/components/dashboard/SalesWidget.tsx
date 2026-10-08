@@ -72,7 +72,18 @@ export const SalesWidget: React.FC<SalesWidgetProps> = ({ salesOverview }) => {
           </div>
         </div>
 
-        <div style={{ background: pending > 0 ? '#FEF3C7' : '#F9FAFB', padding: '0.75rem', borderRadius: '8px' }}>
+        <div
+          onClick={() => navigate('/orders?status=pending')}
+          style={{
+            background: pending > 0 ? '#FEF3C7' : '#F9FAFB',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            border: pending > 0 ? '1px solid #FCD34D' : '1px solid transparent',
+            transition: 'all 0.15s ease'
+          }}
+          title="Click to view pending orders"
+        >
           <div style={{ fontSize: '0.7rem', color: pending > 0 ? '#92400E' : '#6B7280', textTransform: 'uppercase' }}>Pending</div>
           <div style={{ fontSize: '1.1rem', fontWeight: 700, color: pending > 0 ? '#B45309' : '#374151', marginTop: '2px' }}>
             {pending}

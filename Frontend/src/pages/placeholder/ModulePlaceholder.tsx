@@ -43,7 +43,7 @@ export const ModulePlaceholder: React.FC<ModulePlaceholderProps> = ({
           gap: '1.25rem'
         }}
       >
-        <LavantaLogo variant="mark" size="md" />
+        <LavantaLogo variant="brand-image" size="md" />
 
         <div
           style={{

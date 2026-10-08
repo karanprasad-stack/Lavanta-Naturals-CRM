@@ -83,7 +83,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(23, 34, 53, 0.45)',
+          background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(3px)',
           zIndex: 9999,
           display: 'flex',
@@ -97,10 +97,10 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            border: '1px solid var(--border-strong)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
             width: '100%',
             maxWidth: '520px',
             overflow: 'hidden'
@@ -144,14 +144,14 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
             {errorMsg && (
               <div
                 style={{
-                  background: '#FEF2F2',
-                  border: '1px solid #FEE2E2',
+                  background: 'var(--color-danger-bg)',
+                  border: '1px solid var(--color-danger-border)',
                   borderRadius: 'var(--radius-sm)',
                   padding: '0.65rem 0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  color: '#DC2626',
+                  color: 'var(--color-danger)',
                   fontSize: '0.85rem'
                 }}
               >
@@ -181,7 +181,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
                       cursor: 'pointer',
-                      background: visibility === opt.id ? '#F0FDF4' : '#FFFFFF',
+                      background: visibility === opt.id ? 'var(--color-soft-green)' : 'var(--bg-surface-elevated)',
                       borderColor: visibility === opt.id ? 'var(--color-primary-deep)' : 'var(--border-color)'
                     }}
                   >
@@ -221,7 +221,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
                         padding: '4px 10px',
                         borderRadius: '16px',
                         border: '1px solid var(--border-color)',
-                        background: allowedRoles.includes(r) ? 'var(--color-primary-deep)' : '#FFFFFF',
+                        background: allowedRoles.includes(r) ? 'var(--color-primary-deep)' : 'var(--bg-surface-elevated)',
                         color: allowedRoles.includes(r) ? '#FFFFFF' : 'var(--color-text-secondary)',
                         fontSize: '0.75rem',
                         fontWeight: 600,
@@ -251,7 +251,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
                         padding: '4px 10px',
                         borderRadius: '16px',
                         border: '1px solid var(--border-color)',
-                        background: allowedDepartments.includes(d) ? 'var(--color-primary-deep)' : '#FFFFFF',
+                        background: allowedDepartments.includes(d) ? 'var(--color-primary-deep)' : 'var(--bg-surface-elevated)',
                         color: allowedDepartments.includes(d) ? '#FFFFFF' : 'var(--color-text-secondary)',
                         fontSize: '0.75rem',
                         fontWeight: 600,
@@ -271,7 +271,7 @@ export const ShareDocumentModal: React.FC<ShareDocumentModalProps> = ({
             style={{
               padding: '1rem 1.5rem',
               borderTop: '1px solid var(--border-color)',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',

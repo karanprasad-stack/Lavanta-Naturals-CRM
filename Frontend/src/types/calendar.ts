@@ -6,6 +6,7 @@ export type CalendarEventType =
   | 'FOLLOW_UP'
   | 'COMPANY_EVENT'
   | 'PERSONAL'
+  | 'FESTIVAL'
   | 'OTHER';
 
 export type EventVisibility = 'PRIVATE' | 'TEAM' | 'COMPANY';
@@ -84,10 +85,23 @@ export interface TaskDeadlineEntry extends CalendarEventBase {
   };
 }
 
-export type AnyCalendarEntry = CalendarEvent | TaskDeadlineEntry;
+export interface FestivalCalendarEntry extends CalendarEventBase {
+  isFestival: true;
+  festivalId?: string;
+  festivalType?: 'NATIONAL_HOLIDAY' | 'FESTIVAL' | 'GAZETTED_HOLIDAY' | 'RESTRICTED_HOLIDAY';
+  isHoliday?: boolean;
+  icon?: string;
+  festivalData?: any;
+}
+
+export type AnyCalendarEntry = CalendarEvent | TaskDeadlineEntry | FestivalCalendarEntry;
 
 export function isTaskDeadline(entry: AnyCalendarEntry): entry is TaskDeadlineEntry {
-  return entry.isTaskDeadline === true;
+  return (entry as any).isTaskDeadline === true;
+}
+
+export function isFestivalEntry(entry: AnyCalendarEntry): entry is FestivalCalendarEntry {
+  return (entry as any).isFestival === true;
 }
 
 /** Form values for creating/editing an event */
@@ -110,14 +124,15 @@ export interface CalendarEventFormData {
 
 /** Color mapping per event type */
 export const EVENT_TYPE_COLORS: Record<CalendarEventType, { bg: string; border: string; text: string; dot: string }> = {
-  MEETING: { bg: '#EAF7E6', border: '#C4E9B7', text: '#377E1E', dot: '#69C43F' },
-  TASK_DEADLINE: { bg: '#EDE9FE', border: '#C4B5FD', text: '#6D28D9', dot: '#8B5CF6' },
-  REMINDER: { bg: '#F1F5F9', border: '#CBD5E1', text: '#475569', dot: '#94A3B8' },
-  CALL: { bg: '#DCFCE7', border: '#86EFAC', text: '#15803D', dot: '#22C55E' },
-  FOLLOW_UP: { bg: '#FEF9C3', border: '#FDE68A', text: '#92400E', dot: '#F59E0B' },
-  COMPANY_EVENT: { bg: '#EDE9FE', border: '#C4B5FD', text: '#5B21B6', dot: '#7C3AED' },
-  PERSONAL: { bg: '#F8FAFC', border: '#E2E8F0', text: '#334155', dot: '#64748B' },
-  OTHER: { bg: '#F1F5F9', border: '#CBD5E1', text: '#475569', dot: '#94A3B8' }
+  MEETING: { bg: 'var(--cal-event-green-bg)', border: 'var(--cal-event-green-border)', text: 'var(--cal-event-green-text)', dot: 'var(--cal-event-green-dot)' },
+  TASK_DEADLINE: { bg: 'var(--cal-event-purple-bg)', border: 'var(--cal-event-purple-border)', text: 'var(--cal-event-purple-text)', dot: 'var(--cal-event-purple-dot)' },
+  REMINDER: { bg: 'var(--cal-event-gray-bg)', border: 'var(--cal-event-gray-border)', text: 'var(--cal-event-gray-text)', dot: 'var(--cal-event-gray-dot)' },
+  CALL: { bg: 'var(--cal-event-green-bg)', border: 'var(--cal-event-green-border)', text: 'var(--cal-event-green-text)', dot: 'var(--cal-event-green-dot)' },
+  FOLLOW_UP: { bg: 'var(--cal-event-yellow-bg)', border: 'var(--cal-event-yellow-border)', text: 'var(--cal-event-yellow-text)', dot: 'var(--cal-event-yellow-dot)' },
+  COMPANY_EVENT: { bg: 'var(--cal-event-purple-bg)', border: 'var(--cal-event-purple-border)', text: 'var(--cal-event-purple-text)', dot: 'var(--cal-event-purple-dot)' },
+  PERSONAL: { bg: 'var(--cal-event-gray-bg)', border: 'var(--cal-event-gray-border)', text: 'var(--cal-event-gray-text)', dot: 'var(--cal-event-gray-dot)' },
+  FESTIVAL: { bg: '#FEF3C7', border: '#FDE68A', text: '#92400E', dot: '#F59E0B' },
+  OTHER: { bg: 'var(--cal-event-gray-bg)', border: 'var(--cal-event-gray-border)', text: 'var(--cal-event-gray-text)', dot: 'var(--cal-event-gray-dot)' }
 };
 
 export const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
@@ -128,6 +143,7 @@ export const EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
   FOLLOW_UP: 'Follow-Up',
   COMPANY_EVENT: 'Company Event',
   PERSONAL: 'Personal',
+  FESTIVAL: 'Festival / Holiday',
   OTHER: 'Other'
 };
 

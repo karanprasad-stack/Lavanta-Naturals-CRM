@@ -24,16 +24,16 @@ export const Badge: React.FC<BadgeProps> = ({
   };
 
   const variantStyles: Record<string, React.CSSProperties> = {
-    green: { background: 'var(--color-soft-green)', color: 'var(--color-primary-deep)', border: '1px solid rgba(105, 196, 63, 0.3)' },
-    forest: { background: 'var(--color-soft-green)', color: 'var(--color-primary-deep)', border: '1px solid rgba(105, 196, 63, 0.3)' },
-    success: { background: 'var(--color-soft-green)', color: 'var(--color-primary-deep)', border: '1px solid rgba(105, 196, 63, 0.3)' },
-    sage: { background: '#F4F5F2', color: 'var(--color-text-secondary)', border: '1px solid var(--border-color)' },
-    neutral: { background: '#F4F5F2', color: 'var(--color-text-secondary)', border: '1px solid var(--border-color)' },
-    lavender: { background: 'var(--color-soft-lavender)', color: '#7C3AED', border: '1px solid rgba(139, 92, 246, 0.25)' },
-    warning: { background: '#FEF3C7', color: '#D97706', border: '1px solid #FCD34D' },
-    danger: { background: '#FEE2E2', color: '#DC2626', border: '1px solid #FCA5A5' },
-    info: { background: '#EFF6FF', color: '#2563EB', border: '1px solid #BFDBFE' },
-    gold: { background: '#FEF9C3', color: '#CA8A04', border: '1px solid #FDE047' }
+    green: { background: 'var(--color-soft-green)', color: 'var(--color-primary-deep)', border: '1px solid var(--color-success-border)' },
+    forest: { background: 'var(--color-soft-green)', color: 'var(--color-primary-deep)', border: '1px solid var(--color-success-border)' },
+    success: { background: 'var(--color-success-bg)', color: 'var(--color-success)', border: '1px solid var(--color-success-border)' },
+    sage: { background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', border: '1px solid var(--border-color)' },
+    neutral: { background: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', border: '1px solid var(--border-color)' },
+    lavender: { background: 'var(--color-soft-lavender)', color: 'var(--color-lavender-dark)', border: '1px solid rgba(196, 181, 253, 0.3)' },
+    warning: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)', border: '1px solid var(--color-warning-border)' },
+    danger: { background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger-border)' },
+    info: { background: 'var(--color-info-bg)', color: 'var(--color-info)', border: '1px solid var(--color-info-border)' },
+    gold: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)', border: '1px solid var(--color-warning-border)' }
   };
 
   return (

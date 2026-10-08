@@ -2,6 +2,7 @@ import { apiClient } from './apiClient';
 import { Order, OrderStatus, PaymentStatus, CreateOrderInput } from '../types/sales';
 
 export interface GetOrdersParams {
+  salesChannel?: string;
   orderStatus?: string;
   paymentStatus?: string;
   search?: string;
@@ -24,6 +25,7 @@ export interface OrdersResponse {
 export const orderService = {
   async getOrders(params: GetOrdersParams = {}): Promise<OrdersResponse> {
     const query = new URLSearchParams();
+    if (params.salesChannel && params.salesChannel !== 'ALL') query.append('salesChannel', params.salesChannel);
     if (params.orderStatus && params.orderStatus !== 'ALL') query.append('orderStatus', params.orderStatus);
     if (params.paymentStatus && params.paymentStatus !== 'ALL') query.append('paymentStatus', params.paymentStatus);
     if (params.search) query.append('search', params.search);
@@ -34,16 +36,36 @@ export const orderService = {
 
     const queryString = query.toString();
     const endpoint = `/api/orders${queryString ? `?${queryString}` : ''}`;
-    const res = await apiClient<{ success: boolean; data: Order[]; pagination: OrdersResponse['pagination'] }>(endpoint);
+    const res = await apiClient<any>(endpoint);
+
+    // Support both { success: true, data: { orders: [...], pagination: {...} } } and flat arrays
+    const rawOrders: Order[] = Array.isArray(res?.data?.orders)
+      ? res.data.orders
+      : Array.isArray(res?.data)
+      ? res.data
+      : [];
+
+    const rawPagination = res?.data?.pagination || res?.pagination || {
+      page: 1,
+      limit: 25,
+      total: rawOrders.length,
+      pages: Math.ceil(rawOrders.length / 25) || 1
+    };
+
     return {
-      data: res.data || [],
-      pagination: res.pagination || { page: 1, limit: 20, total: res.data?.length || 0, pages: 1 }
+      data: rawOrders,
+      pagination: {
+        page: rawPagination.page || 1,
+        limit: rawPagination.limit || 25,
+        total: rawPagination.total !== undefined ? rawPagination.total : rawOrders.length,
+        pages: rawPagination.totalPages || rawPagination.pages || 1
+      }
     };
   },
 
   async getOrderById(id: string): Promise<Order> {
-    const res = await apiClient<{ success: boolean; data: Order }>(`/api/orders/${id}`);
-    return res.data;
+    const res = await apiClient<{ success: boolean; data: any }>(`/api/orders/${id}`);
+    return res?.data?.order || res?.data;
   },
 
   async createOrder(input: CreateOrderInput): Promise<Order> {

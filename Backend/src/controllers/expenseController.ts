@@ -45,6 +45,7 @@ export const createExpense = async (
       description,
       amount,
       category,
+      salesChannel = 'GENERAL',
       expenseDate,
       paymentMethod,
       department,
@@ -65,16 +66,22 @@ export const createExpense = async (
     }
 
     const validCategories: ExpenseCategory[] = [
+      'MARKETPLACE_FEES',
+      'PAYMENT_FEES',
+      'SHIPPING',
+      'PACKAGING',
+      'MARKETING',
+      'ADVERTISING',
+      'OPERATIONS',
+      'SALARY',
+      'RENT',
+      'UTILITIES',
+      'SOFTWARE',
       'OFFICE',
       'TRAVEL',
-      'MARKETING',
-      'SOFTWARE',
-      'SALARY',
-      'UTILITIES',
       'SUPPLIES',
-      'INVENTORY',
-      'SHIPPING',
       'MAINTENANCE',
+      'INVENTORY',
       'OTHER'
     ];
 
@@ -85,6 +92,10 @@ export const createExpense = async (
       });
       return;
     }
+
+    const validChannels = ['GENERAL', 'WEBSITE', 'AMAZON', 'FLIPKART', 'OTHER'];
+    const normalizedChannel = (salesChannel || 'GENERAL').toUpperCase();
+    const targetChannel = validChannels.includes(normalizedChannel) ? normalizedChannel : 'GENERAL';
 
     const status: ExpenseStatus = reqStatus === 'DRAFT' ? 'DRAFT' : 'SUBMITTED';
 
@@ -112,6 +123,7 @@ export const createExpense = async (
       description: description ? description.trim() : undefined,
       amount: Number(parsedAmount.toFixed(2)),
       category,
+      salesChannel: targetChannel,
       expenseDate: expenseDate ? new Date(expenseDate) : new Date(),
       paymentMethod: paymentMethod || 'BANK_TRANSFER',
       receipt: receiptData,
@@ -189,6 +201,7 @@ export const getExpenses = async (
     const {
       status,
       category,
+      salesChannel,
       department,
       search,
       startDate,
@@ -199,6 +212,11 @@ export const getExpenses = async (
     } = req.query;
 
     const filter: any = {};
+
+    // Channel filter
+    if (salesChannel && typeof salesChannel === 'string' && salesChannel !== 'ALL') {
+      filter.salesChannel = salesChannel.toUpperCase();
+    }
 
     // RBAC Scoping:
     // FOUNDER & HR: see all expenses

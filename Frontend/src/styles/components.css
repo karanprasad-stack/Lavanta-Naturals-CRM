@@ -151,11 +151,11 @@
 
 .sidebar-user {
   padding: 0.85rem 1rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: #FFFFFF;
+  background: var(--bg-sidebar);
 }
 
 /* Header — Lightweight White with Subtle Bottom Border */
@@ -234,7 +234,7 @@
 }
 
 .btn-secondary {
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border: 1px solid var(--color-primary);
   color: var(--color-primary-deep);
 }
@@ -244,7 +244,7 @@
 }
 
 .btn-outline {
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--color-text-primary);
 }
@@ -460,7 +460,7 @@
 }
 
 .lavanta-table tr:hover td {
-  background: #FAFBF9;
+  background: var(--bg-hover);
 }
 
 /* Form Inputs */
@@ -477,28 +477,29 @@
   color: var(--color-text-primary);
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input, .form-select, .form-textarea, .input-field {
   width: 100%;
   padding: 0.55rem 0.85rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
-  background: #FFFFFF;
+  background: var(--bg-input);
   color: var(--color-text-primary);
   font-size: 0.85rem;
   transition: border-color var(--transition-fast);
+  box-sizing: border-box;
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
+.form-input:focus, .form-select:focus, .form-textarea:focus, .input-field:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(105, 196, 63, 0.15);
+  box-shadow: 0 0 0 3px rgba(88, 200, 58, 0.18);
 }
 
 /* Modals & Drawers */
 .overlay-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(23, 34, 53, 0.4);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(2px);
   z-index: 50;
   display: flex;
@@ -508,7 +509,7 @@
 }
 
 .modal-card {
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
@@ -527,7 +528,7 @@
   bottom: 0;
   width: 100%;
   max-width: 460px;
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border-left: 1px solid var(--border-color);
   box-shadow: var(--shadow-lg);
   z-index: 60;

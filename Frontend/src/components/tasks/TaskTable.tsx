@@ -7,26 +7,38 @@ import {
   Paperclip,
   CheckCircle2,
   Play,
-  AlertCircle
+  AlertCircle,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { Task, TaskPriority, TaskStatus } from '../../types/task';
+import { User } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { getTaskPermissions } from '../../utils/taskPermissions';
 
 interface TaskTableProps {
   tasks: Task[];
   isManagement: boolean;
   currentUserId?: string;
+  currentUser?: User | null;
   onStartTask: (taskId: string) => void;
   onOpenCompleteModal: (task: Task) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
+  onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
 }
 
 export const TaskTable: React.FC<TaskTableProps> = ({
   tasks,
   isManagement,
   currentUserId,
+  currentUser,
   onStartTask,
-  onOpenCompleteModal
+  onOpenCompleteModal,
+  onEditTask,
+  onDeleteTask,
+  onStatusChange
 }) => {
   const navigate = useNavigate();
 
@@ -146,7 +158,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
     return (
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '3.5rem 2rem',
@@ -182,7 +194,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
         overflow: 'hidden',
@@ -194,7 +206,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           <thead>
             <tr
               style={{
-                background: '#FAFBF8',
+                background: 'var(--bg-surface-elevated, #FAFBF8)',
                 borderBottom: '1px solid var(--border-color)',
                 fontSize: '0.75rem',
                 fontWeight: 700,
@@ -214,13 +226,13 @@ export const TaskTable: React.FC<TaskTableProps> = ({
           </thead>
           <tbody>
             {tasks.map((t, idx) => {
-              const isAssignee = t.assignedTo?._id === currentUserId;
+              const perms = getTaskPermissions(currentUser, t);
               return (
                 <tr
                   key={t._id}
                   style={{
                     borderBottom: idx === tasks.length - 1 ? 'none' : '1px solid var(--border-color)',
-                    background: '#FFFFFF',
+                    background: 'var(--bg-surface)',
                     transition: 'background-color 0.15s ease'
                   }}
                   className="table-row-hover"
@@ -275,7 +287,31 @@ export const TaskTable: React.FC<TaskTableProps> = ({
 
                   {/* Status */}
                   <td style={{ padding: '0.9rem 1rem', verticalAlign: 'middle' }}>
-                    {getStatusBadge(t.status, t.isOverdue)}
+                    {perms.canChangeStatus && perms.isManagement ? (
+                      <select
+                        value={t.status}
+                        onChange={e => onStatusChange?.(t._id, e.target.value as TaskStatus)}
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                          background: 'var(--bg-surface-elevated, #FAFBF8)',
+                          color: 'var(--color-text-primary)',
+                          border: '1px solid var(--border-color)',
+                          outline: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <option value="TODO">TO DO</option>
+                        <option value="IN_PROGRESS">IN PROGRESS</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                    ) : (
+                      getStatusBadge(t.status, t.isOverdue)
+                    )}
                   </td>
 
                   {/* Assigned To */}
@@ -315,8 +351,38 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                   {/* Actions */}
                   <td style={{ padding: '0.9rem 1.25rem', verticalAlign: 'middle', textAlign: 'right' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      {/* Workflow action for Assignee */}
-                      {t.status === 'TODO' && (
+                      {/* Management Actions (Founder, HR, Manager) */}
+                      {perms.canEdit && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Edit3 size={13} />}
+                            onClick={() => onEditTask?.(t)}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                            title="Edit Task"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<Trash2 size={13} />}
+                            onClick={() => {
+                              if (window.confirm(`Are you sure you want to cancel task "${t.title}"?`)) {
+                                onDeleteTask?.(t._id);
+                              }
+                            }}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: '#DC2626' }}
+                            title="Cancel / Delete Task"
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
+
+                      {/* Employee / Intern Workflow Action (strictly for assignee when not management) */}
+                      {!perms.canEdit && perms.canStart && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -328,7 +394,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                         </Button>
                       )}
 
-                      {t.status === 'IN_PROGRESS' && (
+                      {!perms.canEdit && perms.canComplete && (
                         <Button
                           variant="primary"
                           size="sm"
@@ -345,6 +411,7 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                         size="sm"
                         onClick={() => navigate(`/tasks/${t._id}`)}
                         style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                        title="View Details"
                       >
                         <ArrowRight size={14} />
                       </Button>

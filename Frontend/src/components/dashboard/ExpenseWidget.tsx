@@ -65,7 +65,18 @@ export const ExpenseWidget: React.FC<ExpenseWidgetProps> = ({ expenseOverview })
           </div>
         </div>
 
-        <div style={{ background: pending > 0 ? '#FEF3C7' : '#F9FAFB', padding: '0.75rem', borderRadius: '8px' }}>
+        <div
+          onClick={() => navigate('/expenses?status=pending')}
+          style={{
+            background: pending > 0 ? '#FEF3C7' : '#F9FAFB',
+            padding: '0.75rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            border: pending > 0 ? '1px solid #FCD34D' : '1px solid transparent',
+            transition: 'all 0.15s ease'
+          }}
+          title="Click to review pending expense claims"
+        >
           <div style={{ fontSize: '0.7rem', color: pending > 0 ? '#92400E' : '#6B7280', textTransform: 'uppercase' }}>
             Pending Review
           </div>
@@ -80,7 +91,7 @@ export const ExpenseWidget: React.FC<ExpenseWidgetProps> = ({ expenseOverview })
           variant="outline"
           size="sm"
           style={{ flex: 1 }}
-          onClick={() => navigate('/expenses')}
+          onClick={() => navigate('/expenses?status=pending')}
         >
           Review Claims
         </Button>

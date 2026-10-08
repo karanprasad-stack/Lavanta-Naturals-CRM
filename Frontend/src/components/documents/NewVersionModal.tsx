@@ -77,7 +77,7 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(23, 34, 53, 0.45)',
+          background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(3px)',
           zIndex: 9999,
           display: 'flex',
@@ -91,10 +91,10 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            border: '1px solid var(--border-strong)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
             width: '100%',
             maxWidth: '520px',
             overflow: 'hidden'
@@ -138,14 +138,14 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
             {errorMsg && (
               <div
                 style={{
-                  background: '#FEF2F2',
-                  border: '1px solid #FEE2E2',
+                  background: 'var(--color-danger-bg)',
+                  border: '1px solid var(--color-danger-border)',
                   borderRadius: 'var(--radius-sm)',
                   padding: '0.65rem 0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  color: '#DC2626',
+                  color: 'var(--color-danger)',
                   fontSize: '0.85rem'
                 }}
               >
@@ -168,8 +168,8 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  background: selectedFile ? '#F0FDF4' : '#FAFBF8',
-                  borderColor: selectedFile ? '#69C43F' : 'var(--border-color)',
+                  background: selectedFile ? 'var(--color-soft-green)' : 'var(--bg-surface-elevated)',
+                  borderColor: selectedFile ? 'var(--color-primary)' : 'var(--border-color)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -180,8 +180,8 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
                 />
                 {selectedFile ? (
                   <div style={{ textAlign: 'center' }}>
-                    <CheckCircle2 size={28} color="#16A34A" style={{ margin: '0 auto 6px' }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#16A34A' }}>
+                    <CheckCircle2 size={28} color="var(--color-primary)" style={{ margin: '0 auto 6px' }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-primary)' }}>
                       {selectedFile.name}
                     </div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
@@ -215,10 +215,11 @@ export const NewVersionModal: React.FC<NewVersionModalProps> = ({
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-input)',
                   fontSize: '0.85rem',
                   outline: 'none',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-input)',
+                  color: 'var(--color-text-primary)',
                   resize: 'vertical'
                 }}
               />

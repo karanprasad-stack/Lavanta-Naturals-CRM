@@ -9,7 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 import {
   AnyCalendarEntry,
@@ -25,6 +26,7 @@ export interface CalendarCategoryFilters {
   taskDeadlines: boolean;
   teamEvents: boolean;
   companyEvents: boolean;
+  festivals: boolean;
 }
 
 interface CalendarSidebarProps {
@@ -94,8 +96,8 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
     <aside
       style={{
         width: '280px',
-        backgroundColor: '#FFFFFF',
-        borderRight: '1px solid #E2E8F0',
+        backgroundColor: 'var(--cal-bg-sidebar)',
+        borderRight: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -104,9 +106,9 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
       }}
     >
       {/* 1. Mini Calendar Picker */}
-      <div style={{ padding: '1rem', borderBottom: '1px solid #F1F5F9' }}>
+      <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-          <span style={{ fontWeight: 700, color: '#1B2533', fontSize: '0.85rem' }}>
+          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.85rem' }}>
             {MONTH_NAMES[month]} {year}
           </span>
           <div style={{ display: 'flex', gap: '2px' }}>
@@ -119,7 +121,7 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 padding: '3px',
                 borderRadius: '4px',
                 display: 'flex',
-                color: '#64748B'
+                color: 'var(--color-text-muted)'
               }}
               title="Previous month"
             >
@@ -134,7 +136,7 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                 padding: '3px',
                 borderRadius: '4px',
                 display: 'flex',
-                color: '#64748B'
+                color: 'var(--color-text-muted)'
               }}
               title="Next month"
             >
@@ -146,7 +148,7 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
         {/* Days of week header */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '4px' }}>
           {DAYS_SHORT.map(d => (
-            <span key={d} style={{ fontSize: '0.675rem', fontWeight: 600, color: '#94A3B8' }}>
+            <span key={d} style={{ fontSize: '0.675rem', fontWeight: 600, color: 'var(--color-text-muted)' }}>
               {d}
             </span>
           ))}
@@ -171,8 +173,8 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                   cursor: 'pointer',
                   fontSize: '0.725rem',
                   fontWeight: isTod || isSel ? 700 : 500,
-                  backgroundColor: isSel ? '#69C43F' : isTod ? '#EAF7E6' : 'transparent',
-                  color: isSel ? '#FFFFFF' : isTod ? '#377E1E' : '#1B2533',
+                  backgroundColor: isSel ? '#58C83A' : isTod ? 'var(--color-soft-green)' : 'transparent',
+                  color: isSel ? '#FFFFFF' : isTod ? 'var(--color-primary-deep)' : 'var(--color-text-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -187,8 +189,8 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
       </div>
 
       {/* 2. My Calendars Section */}
-      <div style={{ padding: '1rem', borderBottom: '1px solid #F1F5F9' }}>
-        <div style={{ fontWeight: 700, color: '#334155', marginBottom: '0.65rem', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+      <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '0.65rem', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
           My Calendars
         </div>
 
@@ -200,7 +202,7 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
               onChange={() => onToggleCategory('personal')}
               style={{ accentColor: '#64748B' }}
             />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
               <User size={13} color="#64748B" /> Personal Events
             </span>
           </label>
@@ -210,10 +212,10 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
               type="checkbox"
               checked={categoryFilters.meetings}
               onChange={() => onToggleCategory('meetings')}
-              style={{ accentColor: '#69C43F' }}
+              style={{ accentColor: '#58C83A' }}
             />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155' }}>
-              <Clock size={13} color="#69C43F" /> Meetings & Calls
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
+              <Clock size={13} color="#58C83A" /> Meetings & Calls
             </span>
           </label>
 
@@ -224,7 +226,7 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
               onChange={() => onToggleCategory('taskDeadlines')}
               style={{ accentColor: '#8B5CF6' }}
             />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
               <CheckSquare size={13} color="#8B5CF6" /> Task Deadlines
             </span>
           </label>
@@ -234,10 +236,10 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
               type="checkbox"
               checked={categoryFilters.teamEvents}
               onChange={() => onToggleCategory('teamEvents')}
-              style={{ accentColor: '#377E1E' }}
+              style={{ accentColor: '#58C83A' }}
             />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155' }}>
-              <Users size={13} color="#377E1E" /> Team Events
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
+              <Users size={13} color="#58C83A" /> Team Events
             </span>
           </label>
 
@@ -248,20 +250,32 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
               onChange={() => onToggleCategory('companyEvents')}
               style={{ accentColor: '#7C3AED' }}
             />
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#334155' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
               <Building size={13} color="#7C3AED" /> Company Events
+            </span>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={categoryFilters.festivals}
+              onChange={() => onToggleCategory('festivals')}
+              style={{ accentColor: '#F59E0B' }}
+            />
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-text-primary)' }}>
+              <Sparkles size={13} color="#F59E0B" /> Festivals & Holidays
             </span>
           </label>
         </div>
       </div>
 
       {/* 3. Today Panel */}
-      <div style={{ padding: '1rem', borderBottom: '1px solid #F1F5F9' }}>
+      <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.65rem' }}>
-          <span style={{ fontWeight: 700, color: '#334155', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+          <span style={{ fontWeight: 700, color: 'var(--color-text-primary)', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
             Today's Focus
           </span>
-          <span style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600 }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
             {new Date().toLocaleDateString([], { month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -270,23 +284,23 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
           <div
             onClick={() => onSelectEvent(nextMeeting)}
             style={{
-              backgroundColor: '#EAF7E6',
-              border: '1px solid #C4E9B7',
+              backgroundColor: 'var(--cal-event-green-bg)',
+              border: '1px solid var(--cal-event-green-border)',
               borderRadius: '8px',
               padding: '0.55rem 0.75rem',
               cursor: 'pointer',
               marginBottom: '0.5rem'
             }}
           >
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#377E1E', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--cal-event-green-text)', textTransform: 'uppercase' }}>
               Next Meeting · {formatTime(nextMeeting.startDateTime)}
             </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1B2533', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {nextMeeting.title}
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>
             No meetings scheduled today.
           </div>
         )}
@@ -295,22 +309,22 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
           <div
             onClick={() => onSelectEvent(nextTaskDeadline)}
             style={{
-              backgroundColor: '#EDE9FE',
-              border: '1px solid #C4B5FD',
+              backgroundColor: 'var(--cal-event-purple-bg)',
+              border: '1px solid var(--cal-event-purple-border)',
               borderRadius: '8px',
               padding: '0.55rem 0.75rem',
               cursor: 'pointer'
             }}
           >
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6D28D9', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--cal-event-purple-text)', textTransform: 'uppercase' }}>
               Task Due · {formatTime(nextTaskDeadline.startDateTime)}
             </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1B2533', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {nextTaskDeadline.title}
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
             No task deadlines today.
           </div>
         )}
@@ -318,12 +332,12 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
 
       {/* 4. Upcoming Section (Next 5) */}
       <div style={{ padding: '1rem', flex: 1 }}>
-        <div style={{ fontWeight: 700, color: '#334155', marginBottom: '0.65rem', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+        <div style={{ fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '0.65rem', fontSize: '0.8rem', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
           Upcoming (Next 5)
         </div>
 
         {upcomingFive.length === 0 ? (
-          <div style={{ fontSize: '0.75rem', color: '#94A3B8', textAlign: 'center', padding: '1rem 0' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem 0' }}>
             No upcoming events.
           </div>
         ) : (
@@ -343,20 +357,20 @@ export const CalendarSidebar: React.FC<CalendarSidebarProps> = ({
                     gap: '0.5rem',
                     padding: '0.45rem 0.55rem',
                     borderRadius: '7px',
-                    border: '1px solid #F1F5F9',
-                    backgroundColor: '#FAFBF8',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-surface-elevated)',
                     cursor: 'pointer',
                     transition: 'background 0.1s'
                   }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = colors.bg)}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FAFBF8')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)')}
                 >
                   <div style={{ width: '3px', alignSelf: 'stretch', borderRadius: '3px', backgroundColor: colors.dot }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1B2533', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ev.title}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.675rem', color: '#64748B', marginTop: '1px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.675rem', color: 'var(--color-text-secondary)', marginTop: '1px' }}>
                       <span>{dateFormatted} · {ev.allDay ? 'All Day' : formatTime(ev.startDateTime)}</span>
                       {participantCount > 0 && (
                         <span>· 👥 {participantCount}</span>

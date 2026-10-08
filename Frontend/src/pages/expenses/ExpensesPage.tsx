@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Receipt,
   Plus,
@@ -26,8 +26,18 @@ import { useAuth } from '../../context/AuthContext';
 
 export const ExpensesPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToast();
   const { currentUser, activeRole } = useAuth();
+
+  const getInitialStatus = (): string => {
+    const s = (searchParams.get('status') || '').toUpperCase();
+    if (s === 'PENDING' || s === 'SUBMITTED') return 'SUBMITTED';
+    if (['APPROVED', 'PAID', 'REJECTED', 'DRAFT', 'CANCELLED'].includes(s)) {
+      return s;
+    }
+    return 'ALL';
+  };
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
@@ -35,12 +45,34 @@ export const ExpensesPage: React.FC = () => {
 
   // Filters
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(getInitialStatus());
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
+  const [channelFilter, setChannelFilter] = useState<string>('ALL');
   const [departmentFilter, setDepartmentFilter] = useState<string>('ALL');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // Sync state if URL search parameters change externally
+  useEffect(() => {
+    const urlStatus = getInitialStatus();
+    if (urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+      setPage(1);
+    }
+  }, [searchParams]);
+
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    setPage(1);
+    const newParams = new URLSearchParams(searchParams);
+    if (status === 'ALL') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', status === 'SUBMITTED' ? 'pending' : status.toLowerCase());
+    }
+    setSearchParams(newParams, { replace: true });
+  };
 
   // Rejection Modal state
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
@@ -59,6 +91,7 @@ export const ExpensesPage: React.FC = () => {
         expenseService.getExpenses({
           status: statusFilter,
           category: categoryFilter,
+          salesChannel: channelFilter !== 'ALL' ? channelFilter : undefined,
           department: departmentFilter,
           search: search.trim() || undefined,
           page,
@@ -79,7 +112,7 @@ export const ExpensesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, [statusFilter, categoryFilter, departmentFilter, page]);
+  }, [statusFilter, categoryFilter, channelFilter, departmentFilter, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,16 +190,23 @@ export const ExpensesPage: React.FC = () => {
 
   const getCategoryBadge = (cat: ExpenseCategory) => {
     switch (cat) {
-      case 'INVENTORY':
-      case 'SUPPLIES':
+      case 'MARKETPLACE_FEES':
+      case 'PAYMENT_FEES':
+        return <Badge variant="gold">{cat.replace('_', ' ')}</Badge>;
+      case 'SHIPPING':
+      case 'PACKAGING':
         return <Badge variant="forest">{cat}</Badge>;
       case 'MARKETING':
-        return <Badge variant="gold">{cat}</Badge>;
+      case 'ADVERTISING':
+        return <Badge variant="sage">{cat}</Badge>;
       case 'SOFTWARE':
         return <Badge variant="info">{cat}</Badge>;
-      case 'TRAVEL':
-      case 'MAINTENANCE':
-        return <Badge variant="sage">{cat}</Badge>;
+      case 'OPERATIONS':
+      case 'RENT':
+      case 'UTILITIES':
+        return <Badge variant="lavender">{cat}</Badge>;
+      case 'SALARY':
+        return <Badge variant="green">{cat}</Badge>;
       default:
         return <Badge variant="neutral">{cat}</Badge>;
     }
@@ -218,10 +258,20 @@ export const ExpensesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
+      {/* Summary KPI Cards (Interactive Filter Triggers) */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-          <div className="luxury-card" style={{ padding: '1.25rem' }}>
+          <div
+            onClick={() => handleStatusFilterChange('ALL')}
+            className="luxury-card"
+            style={{
+              padding: '1.25rem',
+              cursor: 'pointer',
+              border: statusFilter === 'ALL' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Click to view all expenses"
+          >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
               Committed Expenses
             </div>
@@ -233,7 +283,17 @@ export const ExpensesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="luxury-card" style={{ padding: '1.25rem' }}>
+          <div
+            onClick={() => handleStatusFilterChange('PAID')}
+            className="luxury-card"
+            style={{
+              padding: '1.25rem',
+              cursor: 'pointer',
+              border: statusFilter === 'PAID' ? '2px solid #1E3A8A' : '1px solid var(--border-color)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Click to filter paid claims"
+          >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
               Cash Outflow (Paid)
             </div>
@@ -245,7 +305,17 @@ export const ExpensesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="luxury-card" style={{ padding: '1.25rem' }}>
+          <div
+            onClick={() => handleStatusFilterChange('SUBMITTED')}
+            className="luxury-card"
+            style={{
+              padding: '1.25rem',
+              cursor: 'pointer',
+              border: statusFilter === 'SUBMITTED' ? '2px solid #B45309' : '1px solid var(--border-color)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Click to filter pending reviews"
+          >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
               Pending Review
             </div>
@@ -257,7 +327,17 @@ export const ExpensesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="luxury-card" style={{ padding: '1.25rem' }}>
+          <div
+            onClick={() => handleStatusFilterChange('APPROVED')}
+            className="luxury-card"
+            style={{
+              padding: '1.25rem',
+              cursor: 'pointer',
+              border: statusFilter === 'APPROVED' ? '2px solid #6D28D9' : '1px solid var(--border-color)',
+              transition: 'all 0.15s ease'
+            }}
+            title="Click to filter approved unpaid expenses"
+          >
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase' }}>
               Approved / Unpaid
             </div>
@@ -270,6 +350,37 @@ export const ExpensesPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick Status Filter Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        {[
+          { key: 'ALL', label: 'All Expenses' },
+          { key: 'SUBMITTED', label: 'Pending Review' },
+          { key: 'APPROVED', label: 'Approved' },
+          { key: 'PAID', label: 'Paid' },
+          { key: 'REJECTED', label: 'Rejected' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => handleStatusFilterChange(tab.key)}
+            style={{
+              padding: '0.4rem 0.85rem',
+              borderRadius: '9999px',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid #E5E7EB',
+              background: statusFilter === tab.key ? 'var(--color-primary)' : '#FFFFFF',
+              color: statusFilter === tab.key ? '#FFFFFF' : 'var(--color-text-secondary)',
+              boxShadow: statusFilter === tab.key ? '0 1px 3px rgba(105, 196, 63, 0.25)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
       {/* Filter and Search Bar */}
       <div className="luxury-card" style={{ padding: '1.25rem' }}>
@@ -296,19 +407,33 @@ export const ExpensesPage: React.FC = () => {
             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status:</span>
             <select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF' }}
+              onChange={(e) => handleStatusFilterChange(e.target.value)}
+              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
             >
               <option value="ALL">All Statuses</option>
-              <option value="SUBMITTED">Submitted</option>
+              <option value="SUBMITTED">Pending Review</option>
               <option value="APPROVED">Approved</option>
               <option value="PAID">Paid</option>
               <option value="REJECTED">Rejected</option>
               <option value="DRAFT">Draft</option>
-              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Channel:</span>
+            <select
+              value={channelFilter}
+              onChange={(e) => {
+                setChannelFilter(e.target.value);
+                setPage(1);
+              }}
+              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+            >
+              <option value="ALL">All Channels</option>
+              <option value="GENERAL">General Corporate</option>
+              <option value="WEBSITE">Website</option>
+              <option value="AMAZON">Amazon</option>
+              <option value="FLIPKART">Flipkart</option>
             </select>
           </div>
 
@@ -323,16 +448,17 @@ export const ExpensesPage: React.FC = () => {
               style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF' }}
             >
               <option value="ALL">All Categories</option>
-              <option value="INVENTORY">Inventory & Raw Materials</option>
-              <option value="SUPPLIES">Supplies & Packaging</option>
-              <option value="MARKETING">Marketing & Advertising</option>
-              <option value="SOFTWARE">Software & Cloud</option>
-              <option value="SALARY">Salaries & Stipends</option>
-              <option value="UTILITIES">Utilities & Rent</option>
-              <option value="TRAVEL">Travel & Hospitality</option>
-              <option value="MAINTENANCE">Maintenance & Lab Servicing</option>
+              <option value="MARKETPLACE_FEES">Marketplace Fees</option>
+              <option value="PAYMENT_FEES">Payment Fees</option>
               <option value="SHIPPING">Shipping & Logistics</option>
-              <option value="OFFICE">Office & Admin</option>
+              <option value="PACKAGING">Packaging & Supplies</option>
+              <option value="MARKETING">Marketing</option>
+              <option value="ADVERTISING">Advertising</option>
+              <option value="OPERATIONS">Operations</option>
+              <option value="SALARY">Salaries</option>
+              <option value="RENT">Rent</option>
+              <option value="UTILITIES">Utilities</option>
+              <option value="SOFTWARE">Software & Cloud</option>
               <option value="OTHER">Other</option>
             </select>
           </div>
@@ -356,7 +482,7 @@ export const ExpensesPage: React.FC = () => {
             </div>
             <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.25rem' }}>No expenses found</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              {search || statusFilter !== 'ALL' || categoryFilter !== 'ALL'
+              {search || statusFilter !== 'ALL' || categoryFilter !== 'ALL' || channelFilter !== 'ALL'
                 ? 'Try adjusting your filters or search terms.'
                 : 'No expense claims recorded yet.'}
             </p>
@@ -370,6 +496,7 @@ export const ExpensesPage: React.FC = () => {
               <thead>
                 <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase' }}>
                   <th style={{ padding: '0.85rem 1.25rem' }}>Title & Description</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Channel</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Category</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Date</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Amount</th>
@@ -410,6 +537,35 @@ export const ExpensesPage: React.FC = () => {
                           Reason: {exp.rejectionReason}
                         </div>
                       )}
+                    </td>
+
+                    <td style={{ padding: '1rem 1rem' }}>
+                      {(() => {
+                        const ch = exp.salesChannel || 'GENERAL';
+                        const colorMap: Record<string, string> = {
+                          WEBSITE: '#16A34A',
+                          AMAZON: '#F97316',
+                          FLIPKART: '#2563EB',
+                          GENERAL: '#6B7280'
+                        };
+                        const color = colorMap[ch] || '#6B7280';
+                        return (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '2px 8px',
+                            borderRadius: '9999px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            backgroundColor: `${color}15`,
+                            color: color,
+                            border: `1px solid ${color}40`
+                          }}>
+                            {ch}
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     <td style={{ padding: '1rem 1rem' }}>

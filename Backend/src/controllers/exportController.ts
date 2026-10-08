@@ -74,20 +74,20 @@ export const exportController = {
           break;
         }
 
+        case 'products':
         case 'inventory': {
-          const products = await ProductModel.find({ status: { $ne: 'ARCHIVED' } })
+          const products = await ProductModel.find()
             .sort({ name: 1 })
             .lean();
 
-          headers = ['Product Name', 'SKU', 'Stock Quantity', 'Low Stock Threshold', 'Unit', 'Selling Price', 'Status'];
+          headers = ['Product Name', 'SKU', 'Unit', 'Selling Price', 'Cost Price', 'Description'];
           rows = products.map(p => [
             p.name,
             p.sku,
-            p.stockQuantity,
-            p.lowStockThreshold,
             p.unit,
             p.sellingPrice,
-            p.stockQuantity === 0 ? 'OUT_OF_STOCK' : p.stockQuantity <= p.lowStockThreshold ? 'LOW_STOCK' : 'IN_STOCK'
+            p.costPrice || 0,
+            p.description || ''
           ]);
           break;
         }
@@ -103,9 +103,11 @@ export const exportController = {
             .sort({ createdAt: -1 })
             .lean();
 
-          headers = ['Order Number', 'Customer', 'Customer Email', 'Items Count', 'Subtotal', 'Tax', 'Shipping', 'Total', 'Order Status', 'Payment Status', 'Date'];
+          headers = ['Order Number', 'External Order ID', 'Sales Channel', 'Customer', 'Customer Email', 'Items Count', 'Subtotal', 'Tax', 'Shipping', 'Total', 'Order Status', 'Payment Status', 'Date'];
           rows = orders.map((o: any) => [
             o.orderNumber,
+            o.externalOrderId || '',
+            o.salesChannel || 'WEBSITE',
             o.customerId?.name || '',
             o.customerId?.email || '',
             o.items?.length || 0,
@@ -127,18 +129,19 @@ export const exportController = {
           }
 
           const expenses = await ExpenseModel.find()
-            .populate('userId', 'name email')
+            .populate('submittedBy', 'name email')
             .sort({ createdAt: -1 })
             .lean();
 
-          headers = ['Expense Title', 'Amount', 'Category', 'Department', 'Status', 'Submitted By', 'Payment Method', 'Date'];
+          headers = ['Expense Title', 'Amount', 'Category', 'Sales Channel', 'Department', 'Status', 'Submitted By', 'Payment Method', 'Date'];
           rows = expenses.map((e: any) => [
             e.title,
             e.amount,
             e.category,
+            e.salesChannel || 'GENERAL',
             e.department,
             e.status,
-            e.userId?.name || '',
+            e.submittedBy?.name || '',
             e.paymentMethod || '',
             e.expenseDate ? new Date(e.expenseDate).toISOString().split('T')[0] : ''
           ]);

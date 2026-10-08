@@ -12,12 +12,14 @@ export type AuditAction =
   | 'DOCUMENT_SHARED'
   | 'DOCUMENT_DELETED'
   | 'PRODUCT_CREATED'
+  | 'PRODUCT_DELETED'
   | 'STOCK_ADJUSTED'
   | 'ORDER_CONFIRMED'
   | 'ORDER_CANCELLED'
   | 'EXPENSE_APPROVED'
   | 'EXPENSE_REJECTED'
   | 'PERMISSION_CHANGED'
+  | 'WORKSPACE_CONFIG_UPDATED'
   | 'EXPORT_GENERATED';
 
 export interface IAuditLog extends Document {
@@ -53,12 +55,14 @@ const AuditLogSchema: Schema = new Schema(
         'DOCUMENT_SHARED',
         'DOCUMENT_DELETED',
         'PRODUCT_CREATED',
+        'PRODUCT_DELETED',
         'STOCK_ADJUSTED',
         'ORDER_CONFIRMED',
         'ORDER_CANCELLED',
         'EXPENSE_APPROVED',
         'EXPENSE_REJECTED',
         'PERMISSION_CHANGED',
+        'WORKSPACE_CONFIG_UPDATED',
         'EXPORT_GENERATED'
       ]
     },

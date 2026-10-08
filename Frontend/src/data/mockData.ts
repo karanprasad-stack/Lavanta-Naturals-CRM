@@ -1247,12 +1247,12 @@ export const mockNotifications: NotificationItem[] = [
   },
   {
     id: 'notif-2',
-    title: 'Low Stock Alert',
-    message: '30ml Frosted Amber Dropper Bottles dipped below 1,000 units (250 remaining)',
-    type: 'stock',
+    title: 'Product Catalog Updated',
+    message: '30ml Frosted Amber Dropper item details updated in catalog',
+    type: 'notice',
     timestamp: '45m ago',
     read: false,
-    link: '/inventory'
+    link: '/products'
   },
   {
     id: 'notif-3',

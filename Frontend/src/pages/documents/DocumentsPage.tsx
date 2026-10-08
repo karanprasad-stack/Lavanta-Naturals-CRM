@@ -210,7 +210,7 @@ export const DocumentsPage: React.FC = () => {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -269,9 +269,9 @@ export const DocumentsPage: React.FC = () => {
             style={{
               flex: 1,
               position: 'relative',
-              background: '#FFFFFF',
+              background: 'var(--bg-input)',
               borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
+              border: '1px solid var(--border-input)',
               boxShadow: 'var(--shadow-xs)',
               display: 'flex',
               alignItems: 'center',
@@ -322,7 +322,7 @@ export const DocumentsPage: React.FC = () => {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               style={{
-                background: '#FFFFFF',
+                background: 'var(--bg-surface-elevated)',
                 borderRadius: 'var(--radius-sm)',
                 border: '1px solid var(--border-color)',
                 padding: '1rem 1.25rem',
@@ -346,7 +346,8 @@ export const DocumentsPage: React.FC = () => {
                     border: '1px solid var(--border-color)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   <option value="">All Departments</option>
@@ -372,7 +373,8 @@ export const DocumentsPage: React.FC = () => {
                     border: '1px solid var(--border-color)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   <option value="">All Formats</option>
@@ -425,7 +427,7 @@ export const DocumentsPage: React.FC = () => {
                   padding: '0.5rem 0.9rem',
                   borderRadius: '20px',
                   border: isSelected ? '1px solid var(--color-primary-deep)' : '1px solid var(--border-color)',
-                  background: isSelected ? '#F0FDF4' : '#FFFFFF',
+                  background: isSelected ? 'var(--color-soft-green)' : 'var(--bg-surface)',
                   color: isSelected ? 'var(--color-primary-deep)' : 'var(--color-text-primary)',
                   fontWeight: isSelected ? 700 : 500,
                   fontSize: '0.825rem',
@@ -550,7 +552,7 @@ export const DocumentsPage: React.FC = () => {
                   setSearchParams({ folder: folder._id });
                 }}
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   padding: '1rem',
@@ -568,7 +570,7 @@ export const DocumentsPage: React.FC = () => {
                     width: '36px',
                     height: '36px',
                     borderRadius: 'var(--radius-xs)',
-                    background: '#F0FDF4',
+                    background: 'var(--color-soft-green)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -613,7 +615,7 @@ export const DocumentsPage: React.FC = () => {
                 key={n}
                 style={{
                   height: '68px',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   opacity: 0.6,
@@ -626,7 +628,7 @@ export const DocumentsPage: React.FC = () => {
         ) : documents.length === 0 ? (
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px dashed var(--border-color)',
               padding: '3rem 2rem',
@@ -642,7 +644,7 @@ export const DocumentsPage: React.FC = () => {
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                background: '#FAFBF8',
+                background: 'var(--bg-surface-elevated)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -685,7 +687,7 @@ export const DocumentsPage: React.FC = () => {
                 whileHover={{ y: -1 }}
                 onClick={() => navigate(`/documents/${doc._id}`)}
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
                   padding: '0.85rem 1.25rem',
@@ -706,7 +708,7 @@ export const DocumentsPage: React.FC = () => {
                       width: '40px',
                       height: '40px',
                       borderRadius: 'var(--radius-xs)',
-                      background: '#FAFBF8',
+                      background: 'var(--bg-surface-elevated)',
                       border: '1px solid var(--border-color)',
                       display: 'flex',
                       alignItems: 'center',

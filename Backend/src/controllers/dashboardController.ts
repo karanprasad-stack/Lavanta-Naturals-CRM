@@ -6,10 +6,10 @@ import { AnnouncementReadModel } from '../models/AnnouncementRead.js';
 import { NotificationModel } from '../models/Notification.js';
 import { ConversationModel } from '../models/Conversation.js';
 import { MessageModel } from '../models/Message.js';
-import { ProductModel } from '../models/Product.js';
 import { OrderModel } from '../models/Order.js';
 import { ExpenseModel } from '../models/Expense.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { getFounderOverviewData } from './founderController.js';
 
 /**
  * Helper to fetch recent messages preview for dashboard
@@ -158,171 +158,22 @@ export const dashboardController = {
         status: user.status
       };
 
-      // 1. FOUNDER DASHBOARD: Company-Wide Oversight
+      // 1. FOUNDER DASHBOARD: Company-Wide Oversight (Consolidated Single Source of Truth)
       if (role === 'FOUNDER') {
-        const [
-          statsAggregation,
-          recentMembers,
-          activeTasksCount,
-          completedTasksCount,
-          pendingTasksCount,
-          overdueTasksCount,
-          totalProductsCount,
-          lowStockCount,
-          outOfStockCount,
-          lowStockList
-        ] = await Promise.all([
-          UserModel.aggregate([
-            {
-              $group: {
-                _id: null,
-                total: { $sum: 1 },
-                employees: { $sum: { $cond: [{ $eq: ['$role', 'EMPLOYEE'] }, 1, 0] } },
-                interns: { $sum: { $cond: [{ $eq: ['$role', 'INTERN'] }, 1, 0] } },
-                hrManagers: {
-                  $sum: {
-                    $cond: [
-                      { $or: [{ $eq: ['$role', 'HR'] }, { $eq: ['$role', 'MANAGER'] }] },
-                      1,
-                      0
-                    ]
-                  }
-                },
-                founders: { $sum: { $cond: [{ $eq: ['$role', 'FOUNDER'] }, 1, 0] } },
-                active: { $sum: { $cond: [{ $eq: ['$status', 'ACTIVE'] }, 1, 0] } }
-              }
-            }
-          ]),
-          UserModel.find()
-            .sort({ createdAt: -1 })
-            .limit(6),
-          TaskModel.countDocuments({ status: { $in: ['TODO', 'IN_PROGRESS'] } }),
-          TaskModel.countDocuments({ status: 'COMPLETED' }),
-          TaskModel.countDocuments({ status: 'TODO' }),
-          TaskModel.countDocuments({
-            status: { $nin: ['COMPLETED', 'CANCELLED'] },
-            deadline: { $lt: now }
-          }),
-          ProductModel.countDocuments({ status: { $ne: 'ARCHIVED' } }),
-          ProductModel.countDocuments({
-            status: { $ne: 'ARCHIVED' },
-            $expr: {
-              $and: [
-                { $gt: ['$stockQuantity', 0] },
-                { $lte: ['$stockQuantity', '$lowStockThreshold'] }
-              ]
-            }
-          }),
-          ProductModel.countDocuments({ status: { $ne: 'ARCHIVED' }, stockQuantity: 0 }),
-          ProductModel.find({
-            status: { $ne: 'ARCHIVED' },
-            $expr: {
-              $lte: ['$stockQuantity', '$lowStockThreshold']
-            }
-          })
-            .select('name sku stockQuantity lowStockThreshold unit')
-            .sort({ stockQuantity: 1 })
-            .limit(5)
-        ]);
-
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const [
-          totalRevenueAgg,
-          monthRevenueAgg,
-          totalExpensesAgg,
-          monthExpensesAgg,
-          pendingOrdersCount,
-          pendingExpensesCount
-        ] = await Promise.all([
-          OrderModel.aggregate([
-            { $match: { orderStatus: { $in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'] } } },
-            { $group: { _id: null, total: { $sum: '$total' } } }
-          ]),
-          OrderModel.aggregate([
-            { $match: { orderStatus: { $in: ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'] }, createdAt: { $gte: startOfMonth } } },
-            { $group: { _id: null, total: { $sum: '$total' } } }
-          ]),
-          ExpenseModel.aggregate([
-            { $match: { status: { $in: ['APPROVED', 'PAID'] } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-          ]),
-          ExpenseModel.aggregate([
-            { $match: { status: { $in: ['APPROVED', 'PAID'] }, expenseDate: { $gte: startOfMonth } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
-          ]),
-          OrderModel.countDocuments({ orderStatus: 'PENDING' }),
-          ExpenseModel.countDocuments({ status: 'SUBMITTED' })
-        ]);
-
-        const totalRevenue = totalRevenueAgg[0]?.total || 0;
-        const monthRevenue = monthRevenueAgg[0]?.total || 0;
-        const totalExpenses = totalExpensesAgg[0]?.total || 0;
-        const monthExpenses = monthExpensesAgg[0]?.total || 0;
-        const netDifference = totalRevenue - totalExpenses;
-
-        const stats = statsAggregation[0] || {
-          total: 0,
-          employees: 0,
-          interns: 0,
-          hrManagers: 0,
-          founders: 0,
-          active: 0
-        };
-
+        const founderOverview = await getFounderOverviewData();
         res.json({
           success: true,
           role: 'FOUNDER',
           user: sanitizedUser,
           unreadNotificationsCount,
+          ...founderOverview,
           teamStats: {
-            total: stats.total,
-            employees: stats.employees,
-            interns: stats.interns,
-            hrManagers: stats.hrManagers
+            total: founderOverview.teamOverview.totalMembers,
+            employees: founderOverview.teamOverview.employees,
+            interns: founderOverview.teamOverview.interns,
+            hrManagers: founderOverview.teamOverview.managers + founderOverview.teamOverview.hr
           },
-          teamOverview: recentMembers.map(u => ({
-            id: u._id,
-            name: u.name,
-            role: u.role,
-            department: u.department,
-            designation: u.designation,
-            joiningDate: u.joiningDate,
-            profilePhoto: u.profilePhoto || '',
-            status: u.status
-          })),
-          workOverview: {
-            activeTasks: activeTasksCount,
-            completedTasks: completedTasksCount,
-            pendingTasks: pendingTasksCount,
-            overdueTasks: overdueTasksCount
-          },
-          inventoryOverview: {
-            totalProducts: totalProductsCount,
-            lowStock: lowStockCount,
-            outOfStock: outOfStockCount,
-            lowStockProducts: lowStockList
-          },
-          salesOverview: {
-            totalRevenue: Number(totalRevenue.toFixed(2)),
-            monthRevenue: Number(monthRevenue.toFixed(2)),
-            pendingOrders: pendingOrdersCount
-          },
-          expenseOverview: {
-            totalExpenses: Number(totalExpenses.toFixed(2)),
-            monthExpenses: Number(monthExpenses.toFixed(2)),
-            pendingApprovals: pendingExpensesCount
-          },
-          financialOverview: {
-            netOperatingDifference: Number(netDifference.toFixed(2)),
-            operatingMarginPercent: totalRevenue > 0 ? Number(((netDifference / totalRevenue) * 100).toFixed(1)) : 0
-          },
-          announcements: roleAnnouncements,
-          recentActivity: [
-            { id: 'act-1', text: 'Kabir Sen joined the Sales & Retail cohort as Intern.', timestamp: '2 hours ago' },
-            { id: 'act-2', text: 'Priya Sharma assigned Instagram Launch Task to Rahul Kumar.', timestamp: '3 hours ago' },
-            { id: 'act-3', text: 'Vikas Rao scheduled Q4 Marketing Growth Sprint.', timestamp: 'Yesterday' }
-          ],
-          quickActions: ['add_member', 'assign_task', 'create_announcement', 'view_announcements', 'view_orders', 'view_expenses']
+          quickActions: ['create_task', 'create_announcement', 'create_order', 'add_expense']
         });
         return;
       }
@@ -423,8 +274,6 @@ export const dashboardController = {
           inProgressDeptTasks,
           completedDeptTasks,
           overdueDeptTasks,
-          lowStockCount,
-          outOfStockCount,
           deptExpensesAgg,
           deptPendingExpensesCount
         ] = await Promise.all([
@@ -443,16 +292,6 @@ export const dashboardController = {
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
-          ProductModel.countDocuments({
-            status: { $ne: 'ARCHIVED' },
-            $expr: {
-              $and: [
-                { $gt: ['$stockQuantity', 0] },
-                { $lte: ['$stockQuantity', '$lowStockThreshold'] }
-              ]
-            }
-          }),
-          ProductModel.countDocuments({ status: { $ne: 'ARCHIVED' }, stockQuantity: 0 }),
           ExpenseModel.aggregate([
             { $match: { department, status: { $in: ['APPROVED', 'PAID'] } } },
             { $group: { _id: null, total: { $sum: '$amount' } } }
@@ -482,10 +321,6 @@ export const dashboardController = {
             inProgress: inProgressDeptTasks,
             completed: completedDeptTasks,
             overdue: overdueDeptTasks
-          },
-          inventoryOverview: {
-            lowStock: lowStockCount,
-            outOfStock: outOfStockCount
           },
           expenseOverview: {
             departmentExpenses: Number(deptExpensesTotal.toFixed(2)),

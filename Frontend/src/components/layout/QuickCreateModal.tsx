@@ -72,21 +72,9 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
       }
     },
     {
-      id: 'document',
-      title: 'Upload Document',
-      description: 'Add company policy, SOP, or team resource',
-      icon: <FileUp size={20} color="#0D9488" />,
-      bg: '#CCFBF1',
-      available: true,
-      action: () => {
-        onClose();
-        navigate('/documents');
-      }
-    },
-    {
       id: 'product',
       title: 'Catalog Product',
-      description: 'Add new botanical formulation & initial stock',
+      description: 'Add new product to catalog',
       icon: <PackagePlus size={20} color="#15803D" />,
       bg: '#DCFCE7',
       available: isManagement,
@@ -147,9 +135,9 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: '16px',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              boxShadow: 'var(--shadow-xl)',
               width: '100%',
               maxWidth: '560px',
               overflow: 'hidden',
@@ -165,7 +153,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: '#FAFBF8'
+                background: 'var(--bg-subtle)'
               }}
             >
               <div>
@@ -217,17 +205,17 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
                     padding: '12px',
                     borderRadius: '10px',
                     border: '1px solid var(--border-color)',
-                    background: '#FFFFFF',
+                    background: 'var(--bg-surface-elevated)',
                     textAlign: 'left',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.backgroundColor = '#FAFBF8';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-subtle)';
                     e.currentTarget.style.borderColor = 'var(--color-primary)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = '#FFFFFF';
+                    e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)';
                     e.currentTarget.style.borderColor = 'var(--border-color)';
                   }}
                 >

@@ -29,3 +29,23 @@ export interface ExpenseBreakdownResponse {
   grandTotal: number;
   categories: ExpenseBreakdownCategory[];
 }
+
+export interface ChannelProfitabilityItem {
+  channel: string;
+  displayName: string;
+  revenue: number;
+  orderCount: number;
+  channelFees: number;
+  allocatedExpenses: number;
+  netContribution: number;
+  contributionMarginPercent: number;
+}
+
+export interface ChannelProfitabilityResponse {
+  totalRevenue: number;
+  totalAllocatedCost: number;
+  totalContribution: number;
+  generalOverhead: number;
+  netBusinessResult: number;
+  channels: ChannelProfitabilityItem[];
+}

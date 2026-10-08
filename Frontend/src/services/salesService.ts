@@ -1,5 +1,10 @@
 import { apiClient } from './apiClient';
-import { SalesSummary, SalesTrendPoint, TopProduct } from '../types/sales';
+import {
+  SalesSummary,
+  SalesTrendPoint,
+  TopProduct,
+  SalesByChannelResponse
+} from '../types/sales';
 
 export const salesService = {
   async getSalesSummary(): Promise<SalesSummary> {
@@ -7,16 +12,46 @@ export const salesService = {
     return res.data;
   },
 
-  async getSalesTrends(range: '7d' | '30d' | '90d' = '30d'): Promise<SalesTrendPoint[]> {
+  async getSalesByChannel(
+    range: string = 'all',
+    startDate?: string,
+    endDate?: string
+  ): Promise<SalesByChannelResponse> {
+    const params = new URLSearchParams();
+    if (range) params.append('range', range);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const query = params.toString();
+    const res = await apiClient<{ success: boolean; data: SalesByChannelResponse }>(
+      `/api/sales/channels${query ? `?${query}` : ''}`
+    );
+    return res.data;
+  },
+
+  async getSalesTrends(
+    range: string = '30d',
+    channel?: string
+  ): Promise<SalesTrendPoint[]> {
+    const params = new URLSearchParams();
+    if (range) params.append('range', range);
+    if (channel && channel !== 'ALL') params.append('channel', channel);
+
+    const query = params.toString();
     const res = await apiClient<{ success: boolean; data: { range: string; trends: SalesTrendPoint[] } }>(
-      `/api/sales/trends?range=${range}`
+      `/api/sales/trends${query ? `?${query}` : ''}`
     );
     return res.data?.trends || [];
   },
 
-  async getTopProducts(limit: number = 5): Promise<TopProduct[]> {
+  async getTopProducts(limit: number = 5, channel?: string): Promise<TopProduct[]> {
+    const params = new URLSearchParams();
+    params.append('limit', limit.toString());
+    if (channel && channel !== 'ALL') params.append('channel', channel);
+
+    const query = params.toString();
     const res = await apiClient<{ success: boolean; data: TopProduct[] }>(
-      `/api/sales/top-products?limit=${limit}`
+      `/api/sales/top-products${query ? `?${query}` : ''}`
     );
     return res.data || [];
   }

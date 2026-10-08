@@ -6,38 +6,44 @@ import {
   Bell,
   MessageSquare,
   Menu,
-  ChevronDown,
   User,
   LogOut,
   Shield,
-  Check,
   Plus,
   Compass,
   Activity,
   Target,
-  Settings
+  Settings,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { useCommandPalette } from '../../context/CommandPaletteContext';
 import { useChat } from '../../context/ChatContext';
+import { useTheme } from '../../context/ThemeContext';
 import { QuickCreateModal } from './QuickCreateModal';
-import { UserRole } from '../../types';
 
 interface HeaderProps {
   onOpenMobileSidebar: () => void;
 }
 
+const formatRole = (role?: string) => {
+  if (!role) return 'Founder';
+  if (role.toUpperCase() === 'HR') return 'HR';
+  return role.charAt(0).toUpperCase() + role.slice(1).toLowerCase().replace(/_/g, ' ');
+};
+
 export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, activeRole, login, logout } = useAuth();
+  const { currentUser, activeRole, logout } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const { open: openCommandPalette } = useCommandPalette();
   const { totalUnreadCount } = useChat();
+  const { isDark, toggleTheme } = useTheme();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
 
@@ -45,14 +51,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
   const pathParts = location.pathname.split('/').filter(Boolean);
   const currentSection = pathParts[0] || 'dashboard';
   const pageTitle = currentSection.charAt(0).toUpperCase() + currentSection.slice(1).replace('-', ' ');
-
-  const demoUsers = [
-    { role: 'FOUNDER', email: 'founder@lavantanaturals.com', label: 'Founder', desc: 'Full company access' },
-    { role: 'HR', email: 'hr@lavantanaturals.com', label: 'HR', desc: 'People & HR operations' },
-    { role: 'MANAGER', email: 'manager@lavantanaturals.com', label: 'Manager', desc: 'Team & task management' },
-    { role: 'EMPLOYEE', email: 'employee@lavantanaturals.com', label: 'Employee', desc: 'Your work & workspace' },
-    { role: 'INTERN', email: 'intern@lavantanaturals.com', label: 'Intern', desc: 'Assigned work & workspace' }
-  ];
 
   return (
     <header className="top-header">
@@ -120,80 +118,27 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
           <span className="header-shortcut-key">⌘K</span>
         </button>
 
-        {/* Role Switcher Pill */}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => {
-              setIsRoleMenuOpen(!isRoleMenuOpen);
-              setIsNotifOpen(false);
-              setIsProfileMenuOpen(false);
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '0.35rem 0.75rem',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--color-soft-green)',
-              color: 'var(--color-primary-deep)',
-              border: '1px solid rgba(105, 196, 63, 0.3)',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-            title="Switch Active Simulated Role"
-          >
-            <Shield size={14} />
-            <span style={{ textTransform: 'capitalize' }}>
-              {(activeRole || 'FOUNDER').replace('_', ' ').toLowerCase()}
-            </span>
-            <ChevronDown size={14} />
-          </button>
-
-          {isRoleMenuOpen && (
-            <div
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: '115%',
-                width: '280px',
-                background: '#FFFFFF',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: 'var(--shadow-lg)',
-                zIndex: 50,
-                padding: '0.5rem'
-              }}
-            >
-              <div style={{ padding: '0.35rem 0.5rem', fontSize: '0.675rem', textTransform: 'uppercase', color: 'var(--color-text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                Switch Authenticated Demo User
-              </div>
-              {demoUsers.map(u => (
-                <button
-                  key={u.email}
-                  onClick={async () => {
-                    await login(u.email, 'Lavanta@2026');
-                    setIsRoleMenuOpen(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.5rem 0.6rem',
-                    borderRadius: 'var(--radius-xs)',
-                    background: currentUser?.email === u.email ? 'var(--color-soft-green)' : 'transparent',
-                    color: currentUser?.email === u.email ? 'var(--color-primary-deep)' : 'var(--color-text-primary)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '2px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <span style={{ fontWeight: 600, fontSize: '0.8rem' }}>{u.label}</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>{u.desc}</span>
-                </button>
-              ))}
-            </div>
-          )}
+        {/* Authenticated Role Indicator (Static) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '0.35rem 0.75rem',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--color-soft-green)',
+            color: 'var(--color-primary-deep)',
+            border: '1px solid rgba(105, 196, 63, 0.3)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            userSelect: 'none'
+          }}
+          title={`Authenticated Role: ${formatRole(currentUser?.role || activeRole)}`}
+        >
+          <Shield size={14} />
+          <span>
+            {formatRole(currentUser?.role || activeRole)}
+          </span>
         </div>
 
         {/* Chat shortcut */}
@@ -203,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
             padding: '0.45rem',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
-            background: '#FFFFFF',
+            background: 'var(--bg-subtle)',
             color: 'var(--color-text-secondary)',
             cursor: 'pointer',
             display: 'flex',
@@ -244,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
             padding: '0.45rem',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             color: 'var(--color-text-secondary)',
             cursor: 'pointer',
             display: 'flex'
@@ -254,19 +199,39 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
           <Calendar size={17} />
         </button>
 
+        {/* Theme Toggle (Dark / Light) */}
+        <button
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{
+            padding: '0.45rem',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            background: 'var(--bg-surface)',
+            color: isDark ? '#FBBF24' : 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDark ? <Sun size={17} /> : <Moon size={17} />}
+        </button>
+
         {/* Notifications Popover */}
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => {
               setIsNotifOpen(!isNotifOpen);
-              setIsRoleMenuOpen(false);
               setIsProfileMenuOpen(false);
             }}
             style={{
               padding: '0.45rem',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
-              background: '#FFFFFF',
+              background: 'var(--bg-subtle)',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer',
               display: 'flex',
@@ -306,8 +271,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 right: 0,
                 top: '115%',
                 width: '320px',
-                background: '#FFFFFF',
-                border: '1px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-lg)',
                 zIndex: 50,
@@ -382,7 +347,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                         style={{
                           padding: '0.6rem',
                           borderRadius: '8px',
-                          background: n.isRead ? '#FFFFFF' : 'var(--color-primary-subtle)',
+                          background: n.isRead ? 'var(--bg-surface-elevated)' : 'var(--color-soft-green)',
                           border: '1px solid var(--border-color)',
                           cursor: 'pointer',
                           fontSize: '0.775rem',
@@ -429,7 +394,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
             onClick={() => {
               setIsProfileMenuOpen(!isProfileMenuOpen);
               setIsNotifOpen(false);
-              setIsRoleMenuOpen(false);
             }}
             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
           >
@@ -447,8 +411,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 right: 0,
                 top: '115%',
                 width: '210px',
-                background: '#FFFFFF',
-                border: '1px solid var(--border-color)',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border-strong)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-lg)',
                 zIndex: 50,
@@ -459,28 +423,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 <div style={{ fontWeight: 600, fontSize: '0.825rem' }}>{currentUser?.name}</div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>{currentUser?.email}</div>
               </div>
-
-              {activeRole === 'FOUNDER' && (
-                <Link
-                  to="/founder"
-                  onClick={() => setIsProfileMenuOpen(false)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '0.45rem 0.5rem',
-                    fontSize: '0.8rem',
-                    color: 'var(--color-primary-deep)',
-                    fontWeight: 600,
-                    background: 'var(--color-soft-green)',
-                    borderRadius: 'var(--radius-xs)',
-                    margin: '2px 0'
-                  }}
-                >
-                  <Compass size={14} />
-                  <span>Founder Cockpit</span>
-                </Link>
-              )}
 
               <Link
                 to="/profile"

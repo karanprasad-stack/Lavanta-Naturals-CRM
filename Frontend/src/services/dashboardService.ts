@@ -1,60 +1,25 @@
 import { User, UserRole } from '../types';
 import { apiClient } from './apiClient';
+import { FounderOverviewResponse } from '../types/founder';
 
-export interface FounderDashboardData {
+export interface FounderDashboardData extends Partial<FounderOverviewResponse> {
   role: 'FOUNDER';
   user: User;
-  teamStats: {
+  unreadNotificationsCount?: number;
+  companyOverview?: FounderOverviewResponse['companyOverview'];
+  workOverview?: FounderOverviewResponse['workOverview'];
+  salesOverview?: FounderOverviewResponse['salesOverview'];
+  expenseOverview?: FounderOverviewResponse['expenseOverview'];
+  teamOverview?: FounderOverviewResponse['teamOverview'];
+  teamStats?: {
     total: number;
     employees: number;
     interns: number;
     hrManagers: number;
   };
-  teamOverview: Array<{
-    id: string;
-    name: string;
-    role: string;
-    department: string;
-    designation: string;
-    joiningDate: string;
-    profilePhoto: string;
-    status: string;
-  }>;
-  workOverview: {
-    activeTasks: number;
-    completedTasks: number;
-    pendingTasks: number;
-    overdueTasks: number;
-  };
-  announcements: Array<{
-    id: string;
-    title: string;
-    date: string;
-    targetAudience: string;
-    summary: string;
-  }>;
-  recentActivity: Array<{
-    id: string;
-    text: string;
-    timestamp: string;
-  }>;
-  quickActions: string[];
-  salesOverview?: {
-    totalRevenue: number;
-    monthRevenue: number;
-    pendingOrders: number;
-  };
-  expenseOverview?: {
-    totalExpenses?: number;
-    monthExpenses?: number;
-    pendingApprovals?: number;
-    departmentExpenses?: number;
-  };
-  financialOverview?: {
-    revenue: number;
-    expenses: number;
-    operatingDifference: number;
-  };
+  announcements?: any[];
+  recentActivity?: any[];
+  quickActions?: string[];
 }
 
 export interface HRDashboardData {

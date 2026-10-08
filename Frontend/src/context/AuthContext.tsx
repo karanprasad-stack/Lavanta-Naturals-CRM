@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { authService, ProfileUpdateData } from '../services/authService';
+import { authService, ProfileUpdateData, RegisterData } from '../services/authService';
 
 interface AuthContextType {
   currentUser: User;
   activeRole: UserRole;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password?: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<User>;
+  register: (data: RegisterData) => Promise<User>;
   logout: () => Promise<void>;
   updateProfile: (data: ProfileUpdateData) => Promise<User>;
   updateCurrentUser: (user: Partial<User>) => void;
@@ -56,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
         } catch (err) {
           console.warn('[Auth] Session validation failed:', err);
+          authService.removeToken();
           setIsAuthenticated(false);
         }
       } else {
@@ -67,12 +69,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password = 'password123') => {
+  const login = async (identifier: string, password: string): Promise<User> => {
     setIsLoading(true);
     try {
-      const response = await authService.login(email, password);
-      setCurrentUser(normalizeUser(response.user));
+      const response = await authService.login(identifier, password);
+      const normalized = normalizeUser(response.user);
+      setCurrentUser(normalized);
       setIsAuthenticated(true);
+      return normalized;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (data: RegisterData): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const response = await authService.register(data);
+      const normalized = normalizeUser(response.user);
+      setCurrentUser(normalized);
+      setIsAuthenticated(true);
+      return normalized;
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated,
         isLoading,
         login,
+        register,
         logout,
         updateProfile,
         updateCurrentUser

@@ -1,5 +1,10 @@
 import { apiClient } from './apiClient';
-import { FinanceSummary, FinanceTrendPoint, ExpenseBreakdownResponse } from '../types/finance';
+import {
+  FinanceSummary,
+  FinanceTrendPoint,
+  ExpenseBreakdownResponse,
+  ChannelProfitabilityResponse
+} from '../types/finance';
 
 export const financeService = {
   async getFinanceSummary(): Promise<FinanceSummary> {
@@ -16,6 +21,13 @@ export const financeService = {
 
   async getExpenseBreakdown(): Promise<ExpenseBreakdownResponse> {
     const res = await apiClient<{ success: boolean; data: ExpenseBreakdownResponse }>('/api/finance/expense-breakdown');
+    return res.data;
+  },
+
+  async getChannelProfitability(): Promise<ChannelProfitabilityResponse> {
+    const res = await apiClient<{ success: boolean; data: ChannelProfitabilityResponse }>(
+      '/api/finance/channel-profitability'
+    );
     return res.data;
   }
 };

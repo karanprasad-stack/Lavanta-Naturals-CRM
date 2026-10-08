@@ -25,7 +25,8 @@ export const CreateExpensePage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState<ExpenseCategory>('INVENTORY');
+  const [category, setCategory] = useState<ExpenseCategory>('MARKETPLACE_FEES');
+  const [salesChannel, setSalesChannel] = useState<'GENERAL' | 'WEBSITE' | 'AMAZON' | 'FLIPKART'>('GENERAL');
   const [department, setDepartment] = useState(currentUser?.department || 'Operations');
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentMethod, setPaymentMethod] = useState('BANK_TRANSFER');
@@ -68,6 +69,7 @@ export const CreateExpensePage: React.FC = () => {
         description: description.trim() || undefined,
         amount: numAmount,
         category,
+        salesChannel,
         department,
         expenseDate,
         paymentMethod,
@@ -185,17 +187,41 @@ export const CreateExpensePage: React.FC = () => {
                   backgroundColor: '#FFFFFF'
                 }}
               >
-                <option value="INVENTORY">Inventory & Raw Botanicals</option>
-                <option value="SUPPLIES">Packaging & Supplies</option>
-                <option value="MARKETING">Marketing & Advertising</option>
-                <option value="SOFTWARE">Software & Subscriptions</option>
+                <option value="MARKETPLACE_FEES">Marketplace Fees (Amazon / Flipkart)</option>
+                <option value="PAYMENT_FEES">Payment Gateway & Transaction Fees</option>
+                <option value="SHIPPING">Shipping & Freight Logistics</option>
+                <option value="PACKAGING">Packaging & Delivery Supplies</option>
+                <option value="MARKETING">Marketing & Promotion</option>
+                <option value="ADVERTISING">Advertising & Performance PPC</option>
+                <option value="OPERATIONS">Operations & Lab Logistics</option>
                 <option value="SALARY">Salaries & Honorariums</option>
-                <option value="UTILITIES">Utilities & Facility</option>
-                <option value="TRAVEL">Travel & Conferences</option>
-                <option value="MAINTENANCE">Equipment Maintenance</option>
-                <option value="SHIPPING">Shipping & Freight</option>
-                <option value="OFFICE">Office Supplies</option>
-                <option value="OTHER">Other Operational Expense</option>
+                <option value="RENT">Rent & Facilities</option>
+                <option value="UTILITIES">Utilities & Power</option>
+                <option value="SOFTWARE">Software & Cloud Subscriptions</option>
+                <option value="OTHER">Other Operating Expense</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '0.35rem' }}>
+                Related Sales Channel
+              </label>
+              <select
+                value={salesChannel}
+                onChange={(e) => setSalesChannel(e.target.value as any)}
+                style={{
+                  width: '100%',
+                  padding: '0.65rem 0.8rem',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  backgroundColor: '#FFFFFF'
+                }}
+              >
+                <option value="GENERAL">General Corporate (Unallocated)</option>
+                <option value="WEBSITE">Lavanta Website</option>
+                <option value="AMAZON">Amazon Marketplace</option>
+                <option value="FLIPKART">Flipkart Marketplace</option>
               </select>
             </div>
           </div>

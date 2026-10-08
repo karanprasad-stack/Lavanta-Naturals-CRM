@@ -1,0 +1,1037 @@
+/* ==========================================================================
+   Lavanta Naturals CRM — Premium Internal Authentication Styles
+   Refined Composition & Vertical Spacing System
+   ========================================================================== */
+
+.login-page-root {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  display: flex;
+  background-color: #FFFFFF;
+  color: var(--color-text-primary, #172235);
+  font-family: var(--font-sans);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Two-Column Symmetrical Layout (50% / 50% Centered Composition)
+   -------------------------------------------------------------------------- */
+.login-showcase-column {
+  flex: 1 1 50%;
+  width: 50%;
+  height: 100%;
+  max-height: 100dvh;
+  background: linear-gradient(165deg, #FAFBF8 0%, #F5F8F2 50%, #EDF3E8 100%);
+  border-right: 1px solid var(--border-color, #E5E8E3);
+  padding: 2.5rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.login-form-column {
+  flex: 1 1 50%;
+  width: 50%;
+  height: 100%;
+  max-height: 100dvh;
+  background-color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2.5rem 3.5rem;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   Unified Content Container (Matched 520px Width on Both Sides)
+   -------------------------------------------------------------------------- */
+.showcase-container {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.login-form-container {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   LEFT SIDE: Showcase Spacing Hierarchy (Vertically Balanced Content Group)
+   -------------------------------------------------------------------------- */
+.showcase-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 2.25rem; /* 36px (32–48px range) */
+}
+
+.showcase-tagline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(105, 196, 63, 0.12);
+  color: var(--color-primary-deep, #3E8E25);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.showcase-content {
+  margin: 0;
+  width: 100%;
+}
+
+.showcase-title {
+  font-size: 2.25rem; /* 36px (36–42px range) */
+  font-weight: 700;
+  color: var(--color-text-primary, #172235);
+  line-height: 1.18;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.85rem 0; /* 14px (12–16px range) */
+}
+
+.showcase-description {
+  font-size: 1.025rem; /* ~16.5px */
+  line-height: 1.6;
+  color: #64748B;
+  max-width: 520px;
+  margin: 0 0 1.85rem 0; /* 30px (28–36px range) */
+}
+
+/* Abstract Botanical & Workspace Visual Card */
+.showcase-visual-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(105, 196, 63, 0.22);
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.35rem 1.5rem; /* 20–24px */
+  box-shadow: 0 12px 28px -10px rgba(62, 142, 37, 0.07), 0 2px 5px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem; /* 16–20px row spacing */
+  margin: 0 0 1.85rem 0; /* 30px (28–32px range) */
+  position: relative;
+}
+
+.showcase-visual-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.showcase-visual-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.showcase-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #172235);
+}
+
+.showcase-feature-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-soft-green, #EAF7E5);
+  color: var(--color-primary-deep, #3E8E25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.showcase-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #64748B;
+  letter-spacing: 0.01em;
+}
+
+.showcase-security-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #69C43F);
+  box-shadow: 0 0 0 3px rgba(105, 196, 63, 0.2);
+}
+
+/* --------------------------------------------------------------------------
+   RIGHT SIDE — STATE A: LOGIN FORM SPACING HIERARCHY
+   -------------------------------------------------------------------------- */
+.auth-form-enter {
+  animation: authFormFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes authFormFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-header-group {
+  margin-bottom: 1.85rem; /* 30px (28–32px range) */
+  text-align: left;
+}
+
+.login-heading {
+  font-size: 1.95rem; /* ~31px */
+  font-weight: 700;
+  color: #172235;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.625rem 0; /* 10px (8–12px range) */
+  line-height: 1.2;
+}
+
+.login-subheading {
+  font-size: 0.95rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Alert / Error Banner */
+.login-error-banner {
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #B91C1C;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  margin-bottom: 1.35rem;
+  animation: loginFadeIn 0.2s ease-out;
+}
+
+/* Login Fields */
+.login-field-group {
+  margin-bottom: 1.35rem; /* 22px (20–24px range) */
+}
+
+.login-field-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #172235;
+  margin-bottom: 0.5rem; /* 8px */
+}
+
+.login-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.login-input {
+  width: 100%;
+  height: 52px;
+  padding: 0 1.15rem;
+  padding-right: 3rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: #172235;
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms);
+  box-sizing: border-box;
+}
+
+.login-input::placeholder {
+  color: #94A3B8;
+}
+
+.login-input:focus {
+  border-color: #69C43F;
+  box-shadow: 0 0 0 3.5px rgba(105, 196, 63, 0.16);
+}
+
+.login-input.has-error {
+  border-color: #EF4444;
+  background-color: #FFFDFD;
+}
+
+.login-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.login-input:disabled {
+  background-color: #F8FAFC;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
+.login-password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #64748B;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: color var(--transition-fast, 150ms), background-color var(--transition-fast, 150ms);
+}
+
+.login-password-toggle-btn:hover {
+  color: #172235;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.login-password-toggle-btn:focus-visible {
+  outline: 2px solid #69C43F;
+  outline-offset: 1px;
+}
+
+.login-field-error-text {
+  font-size: 0.775rem;
+  color: #DC2626;
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Remember Me & Forgot Password Row */
+.login-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -2px;
+  margin-bottom: 1.6rem; /* 26px (24–28px range) */
+}
+
+.login-remember-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748B;
+  cursor: pointer;
+  user-select: none;
+}
+
+.login-remember-checkbox {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  border: 1.5px solid #CBD5E1;
+  accent-color: #69C43F;
+  cursor: pointer;
+}
+
+.login-forgot-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #3E8E25;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: inherit;
+  transition: color var(--transition-fast, 150ms);
+}
+
+.login-forgot-btn:hover {
+  color: #4FAF32;
+  text-decoration: underline;
+}
+
+.login-forgot-btn:focus-visible {
+  outline: 2px solid #69C43F;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Sign In Submit Button */
+.login-submit-btn {
+  width: 100%;
+  height: 52px;
+  background-color: #69C43F;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.975rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: background-color var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms), transform var(--transition-fast, 150ms);
+}
+
+.login-submit-btn:hover:not(:disabled) {
+  background-color: #5CB633;
+  box-shadow: 0 4px 14px rgba(105, 196, 63, 0.28);
+  transform: translateY(-1px);
+}
+
+.login-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+}
+
+.login-submit-btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.login-submit-btn:focus-visible {
+  outline: 2px solid #69C43F;
+  outline-offset: 2px;
+}
+
+/* Auth Switch Prompt */
+.auth-switch-prompt {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #64748B;
+  margin-top: 1.35rem; /* 22px (20–24px range) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.auth-switch-link {
+  color: #3E8E25;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  transition: color var(--transition-fast, 150ms);
+}
+
+.auth-switch-link:hover {
+  color: #4FAF32;
+  text-decoration: underline;
+}
+
+.auth-switch-link:focus-visible {
+  outline: 2px solid #69C43F;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Security Note */
+.login-authorized-note {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #94A3B8;
+  margin-top: 1.35rem; /* 22px (20–24px range) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  letter-spacing: 0.01em;
+}
+
+.login-authorized-note svg {
+  color: #94A3B8;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   RIGHT SIDE — STATE B: REGISTER FORM SPACING HIERARCHY
+   (Identical Design System, Scaled Compact Spacing to Fit Viewport)
+   -------------------------------------------------------------------------- */
+.register-form-block {
+  width: 100%;
+}
+
+.register-header-group {
+  margin-bottom: 1.45rem; /* 23px (22–26px range) */
+  text-align: left;
+}
+
+.register-heading {
+  font-size: 1.85rem; /* ~30px */
+  font-weight: 700;
+  color: #172235;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.55rem 0; /* 9px (8–10px range) */
+  line-height: 1.2;
+}
+
+.register-subheading {
+  font-size: 0.9rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.register-error-banner,
+.register-success-banner {
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.825rem;
+  line-height: 1.4;
+  margin-bottom: 1rem;
+}
+
+.register-error-banner {
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+}
+
+.register-success-banner {
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
+}
+
+.register-field-group {
+  margin-bottom: 1rem; /* 16px (16–18px range) */
+}
+
+.register-field-group-last {
+  margin-bottom: 1.45rem; /* 23px (22–26px range) */
+}
+
+.register-field-label {
+  display: block;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #172235;
+  margin-bottom: 0.45rem; /* 7–8px */
+}
+
+.register-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+}
+
+.register-optional-tag {
+  font-size: 0.72rem;
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+.register-input {
+  width: 100%;
+  height: 46px; /* Compact 46px input height */
+  padding: 0 1rem;
+  padding-right: 2.75rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #172235;
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  outline: none;
+  transition: border-color var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms);
+  box-sizing: border-box;
+}
+
+.register-input::placeholder {
+  color: #94A3B8;
+}
+
+.register-input:focus {
+  border-color: #69C43F;
+  box-shadow: 0 0 0 3px rgba(105, 196, 63, 0.16);
+}
+
+.register-input.has-error {
+  border-color: #EF4444;
+  background-color: #FFFDFD;
+}
+
+.register-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.register-input:disabled {
+  background-color: #F8FAFC;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
+.register-field-error-text {
+  font-size: 0.725rem;
+  color: #DC2626;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Password Requirements Indicator Pills */
+.register-password-requirements {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.req-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1.5px 6px;
+  border-radius: 4px;
+  background: #F1F5F0;
+  color: #64748B;
+  font-size: 0.685rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: all var(--transition-fast, 150ms);
+}
+
+.req-pill.valid {
+  background: var(--color-soft-green, #EAF7E5);
+  color: var(--color-primary-deep, #3E8E25);
+  font-weight: 600;
+}
+
+/* Register Submit Button */
+.register-submit-btn {
+  width: 100%;
+  height: 48px;
+  background-color: #69C43F;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: background-color var(--transition-fast, 150ms), box-shadow var(--transition-fast, 150ms), transform var(--transition-fast, 150ms);
+}
+
+.register-submit-btn:hover:not(:disabled) {
+  background-color: #5CB633;
+  box-shadow: 0 4px 14px rgba(105, 196, 63, 0.28);
+  transform: translateY(-1px);
+}
+
+.register-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+}
+
+.register-submit-btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.register-submit-btn:focus-visible {
+  outline: 2px solid #69C43F;
+  outline-offset: 2px;
+}
+
+.register-switch-prompt {
+  text-align: center;
+  font-size: 0.85rem;
+  color: #64748B;
+  margin-top: 1.35rem; /* 21px (20–22px range) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* --------------------------------------------------------------------------
+   Forgot Password Modal Dialog
+   -------------------------------------------------------------------------- */
+.login-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+  animation: loginFadeIn 0.15s ease-out;
+}
+
+.login-modal-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-lg, 14px);
+  padding: 2rem;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color, #E5E8E3);
+  animation: loginScaleUp 0.18s ease-out;
+}
+
+/* --------------------------------------------------------------------------
+   Animations
+   -------------------------------------------------------------------------- */
+@keyframes loginFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loginScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.login-fade-in {
+  animation: loginFadeIn 0.3s ease-out both;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.login-spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Compact Laptop Viewport Handling (1366x768, 1440x900, 1536x864)
+   Ensures 100dvh zero-scrolling fit with proportional breathing room
+   -------------------------------------------------------------------------- */
+@media (max-height: 820px) and (min-width: 961px) {
+  .login-showcase-column {
+    padding: 1.75rem 2.75rem;
+  }
+
+  .showcase-header {
+    margin-bottom: 1.65rem;
+  }
+
+  .showcase-title {
+    font-size: 2rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .showcase-description {
+    font-size: 0.925rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .showcase-visual-card {
+    padding: 1.1rem 1.25rem;
+    gap: 0.85rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .showcase-visual-row {
+    padding-bottom: 0.65rem;
+  }
+
+  .showcase-feature-item {
+    font-size: 0.8rem;
+    gap: 10px;
+  }
+
+  .showcase-feature-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .login-form-column {
+    padding: 1.75rem 2.75rem;
+  }
+
+  /* Compact Login Scale */
+  .login-header-group {
+    margin-bottom: 1.35rem;
+  }
+
+  .login-heading {
+    font-size: 1.75rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .login-field-group {
+    margin-bottom: 1rem;
+  }
+
+  .login-input {
+    height: 48px;
+  }
+
+  .login-options-row {
+    margin-bottom: 1.25rem;
+  }
+
+  .login-submit-btn {
+    height: 48px;
+  }
+
+  .auth-switch-prompt {
+    margin-top: 1.15rem;
+  }
+
+  .login-authorized-note {
+    margin-top: 1rem;
+  }
+
+  /* Compact Register Scale */
+  .register-header-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .register-heading {
+    font-size: 1.65rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .register-subheading {
+    font-size: 0.825rem;
+  }
+
+  .register-field-group {
+    margin-bottom: 0.85rem;
+  }
+
+  .register-field-group-last {
+    margin-bottom: 1.15rem;
+  }
+
+  .register-field-label {
+    font-size: 0.8rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .register-input {
+    height: 42px;
+    font-size: 0.875rem;
+  }
+
+  .register-submit-btn {
+    height: 44px;
+    font-size: 0.925rem;
+  }
+
+  .register-switch-prompt {
+    margin-top: 1.1rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ultra-Compact Viewport Height Handling (≤ 720px)
+   -------------------------------------------------------------------------- */
+@media (max-height: 720px) and (min-width: 961px) {
+  .login-showcase-column,
+  .login-form-column {
+    padding: 1.25rem 2.25rem;
+  }
+
+  .showcase-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .showcase-title {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .showcase-description {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .showcase-visual-card {
+    padding: 0.85rem 1rem;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .register-field-group {
+    margin-bottom: 0.65rem;
+  }
+
+  .register-field-group-last {
+    margin-bottom: 0.95rem;
+  }
+
+  .register-input {
+    height: 38px;
+  }
+
+  .register-submit-btn {
+    height: 40px;
+  }
+
+  .register-header-group {
+    margin-bottom: 0.95rem;
+  }
+
+  .login-input,
+  .login-submit-btn {
+    height: 44px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tablet & Mobile Responsive Breakdown
+   -------------------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .login-page-root {
+    flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .login-showcase-column {
+    width: 100%;
+    padding: 2.5rem 2rem 2rem;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #E5E8E3);
+    max-height: none;
+    height: auto;
+  }
+
+  .showcase-header {
+    margin-bottom: 1.75rem;
+  }
+
+  .showcase-title {
+    font-size: 1.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .showcase-description {
+    font-size: 0.925rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .showcase-visual-card {
+    display: none;
+  }
+
+  .login-form-column {
+    width: 100%;
+    padding: 2.5rem 1.5rem 3rem;
+    max-height: none;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-showcase-column {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .showcase-content {
+    display: none;
+  }
+
+  .showcase-footer {
+    display: none;
+  }
+
+  .login-form-column {
+    padding: 2rem 1.25rem 3rem;
+  }
+
+  .login-heading,
+  .register-heading {
+    font-size: 1.5rem;
+  }
+
+  .login-input,
+  .login-submit-btn,
+  .register-input,
+  .register-submit-btn {
+    height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-fade-in,
+  .login-modal-overlay,
+  .login-modal-card,
+  .login-error-banner,
+  .register-error-banner,
+  .register-success-banner,
+  .login-submit-btn,
+  .register-submit-btn,
+  .auth-form-enter {
+    animation: none !important;
+    transition: none !important;
+  }
+}

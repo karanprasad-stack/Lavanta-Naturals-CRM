@@ -5,7 +5,7 @@ export interface FounderOverviewResponse {
     activeTasks: number;
     overdueTasks: number;
     activeGoals: number;
-    lowStock: number;
+    totalOrders?: number;
     pendingOrders: number;
     pendingExpenses: number;
   };
@@ -65,26 +65,22 @@ export interface FounderOverviewResponse {
       targetDate?: string;
     }>;
   };
-  inventoryOverview: {
-    totalProducts: number;
-    lowStock: number;
-    outOfStock: number;
-    lowStockProducts: Array<{
-      id: string;
-      name: string;
-      sku: string;
-      stockQuantity: number;
-      threshold: number;
-    }>;
-  };
   salesOverview: {
     todayRevenue: number;
     monthRevenue: number;
+    totalRevenue: number;
     totalOrders: number;
     pendingOrders: number;
     salesTrend: Array<{
       date: string;
       revenue: number;
+    }>;
+    salesByChannel: Array<{
+      channel: string;
+      displayName: string;
+      orders: number;
+      revenue: number;
+      sharePercent: number;
     }>;
   };
   expenseOverview: {
@@ -98,7 +94,7 @@ export interface FounderOverviewResponse {
       amount: number;
       category: string;
       department: string;
-      submittedBy?: {
+      submittedBy: {
         _id: string;
         name: string;
         profilePhoto?: string;
@@ -113,33 +109,62 @@ export interface FounderOverviewResponse {
     netOperatingDifference: number;
     isOperationalSummary: boolean;
   };
+  salesByChannel?: Array<{
+    channel: string;
+    displayName: string;
+    orders: number;
+    revenue: number;
+    sharePercent: number;
+  }>;
+  recentOrders?: Array<{
+    id: string;
+    orderNumber: string;
+    externalOrderId?: string | null;
+    salesChannel: string;
+    customerName: string;
+    total: number;
+    orderStatus: string;
+    paymentStatus: string;
+    createdAt: string;
+  }>;
+  recentExpenses?: Array<{
+    id: string;
+    title: string;
+    amount: number;
+    category: string;
+    salesChannel: string;
+    status: string;
+    submittedByName: string;
+    createdAt: string;
+  }>;
   announcements: Array<{
     _id: string;
     title: string;
     type: string;
     priority: string;
-    targetAudience: string;
+    targetAudience?: string;
     createdAt: string;
     authorId?: {
+      name: string;
+    };
+    createdBy?: {
       name: string;
     };
   }>;
   recentActivity: Array<{
     id: string;
     type: string;
-    action: string;
+    title?: string;
+    description?: string;
+    time?: string;
+    message?: string;
+    entityType?: string;
+    timestamp?: string;
+    link?: string;
     user: {
-      id: string;
       name: string;
       profilePhoto?: string;
-      department?: string;
       role?: string;
     };
-    entity: string;
-    entityType: string;
-    entityId: string;
-    message: string;
-    link: string;
-    timestamp: string;
   }>;
 }

@@ -1,15 +1,9 @@
-import React, { useState, useEffect, useTransition } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Package,
   Plus,
   Search,
-  Filter,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
-  Layers,
   ArrowUpDown,
   Tag,
   Eye,
@@ -17,13 +11,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { productService } from '../../services/productService';
-import { ProductItem, ProductCategory, StockStatusType } from '../../types/inventory';
+import { ProductItem, ProductCategory } from '../../types/product';
 
 export const ProductsPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
-  const isPending = false;
-  const [, startTransition] = useTransition();
 
   const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
   const canManageProducts = ['FOUNDER', 'MANAGER'].includes(userRole);
@@ -39,8 +30,6 @@ export const ProductsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedStockStatus, setSelectedStockStatus] = useState<StockStatusType | ''>('');
-  const [selectedStatus, setSelectedStatus] = useState<'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | ''>('ACTIVE');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -68,8 +57,6 @@ export const ProductsPage: React.FC = () => {
       const res = await productService.getProducts({
         search: debouncedSearch,
         category: selectedCategory,
-        stockStatus: selectedStockStatus,
-        status: selectedStatus,
         page: currentPage,
         limit: 20,
         sortBy,
@@ -87,37 +74,7 @@ export const ProductsPage: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
-  }, [debouncedSearch, selectedCategory, selectedStockStatus, selectedStatus, currentPage, sortBy, sortOrder]);
-
-  const getStockBadge = (product: ProductItem) => {
-    const status = product.stockStatus || (product.stockQuantity === 0 ? 'OUT_OF_STOCK' : product.stockQuantity <= product.lowStockThreshold ? 'LOW_STOCK' : 'IN_STOCK');
-
-    switch (status) {
-      case 'IN_STOCK':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <CheckCircle2 className="w-3 h-3" />
-            In Stock ({product.stockQuantity})
-          </span>
-        );
-      case 'LOW_STOCK':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-            <AlertTriangle className="w-3 h-3" />
-            Low Stock ({product.stockQuantity})
-          </span>
-        );
-      case 'OUT_OF_STOCK':
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
-            <XCircle className="w-3 h-3" />
-            Out of Stock
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+  }, [debouncedSearch, selectedCategory, currentPage, sortBy, sortOrder]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -130,19 +87,12 @@ export const ProductsPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-[#1B2533]">Products</h1>
-              <p className="text-sm text-[#5A667A]">Manage Lavanta Naturals products and inventory.</p>
+              <p className="text-sm text-[#5A667A]">Manage Lavanta Naturals product catalog.</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            to="/inventory"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1B2533] bg-[#F7F9F6] hover:bg-[#EEF3ED] border border-[#EAEFE9] rounded-xl transition-colors"
-          >
-            <Layers className="w-4 h-4 text-[#69C43F]" />
-            Inventory Stock
-          </Link>
           {canManageProducts && (
             <Link
               to="/products/new"
@@ -159,7 +109,7 @@ export const ProductsPage: React.FC = () => {
       <div className="bg-white p-4 rounded-2xl border border-[#EAEFE9] shadow-xs space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Search */}
-          <div className="md:col-span-5 relative">
+          <div className="md:col-span-8 relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8C9BAE]" />
             <input
               type="text"
@@ -171,7 +121,7 @@ export const ProductsPage: React.FC = () => {
           </div>
 
           {/* Category Filter */}
-          <div className="md:col-span-3">
+          <div className="md:col-span-4">
             <select
               value={selectedCategory}
               onChange={e => {
@@ -187,42 +137,6 @@ export const ProductsPage: React.FC = () => {
                   {c.name} {c.productCount ? `(${c.productCount})` : ''}
                 </option>
               ))}
-            </select>
-          </div>
-
-          {/* Stock Status Filter */}
-          <div className="md:col-span-2">
-            <select
-              value={selectedStockStatus}
-              onChange={e => {
-                setSelectedStockStatus(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              aria-label="Filter by Stock Status"
-              className="w-full px-3 py-2 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-            >
-              <option value="">All Stock Levels</option>
-              <option value="IN_STOCK">In Stock</option>
-              <option value="LOW_STOCK">Low Stock</option>
-              <option value="OUT_OF_STOCK">Out of Stock</option>
-            </select>
-          </div>
-
-          {/* Catalog Status Filter */}
-          <div className="md:col-span-2">
-            <select
-              value={selectedStatus}
-              onChange={e => {
-                setSelectedStatus(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              aria-label="Filter by Catalog Status"
-              className="w-full px-3 py-2 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-            >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="ARCHIVED">Archived</option>
-              <option value="">All Statuses</option>
             </select>
           </div>
         </div>
@@ -269,9 +183,9 @@ export const ProductsPage: React.FC = () => {
           </div>
           <h3 className="text-lg font-semibold text-[#1B2533]">No products found</h3>
           <p className="text-sm text-[#5A667A] mt-1 max-w-sm mx-auto">
-            {search || selectedCategory || selectedStockStatus
+            {search || selectedCategory
               ? 'No products match your current filters. Try resetting search or category parameters.'
-              : 'Your product catalog is empty. Create your first product to start tracking inventory.'}
+              : 'Your product catalog is empty. Create your first product to get started.'}
           </p>
           {canManageProducts && (
             <Link
@@ -294,8 +208,6 @@ export const ProductsPage: React.FC = () => {
                   <th className="py-3.5 px-4">SKU</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4 text-right">Price</th>
-                  <th className="py-3.5 px-4">Stock Level</th>
-                  <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -340,27 +252,6 @@ export const ProductsPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right font-medium text-[#1B2533]">
                         ₹{p.sellingPrice?.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-1">
-                          <div>{getStockBadge(p)}</div>
-                          <div className="text-[11px] text-[#8C9BAE]">
-                            Threshold: {p.lowStockThreshold} {p.unit.toLowerCase()}s
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block px-2 py-0.5 text-[11px] font-medium rounded-full ${
-                            p.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : p.status === 'ARCHIVED'
-                              ? 'bg-gray-100 text-gray-600'
-                              : 'bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1">
@@ -411,17 +302,6 @@ export const ProductsPage: React.FC = () => {
                         <code className="text-xs font-mono font-medium px-1.5 py-0.5 rounded bg-[#F4F6F3] text-[#2D3748]">
                           {p.sku}
                         </code>
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
-                            p.status === 'ACTIVE'
-                              ? 'bg-emerald-50 text-emerald-700'
-                              : p.status === 'ARCHIVED'
-                              ? 'bg-gray-100 text-gray-600'
-                              : 'bg-amber-50 text-amber-700'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
                       </div>
                       <Link
                         to={`/products/${p._id}`}
@@ -434,7 +314,7 @@ export const ProductsPage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-[#F2F5F0]">
-                    <div>{getStockBadge(p)}</div>
+                    <div className="text-xs text-[#5A667A]">Unit: {p.unit}</div>
                     <div className="text-right">
                       <span className="text-base font-bold text-[#1B2533]">
                         ₹{p.sellingPrice?.toLocaleString('en-IN')}

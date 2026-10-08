@@ -8,25 +8,42 @@ import { logAuditEvent } from '../utils/auditLogger.js';
 export const authController = {
   async login(req: Request, res: Response): Promise<void> {
     try {
-      const { email, password } = req.body;
+      const identifier = (req.body.identifier || req.body.email || '').trim();
+      const password = req.body.password;
 
-      if (!email || !password) {
+      if (!identifier || !password) {
         res.status(400).json({
           success: false,
-          message: 'Email and password are required.'
+          message: 'Email or mobile number and password are required.'
         });
         return;
       }
 
-      const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+      let user = null;
+      if (identifier.includes('@')) {
+        user = await UserModel.findOne({ email: identifier.toLowerCase().trim() });
+      } else {
+        const cleanDigits = identifier.replace(/[^0-9]/g, '');
+        const phoneRegexPattern = cleanDigits.length >= 7 
+          ? cleanDigits.slice(-10).split('').join('[\\s\\-\\(\\)]*')
+          : null;
+
+        user = await UserModel.findOne({
+          $or: [
+            { phone: identifier },
+            ...(phoneRegexPattern ? [{ phone: new RegExp(phoneRegexPattern) }] : [])
+          ]
+        });
+      }
+
       if (!user) {
         await logAuditEvent(req, {
           action: 'FAILED_LOGIN',
-          metadata: { emailAttempted: email.toLowerCase().trim() }
+          metadata: { identifierAttempted: identifier }
         });
         res.status(401).json({
           success: false,
-          message: 'Invalid email or password.'
+          message: 'Invalid email/mobile number or password.'
         });
         return;
       }
@@ -36,11 +53,11 @@ export const authController = {
         await logAuditEvent(req, {
           action: 'FAILED_LOGIN',
           userId: user._id,
-          metadata: { emailAttempted: email.toLowerCase().trim() }
+          metadata: { identifierAttempted: identifier }
         });
         res.status(401).json({
           success: false,
-          message: 'Invalid email or password.'
+          message: 'Invalid email/mobile number or password.'
         });
         return;
       }
@@ -48,7 +65,7 @@ export const authController = {
       if (user.status === 'INACTIVE') {
         res.status(403).json({
           success: false,
-          message: 'Your account is inactive. Please contact workspace administration.'
+          message: 'Your account is currently inactive. Please contact your administrator.'
         });
         return;
       }
@@ -170,6 +187,112 @@ export const authController = {
       res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to update password', error });
+    }
+  },
+
+  async register(req: Request, res: Response): Promise<void> {
+    try {
+      const { name, phone, mobile, email, password } = req.body;
+      const mobileNumber = (mobile || phone || '').trim();
+      const cleanDigits = mobileNumber.replace(/[^0-9]/g, '');
+
+      if (!name || !name.trim()) {
+        res.status(400).json({ success: false, message: 'Please enter your full name.' });
+        return;
+      }
+
+      if (!mobileNumber || cleanDigits.length < 10) {
+        res.status(400).json({ success: false, message: 'Please enter a valid mobile number.' });
+        return;
+      }
+
+      if (email && email.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+          res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
+          return;
+        }
+      }
+
+      if (!password || password.length < 8) {
+        res.status(400).json({ success: false, message: 'Password must be at least 8 characters long.' });
+        return;
+      }
+
+      // Format work email: provided email or fallback corporate handle
+      const userEmail = (email && email.trim()) 
+        ? email.toLowerCase().trim() 
+        : `${cleanDigits.slice(-10)}@team.lavantanaturals.com`;
+
+      // Check if user already exists with this email or mobile
+      const existingUser = await UserModel.findOne({
+        $or: [
+          { email: userEmail },
+          { phone: mobileNumber },
+          { phone: new RegExp(cleanDigits.slice(-10).split('').join('[\\s\\-\\(\\)]*')) }
+        ]
+      });
+
+      if (existingUser) {
+        res.status(409).json({
+          success: false,
+          message: 'An account with these details already exists.'
+        });
+        return;
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(password);
+
+      // SECURITY: Default controlled role is EMPLOYEE (ignores any role supplied by client)
+      const newUser = await UserModel.create({
+        name: name.trim(),
+        email: userEmail,
+        passwordHash,
+        phone: mobileNumber,
+        role: 'EMPLOYEE', // Controlled default role
+        department: 'Operations',
+        designation: 'Workspace Associate',
+        joiningDate: new Date().toISOString().split('T')[0],
+        status: 'ACTIVE'
+      });
+
+      // Generate session token
+      const token = generateToken({
+        userId: newUser._id.toString(),
+        email: newUser.email,
+        role: newUser.role
+      });
+
+      await logAuditEvent(req, {
+        action: 'LOGIN',
+        userId: newUser._id,
+        metadata: { action: 'REGISTER', role: newUser.role, email: newUser.email }
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Account created successfully.',
+        token,
+        user: {
+          id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          department: newUser.department,
+          designation: newUser.designation,
+          joiningDate: newUser.joiningDate,
+          phone: newUser.phone,
+          profilePhoto: newUser.profilePhoto,
+          status: newUser.status
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during registration',
+        error
+      });
     }
   }
 };

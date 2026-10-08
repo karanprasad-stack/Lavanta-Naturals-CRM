@@ -1,11 +1,9 @@
 import { apiClient } from './apiClient';
-import { ProductItem, ProductCategory } from '../types/inventory';
+import { ProductItem, ProductCategory } from '../types/product';
 
 export interface GetProductsParams {
   search?: string;
   category?: string;
-  stockStatus?: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | '';
-  status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | '';
   page?: number;
   limit?: number;
   sortBy?: string;
@@ -30,8 +28,6 @@ export const productService = {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
     if (params.category) query.append('category', params.category);
-    if (params.stockStatus) query.append('stockStatus', params.stockStatus);
-    if (params.status) query.append('status', params.status);
     if (params.page) query.append('page', params.page.toString());
     if (params.limit) query.append('limit', params.limit.toString());
     if (params.sortBy) query.append('sortBy', params.sortBy);
@@ -51,8 +47,6 @@ export const productService = {
     return res.products.map(p => ({
       ...p,
       id: p._id,
-      stock: p.stockQuantity,
-      threshold: p.lowStockThreshold,
       category: typeof p.categoryId === 'object' ? p.categoryId?.name : 'Skincare',
       mrp: p.sellingPrice,
       cost: p.costPrice
@@ -60,18 +54,16 @@ export const productService = {
   },
 
   /**
-   * Get single product by ID or slug with recent movements & activity
+   * Get single product by ID or slug with recent activity
    */
   async getProductById(id: string): Promise<{
     product: ProductItem;
-    recentMovements: any[];
     recentActivities: any[];
   }> {
     const response = await apiClient<{
       success: boolean;
       data: {
         product: ProductItem;
-        recentMovements: any[];
         recentActivities: any[];
       };
     }>(`/api/products/${id}`);
@@ -79,7 +71,7 @@ export const productService = {
   },
 
   /**
-   * Create a new product with optional opening stock
+   * Create a new product
    */
   async createProduct(payload: {
     name: string;
@@ -90,12 +82,9 @@ export const productService = {
     unit?: string;
     sellingPrice: number;
     costPrice?: number;
-    openingStock?: number;
-    lowStockThreshold?: number;
     tags?: string[];
     images?: string[];
     documentIds?: string[];
-    status?: string;
   }): Promise<ProductItem> {
     const response = await apiClient<{ success: boolean; data: ProductItem }>(
       '/api/products',
@@ -108,7 +97,7 @@ export const productService = {
   },
 
   /**
-   * Update product metadata (strictly preserves stock quantity)
+   * Update product metadata
    */
   async updateProduct(
     id: string,
@@ -121,11 +110,9 @@ export const productService = {
       unit: string;
       sellingPrice: number;
       costPrice: number;
-      lowStockThreshold: number;
       tags: string[];
       images: string[];
       documentIds: string[];
-      status: string;
     }>
   ): Promise<ProductItem> {
     const response = await apiClient<{ success: boolean; data: ProductItem }>(

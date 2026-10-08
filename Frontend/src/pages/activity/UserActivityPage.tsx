@@ -122,33 +122,33 @@ export const UserActivityPage: React.FC = () => {
       {/* 1. Profile Header */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: '1.25rem',
-          boxShadow: 'var(--shadow-sm)'
+          boxShadow: 'var(--shadow-xs)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div
             style={{
-              width: '64px',
-              height: '64px',
+              width: '56px',
+              height: '56px',
               borderRadius: '50%',
-              background: '#EDE9FE',
-              color: '#6D28D9',
+              background: 'rgba(22, 163, 74, 0.12)',
+              color: 'var(--color-primary-deep)',
               fontWeight: 700,
-              fontSize: '1.4rem',
+              fontSize: '1.3rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
-              border: '2px solid #DDD6FE'
+              border: '1px solid var(--border-color)'
             }}
           >
             {user.profilePhoto ? (
@@ -159,7 +159,7 @@ export const UserActivityPage: React.FC = () => {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+              <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
                 {user.name}
               </h1>
               <Badge variant="neutral" size="sm">{user.role}</Badge>
@@ -167,7 +167,7 @@ export const UserActivityPage: React.FC = () => {
             <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>
               {user.designation || 'Team Member'} • <strong style={{ color: 'var(--color-text-primary)' }}>{user.department}</strong>
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
               {user.email}
             </div>
           </div>
@@ -179,49 +179,45 @@ export const UserActivityPage: React.FC = () => {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '1rem'
+          gap: '0.85rem'
         }}
       >
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase' }}>Assigned</div>
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Assigned</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-text-primary)', marginTop: '4px' }}>{summary.assigned}</div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#0369A1', textTransform: 'uppercase' }}>In Progress</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0284C7', marginTop: '4px' }}>{summary.inProgress}</div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803D', textTransform: 'uppercase' }}>Completed</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#16A34A', marginTop: '4px' }}>{summary.completed}</div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
           <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#B91C1C', textTransform: 'uppercase' }}>Overdue</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: summary.overdue > 0 ? '#DC2626' : '#64748B', marginTop: '4px' }}>{summary.overdue}</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: summary.overdue > 0 ? '#DC2626' : 'var(--color-text-primary)', marginTop: '4px' }}>{summary.overdue}</div>
         </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#6D28D9', textTransform: 'uppercase' }}>Done This Week</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#7C3AED', marginTop: '4px' }}>{summary.completedThisWeek}</div>
-        </div>
-        <div style={{ background: '#FFFFFF', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>Done This Month</div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-primary-deep)', marginTop: '4px' }}>{summary.completedThisMonth}</div>
+        <div style={{ background: 'var(--bg-surface)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Done This Week</div>
+          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--color-primary-deep)', marginTop: '4px' }}>{summary.completedThisWeek}</div>
         </div>
       </div>
 
       {/* 3. Recent Work Activity Timeline */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.25rem 1.5rem',
           boxShadow: 'var(--shadow-xs)'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1.25rem' }}>
-          <Activity size={18} color="var(--color-primary-deep)" />
-          <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-            Recent Work Activity
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+          <Activity size={16} color="var(--color-primary-deep)" />
+          <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+            Recent Activity Log
           </h2>
         </div>
 
@@ -230,17 +226,14 @@ export const UserActivityPage: React.FC = () => {
             style={{
               padding: '2.5rem',
               textAlign: 'center',
-              background: '#FAFBF8',
-              borderRadius: '8px',
-              border: '1px dashed #E2E8F0',
-              fontSize: '0.85rem',
-              color: 'var(--color-text-muted)'
+              color: 'var(--color-text-muted)',
+              fontSize: '0.85rem'
             }}
           >
             No recorded activity for this team member yet.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {activities.map(act => (
               <div
                 key={act._id}
@@ -248,10 +241,10 @@ export const UserActivityPage: React.FC = () => {
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '12px',
-                  padding: '10px 14px',
+                  padding: '10px 12px',
                   borderRadius: '8px',
-                  background: '#FAFBF8',
-                  borderLeft: '3px solid var(--color-primary)'
+                  background: 'var(--bg-surface-elevated, #FAFBF8)',
+                  border: '1px solid var(--border-color)'
                 }}
               >
                 <div style={{ marginTop: '3px' }}>{getActivityIcon(act.type)}</div>
@@ -263,7 +256,7 @@ export const UserActivityPage: React.FC = () => {
                     <div
                       onClick={() => navigate(`/tasks/${act.taskId._id}`)}
                       style={{
-                        fontSize: '0.78rem',
+                        fontSize: '0.75rem',
                         color: '#0284C7',
                         fontWeight: 500,
                         marginTop: '3px',

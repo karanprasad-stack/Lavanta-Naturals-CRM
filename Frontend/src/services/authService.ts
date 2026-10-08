@@ -14,11 +14,18 @@ export interface ProfileUpdateData {
   profilePhoto?: string;
 }
 
+export interface RegisterData {
+  name: string;
+  mobile: string;
+  email?: string;
+  password: string;
+}
+
 export const authService = {
-  async login(email: string, password: string): Promise<LoginResponse> {
+  async login(identifier: string, password: string): Promise<LoginResponse> {
     const data = await apiClient<LoginResponse>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ identifier: identifier.trim(), email: identifier.trim(), password })
     });
 
     if (data.token) {
@@ -26,6 +33,25 @@ export const authService = {
     }
 
     return data;
+  },
+
+  async register(data: RegisterData): Promise<LoginResponse> {
+    const response = await apiClient<LoginResponse>('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: data.name.trim(),
+        mobile: data.mobile.trim(),
+        phone: data.mobile.trim(),
+        email: data.email?.trim() || undefined,
+        password: data.password
+      })
+    });
+
+    if (response.token) {
+      setAuthToken(response.token);
+    }
+
+    return response;
   },
 
   async getMe(): Promise<User> {

@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { SALES_CHANNELS, SalesChannelType } from '../config/salesChannels.js';
 
 export type OrderStatus =
   | 'DRAFT'
@@ -36,13 +37,19 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   _id: Types.ObjectId;
-  orderNumber: string;
+  orderNumber: string; // Internal CRM Order ID (e.g. CRM-000123 / LN-2026-...)
+  externalOrderId?: string | null; // Platform Order ID (e.g. Amazon 403-..., Flipkart OD..., Website LVN-...)
+  salesChannel: SalesChannelType; // WEBSITE, AMAZON, FLIPKART, etc.
+  orderDate: Date;
   customerId: Types.ObjectId;
   items: IOrderItem[];
   subtotal: number;
   discount: number;
   tax: number;
   shipping: number;
+  marketplaceFee: number;
+  grossAmount: number;
+  netAmount: number;
   total: number;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
@@ -53,7 +60,6 @@ export interface IOrder extends Document {
   createdBy: Types.ObjectId;
   confirmedBy?: Types.ObjectId | null;
   cancelledBy?: Types.ObjectId | null;
-  inventoryDeducted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -110,6 +116,24 @@ const OrderSchema = new Schema(
       trim: true,
       index: true
     },
+    externalOrderId: {
+      type: String,
+      default: null,
+      trim: true,
+      index: true
+    },
+    salesChannel: {
+      type: String,
+      required: [true, 'Sales channel is mandatory'],
+      enum: SALES_CHANNELS,
+      default: 'WEBSITE',
+      index: true
+    },
+    orderDate: {
+      type: Date,
+      default: Date.now,
+      index: true
+    },
     customerId: {
       type: Schema.Types.ObjectId,
       ref: 'Customer',
@@ -143,6 +167,19 @@ const OrderSchema = new Schema(
       type: Number,
       default: 0,
       min: [0, 'Shipping cannot be negative']
+    },
+    marketplaceFee: {
+      type: Number,
+      default: 0,
+      min: [0, 'Marketplace fee cannot be negative']
+    },
+    grossAmount: {
+      type: Number,
+      default: 0
+    },
+    netAmount: {
+      type: Number,
+      default: 0
     },
     total: {
       type: Number,
@@ -195,10 +232,6 @@ const OrderSchema = new Schema(
       ref: 'User',
       default: null
     },
-    inventoryDeducted: {
-      type: Boolean,
-      default: false
-    },
     cancelReason: {
       type: String,
       default: '',
@@ -221,9 +254,22 @@ OrderSchema.virtual('status')
     this.orderStatus = val;
   });
 
-// Indexes
+// Deduplication compound unique index: an external order ID can only exist once per sales channel
+OrderSchema.index(
+  { salesChannel: 1, externalOrderId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      externalOrderId: { $type: 'string', $gt: '' }
+    }
+  }
+);
+
+// Secondary query indexes
 OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ orderDate: -1 });
 OrderSchema.index({ orderStatus: 1, paymentStatus: 1 });
+OrderSchema.index({ salesChannel: 1, orderStatus: 1 });
 OrderSchema.index({ 'items.productId': 1 });
 
 export const OrderModel = mongoose.model<IOrder>('Order', OrderSchema);

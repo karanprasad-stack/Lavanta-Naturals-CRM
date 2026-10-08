@@ -6,7 +6,7 @@ export const DashboardSkeleton: React.FC = () => {
       {/* Header Banner Skeleton */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -17,11 +17,11 @@ export const DashboardSkeleton: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '50%' }}>
-          <div style={{ width: '120px', height: '14px', background: '#F1F5F0', borderRadius: '4px' }} className="skeleton-pulse" />
-          <div style={{ width: '260px', height: '28px', background: '#EAEFE8', borderRadius: '6px' }} className="skeleton-pulse" />
-          <div style={{ width: '380px', height: '16px', background: '#F1F5F0', borderRadius: '4px' }} className="skeleton-pulse" />
+          <div style={{ width: '120px', height: '14px', background: 'var(--bg-subtle)', borderRadius: '4px' }} className="skeleton-pulse" />
+          <div style={{ width: '260px', height: '28px', background: 'var(--bg-surface-elevated)', borderRadius: '6px' }} className="skeleton-pulse" />
+          <div style={{ width: '380px', height: '16px', background: 'var(--bg-subtle)', borderRadius: '4px' }} className="skeleton-pulse" />
         </div>
-        <div style={{ width: '140px', height: '36px', background: '#F1F5F0', borderRadius: '6px' }} className="skeleton-pulse" />
+        <div style={{ width: '140px', height: '36px', background: 'var(--bg-subtle)', borderRadius: '6px' }} className="skeleton-pulse" />
       </div>
 
       {/* 4 KPI Cards Skeleton */}
@@ -30,7 +30,7 @@ export const DashboardSkeleton: React.FC = () => {
           <div
             key={k}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               border: '1px solid var(--border-color)',
               borderRadius: 'var(--radius-md)',
               padding: '1.25rem 1.5rem',
@@ -39,9 +39,9 @@ export const DashboardSkeleton: React.FC = () => {
               gap: '10px'
             }}
           >
-            <div style={{ width: '100px', height: '12px', background: '#F1F5F0', borderRadius: '4px' }} className="skeleton-pulse" />
-            <div style={{ width: '70px', height: '32px', background: '#EAEFE8', borderRadius: '6px' }} className="skeleton-pulse" />
-            <div style={{ width: '120px', height: '12px', background: '#F1F5F0', borderRadius: '4px' }} className="skeleton-pulse" />
+            <div style={{ width: '100px', height: '12px', background: 'var(--bg-subtle)', borderRadius: '4px' }} className="skeleton-pulse" />
+            <div style={{ width: '70px', height: '32px', background: 'var(--bg-surface-elevated)', borderRadius: '6px' }} className="skeleton-pulse" />
+            <div style={{ width: '120px', height: '12px', background: 'var(--bg-subtle)', borderRadius: '4px' }} className="skeleton-pulse" />
           </div>
         ))}
       </div>
@@ -50,7 +50,7 @@ export const DashboardSkeleton: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.5rem',
@@ -59,17 +59,17 @@ export const DashboardSkeleton: React.FC = () => {
             gap: '1rem'
           }}
         >
-          <div style={{ width: '160px', height: '20px', background: '#EAEFE8', borderRadius: '4px' }} className="skeleton-pulse" />
+          <div style={{ width: '160px', height: '20px', background: 'var(--bg-surface-elevated)', borderRadius: '4px' }} className="skeleton-pulse" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ height: '54px', background: '#FAFBF8', borderRadius: '6px', border: '1px solid #F1F5F0' }} className="skeleton-pulse" />
+              <div key={i} style={{ height: '54px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="skeleton-pulse" />
             ))}
           </div>
         </div>
 
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
             borderRadius: 'var(--radius-md)',
             padding: '1.5rem',
@@ -78,9 +78,9 @@ export const DashboardSkeleton: React.FC = () => {
             gap: '1rem'
           }}
         >
-          <div style={{ width: '160px', height: '20px', background: '#EAEFE8', borderRadius: '4px' }} className="skeleton-pulse" />
-          <div style={{ height: '110px', background: '#FAFBF8', borderRadius: '6px', border: '1px solid #F1F5F0' }} className="skeleton-pulse" />
-          <div style={{ height: '110px', background: '#FAFBF8', borderRadius: '6px', border: '1px solid #F1F5F0' }} className="skeleton-pulse" />
+          <div style={{ width: '160px', height: '20px', background: 'var(--bg-surface-elevated)', borderRadius: '4px' }} className="skeleton-pulse" />
+          <div style={{ height: '110px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="skeleton-pulse" />
+          <div style={{ height: '110px', background: 'var(--bg-surface-elevated)', borderRadius: '6px', border: '1px solid var(--border-subtle)' }} className="skeleton-pulse" />
         </div>
       </div>
     </div>

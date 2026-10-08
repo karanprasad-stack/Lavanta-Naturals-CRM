@@ -5,10 +5,8 @@ import { OrderModel, IOrder, OrderStatus, PaymentStatus } from '../models/Order.
 import { OrderActivityModel, OrderActivityType } from '../models/OrderActivity.js';
 import { ProductModel } from '../models/Product.js';
 import { CustomerModel } from '../models/Customer.js';
-import { InventoryMovementModel } from '../models/InventoryMovement.js';
-import { NotificationModel } from '../models/Notification.js';
+import { SALES_CHANNELS, SalesChannelType } from '../config/salesChannels.js';
 import { generateOrderNumber } from '../utils/orderNumber.js';
-import { handleStockAlertNotifications } from '../utils/inventoryNotifications.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
 /**
@@ -34,108 +32,10 @@ async function logOrderActivity(
 }
 
 /**
- * Deduct inventory for confirmed order items atomically
- */
-async function deductOrderInventory(
-  order: IOrder,
-  userId: mongoose.Types.ObjectId
-): Promise<void> {
-  // 1. Pre-validation: verify all items have sufficient stock
-  for (const item of order.items) {
-    const product = await ProductModel.findById(item.productId);
-    if (!product) {
-      throw new Error(`Product "${item.productNameSnapshot}" no longer exists in catalog`);
-    }
-    if (product.status === 'ARCHIVED') {
-      throw new Error(`Product "${item.productNameSnapshot}" is archived and cannot be fulfilled`);
-    }
-    if (product.stockQuantity < item.quantity) {
-      throw new Error(
-        `Insufficient stock for "${item.productNameSnapshot}". Available: ${product.stockQuantity}, requested: ${item.quantity}`
-      );
-    }
-  }
-
-  // 2. Perform atomic stock deductions and movement records
-  for (const item of order.items) {
-    const product = await ProductModel.findById(item.productId);
-    if (!product) continue;
-
-    const previousQuantity = product.stockQuantity;
-    const newQuantity = previousQuantity - item.quantity;
-
-    const updatedProduct = await ProductModel.findOneAndUpdate(
-      { _id: product._id, stockQuantity: previousQuantity },
-      { $set: { stockQuantity: newQuantity } },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      throw new Error(`Concurrent stock modification detected for "${item.productNameSnapshot}". Please retry.`);
-    }
-
-    await InventoryMovementModel.create({
-      productId: product._id,
-      type: 'STOCK_OUT',
-      quantity: item.quantity,
-      previousQuantity,
-      newQuantity,
-      reason: `Order ${order.orderNumber} confirmed fulfillment`,
-      reference: order.orderNumber,
-      notes: `Customer order items dispatched. Unit price: ₹${item.unitPrice}`,
-      performedBy: userId,
-      createdAt: new Date()
-    });
-
-    // Check if low stock or out of stock alerts should trigger
-    await handleStockAlertNotifications(updatedProduct, previousQuantity, newQuantity, userId);
-  }
-}
-
-/**
- * Restore inventory for cancelled order items
- */
-async function restoreOrderInventory(
-  order: IOrder,
-  userId: mongoose.Types.ObjectId
-): Promise<void> {
-  for (const item of order.items) {
-    const product = await ProductModel.findById(item.productId);
-    if (!product) continue;
-
-    const previousQuantity = product.stockQuantity;
-    const newQuantity = previousQuantity + item.quantity;
-
-    const updatedProduct = await ProductModel.findOneAndUpdate(
-      { _id: product._id, stockQuantity: previousQuantity },
-      { $set: { stockQuantity: newQuantity } },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      // Fallback
-      await ProductModel.findByIdAndUpdate(product._id, {
-        $inc: { stockQuantity: item.quantity }
-      });
-    }
-
-    await InventoryMovementModel.create({
-      productId: product._id,
-      type: 'RETURNED',
-      quantity: item.quantity,
-      previousQuantity,
-      newQuantity,
-      reason: `Stock restored from cancelled order ${order.orderNumber}`,
-      reference: order.orderNumber,
-      notes: `Order was cancelled by user`,
-      performedBy: userId,
-      createdAt: new Date()
-    });
-  }
-}
-
-/**
- * Create a new order
+ * Create a new order (Unified Multi-Channel Order Register)
+ * Supports Website, Amazon, Flipkart, etc.
+ * Enforces duplicate order prevention via salesChannel + externalOrderId.
+ * Does NOT mutate operational inventory.
  */
 export const createOrder = async (
   req: AuthenticatedRequest,
@@ -144,35 +44,75 @@ export const createOrder = async (
   try {
     const user = req.user!;
     const {
+      salesChannel = 'WEBSITE',
+      externalOrderId,
+      orderDate,
       customerId,
       customerData, // optional inline customer details
       items,
       discount = 0,
       tax = 0,
       shipping = 0,
+      marketplaceFee = 0,
       source = 'MANUAL',
       notes = '',
       orderStatus = 'PENDING',
       paymentStatus = 'PENDING'
     } = req.body;
 
-    // 1. Resolve or Create Customer
-    let targetCustomerId = customerId;
-    if (!targetCustomerId && customerData) {
-      if (!customerData.name || !customerData.phone) {
-        res.status(400).json({ success: false, message: 'Customer name and phone are required' });
+    // 1. Validate Sales Channel
+    const normalizedChannel = (salesChannel || 'WEBSITE').toUpperCase() as SalesChannelType;
+    if (!SALES_CHANNELS.includes(normalizedChannel)) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid sales channel: "${salesChannel}". Supported channels: ${SALES_CHANNELS.join(', ')}`
+      });
+      return;
+    }
+
+    // 2. Duplicate Order Prevention Check
+    const cleanExternalOrderId = externalOrderId && typeof externalOrderId === 'string'
+      ? externalOrderId.trim()
+      : null;
+
+    if (cleanExternalOrderId) {
+      const duplicateOrder = await OrderModel.findOne({
+        salesChannel: normalizedChannel,
+        externalOrderId: cleanExternalOrderId
+      });
+
+      if (duplicateOrder) {
+        res.status(409).json({
+          success: false,
+          message: `Duplicate order detected: External Order "${cleanExternalOrderId}" on channel "${normalizedChannel}" is already registered in CRM (Order #${duplicateOrder.orderNumber}).`,
+          existingOrderId: duplicateOrder._id,
+          existingOrderNumber: duplicateOrder.orderNumber
+        });
         return;
       }
+    }
+
+    // 3. Resolve or Create Customer
+    let targetCustomerId = customerId;
+    if (!targetCustomerId && customerData) {
+      if (!customerData.name) {
+        res.status(400).json({ success: false, message: 'Customer name is required' });
+        return;
+      }
+      const custPhone = customerData.phone ? customerData.phone.trim() : `guest-${Date.now()}`;
+      const custEmail = customerData.email ? customerData.email.trim().toLowerCase() : `${Date.now()}@guest.lavantanaturals.com`;
+
       let existingCust = await CustomerModel.findOne({
-        $or: [{ phone: customerData.phone.trim() }, { email: customerData.email?.trim().toLowerCase() }]
+        $or: [{ phone: custPhone }, { email: custEmail }]
       });
+
       if (existingCust) {
         targetCustomerId = existingCust._id;
       } else {
         const newCust = await CustomerModel.create({
           name: customerData.name.trim(),
-          email: customerData.email ? customerData.email.trim().toLowerCase() : `${Date.now()}@guest.lavantanaturals.com`,
-          phone: customerData.phone.trim(),
+          email: custEmail,
+          phone: custPhone,
           address: customerData.address || '',
           city: customerData.city || '',
           state: customerData.state || '',
@@ -193,7 +133,7 @@ export const createOrder = async (
       return;
     }
 
-    // 2. Validate line items and build snapshots
+    // 4. Validate line items and build snapshots
     if (!Array.isArray(items) || items.length === 0) {
       res.status(400).json({ success: false, message: 'Order must contain at least one item' });
       return;
@@ -220,20 +160,6 @@ export const createOrder = async (
         return;
       }
 
-      if (product.status === 'ARCHIVED') {
-        res.status(400).json({ success: false, message: `Product "${product.name}" is archived` });
-        return;
-      }
-
-      // Check available stock
-      if (product.stockQuantity < qty) {
-        res.status(400).json({
-          success: false,
-          message: `Insufficient stock for "${product.name}". Available: ${product.stockQuantity} ${product.unit.toLowerCase()}s, requested: ${qty}`
-        });
-        return;
-      }
-
       const unitPrice = item.unitPrice !== undefined ? Math.max(0, Number(item.unitPrice)) : product.sellingPrice;
       const itemDiscount = item.discount ? Math.max(0, Number(item.discount)) : 0;
       const itemTotal = Math.max(0, qty * unitPrice - itemDiscount);
@@ -251,44 +177,47 @@ export const createOrder = async (
       });
     }
 
-    // 3. Financial calculations
+    // 5. Financial calculations
     const orderDiscount = Math.max(0, Number(discount) || 0);
     const orderTax = Math.max(0, Number(tax) || 0);
     const orderShipping = Math.max(0, Number(shipping) || 0);
+    const orderMarketplaceFee = Math.max(0, Number(marketplaceFee) || 0);
     const calculatedTotal = Math.max(0, calculatedSubtotal - orderDiscount + orderTax + orderShipping);
+    const calculatedNet = Math.max(0, calculatedTotal - orderMarketplaceFee);
 
-    // 4. Generate unique order number
+    // 6. Generate unique internal CRM order number
     const orderNum = await generateOrderNumber();
 
     const order = new OrderModel({
       orderNumber: orderNum,
+      externalOrderId: cleanExternalOrderId,
+      salesChannel: normalizedChannel,
+      orderDate: orderDate ? new Date(orderDate) : new Date(),
       customerId: targetCustomerId,
       items: resolvedItems,
       subtotal: calculatedSubtotal,
       discount: orderDiscount,
       tax: orderTax,
       shipping: orderShipping,
+      marketplaceFee: orderMarketplaceFee,
+      grossAmount: calculatedTotal,
+      netAmount: calculatedNet,
       total: calculatedTotal,
       orderStatus: orderStatus === 'CONFIRMED' ? 'CONFIRMED' : 'PENDING',
       paymentStatus: paymentStatus || 'PENDING',
-      source: source || 'MANUAL',
+      source: source || (normalizedChannel === 'WEBSITE' ? 'WEBSITE' : 'MANUAL'),
       notes: notes ? notes.trim() : '',
       createdBy: user._id,
-      confirmedBy: orderStatus === 'CONFIRMED' ? user._id : null,
-      inventoryDeducted: false
+      confirmedBy: orderStatus === 'CONFIRMED' ? user._id : null
     });
-
-    // If initial status is CONFIRMED, deduct inventory now
-    if (order.orderStatus === 'CONFIRMED') {
-      await deductOrderInventory(order, user._id);
-      order.inventoryDeducted = true;
-    }
 
     await order.save();
 
-    // 5. Activity Log
+    // 7. Activity Log
     await logOrderActivity(order._id, user._id, 'ORDER_CREATED', {
       orderNumber: order.orderNumber,
+      externalOrderId: order.externalOrderId,
+      salesChannel: order.salesChannel,
       total: order.total,
       itemCount: order.items.length
     });
@@ -306,10 +235,19 @@ export const createOrder = async (
 
     res.status(201).json({
       success: true,
-      message: `Order ${orderNum} created successfully`,
+      message: `Order ${orderNum} created successfully for ${normalizedChannel}`,
       data: populatedOrder
     });
   } catch (error: any) {
+    // Catch unique constraint collision gracefully
+    if (error.code === 11000) {
+      res.status(409).json({
+        success: false,
+        message: 'An order with this channel and external ID already exists in the system.'
+      });
+      return;
+    }
+
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to create order'
@@ -318,7 +256,7 @@ export const createOrder = async (
 };
 
 /**
- * Get paginated orders with filters
+ * Get paginated orders with filters (by channel, status, payment, date range, search)
  */
 export const getOrders = async (
   req: AuthenticatedRequest,
@@ -327,6 +265,7 @@ export const getOrders = async (
   try {
     const {
       search,
+      salesChannel,
       orderStatus,
       paymentStatus,
       source,
@@ -342,18 +281,27 @@ export const getOrders = async (
 
     const query: any = {};
 
-    if (orderStatus && typeof orderStatus === 'string') {
-      query.orderStatus = orderStatus;
+    // Channel filter
+    if (salesChannel && typeof salesChannel === 'string' && salesChannel !== 'ALL') {
+      query.salesChannel = salesChannel.toUpperCase();
     }
 
-    if (paymentStatus && typeof paymentStatus === 'string') {
-      query.paymentStatus = paymentStatus;
+    // Status filter
+    if (orderStatus && typeof orderStatus === 'string' && orderStatus !== 'ALL') {
+      query.orderStatus = orderStatus.toUpperCase();
     }
 
-    if (source && typeof source === 'string') {
-      query.source = source;
+    // Payment status filter
+    if (paymentStatus && typeof paymentStatus === 'string' && paymentStatus !== 'ALL') {
+      query.paymentStatus = paymentStatus.toUpperCase();
     }
 
+    // Source filter
+    if (source && typeof source === 'string' && source !== 'ALL') {
+      query.source = source.toUpperCase();
+    }
+
+    // Date range filter
     if (startDate || endDate) {
       query.createdAt = {};
       if (startDate) query.createdAt.$gte = new Date(startDate as string);
@@ -364,9 +312,10 @@ export const getOrders = async (
       }
     }
 
+    // Search query across orderNumber, externalOrderId, customer details, product snapshots
     if (search && typeof search === 'string' && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
-      // Look up matching customer IDs
+
       const matchingCustomers = await CustomerModel.find({
         $or: [{ name: searchRegex }, { email: searchRegex }, { phone: searchRegex }]
       }).select('_id');
@@ -375,6 +324,7 @@ export const getOrders = async (
 
       query.$or = [
         { orderNumber: searchRegex },
+        { externalOrderId: searchRegex },
         { customerId: { $in: custIds } },
         { 'items.productNameSnapshot': searchRegex },
         { 'items.skuSnapshot': searchRegex }
@@ -385,6 +335,7 @@ export const getOrders = async (
       OrderModel.find(query)
         .populate('customerId')
         .populate('createdBy', 'name email role')
+        .populate('confirmedBy', 'name email role')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum),
@@ -430,7 +381,12 @@ export const getOrderById = async (
         .populate('confirmedBy', 'name email role')
         .populate('cancelledBy', 'name email role');
     } else {
-      order = await OrderModel.findOne({ orderNumber: id.toUpperCase() })
+      order = await OrderModel.findOne({
+        $or: [
+          { orderNumber: id.toUpperCase() },
+          { externalOrderId: id }
+        ]
+      })
         .populate('customerId')
         .populate('createdBy', 'name email role')
         .populate('confirmedBy', 'name email role')
@@ -447,18 +403,11 @@ export const getOrderById = async (
       .populate('userId', 'name role')
       .sort({ createdAt: 1 });
 
-    // Retrieve inventory movements related to this order
-    const stockMovements = await InventoryMovementModel.find({ reference: order.orderNumber })
-      .populate('productId', 'name sku unit')
-      .populate('performedBy', 'name role')
-      .sort({ createdAt: 1 });
-
     res.status(200).json({
       success: true,
       data: {
         order,
-        activities,
-        stockMovements
+        activities
       }
     });
   } catch (error: any) {
@@ -471,7 +420,7 @@ export const getOrderById = async (
 };
 
 /**
- * Confirm order and reduce inventory
+ * Confirm order (Order status transition only - NO inventory deduction)
  */
 export const confirmOrder = async (
   req: AuthenticatedRequest,
@@ -502,25 +451,24 @@ export const confirmOrder = async (
       return;
     }
 
-    // Deduct stock if not already deducted
-    if (!order.inventoryDeducted) {
-      await deductOrderInventory(order, user._id);
-      order.inventoryDeducted = true;
-    }
-
     order.orderStatus = 'CONFIRMED';
     order.confirmedBy = user._id;
     await order.save();
 
     await logOrderActivity(order._id, user._id, 'ORDER_CONFIRMED', {
-      orderNumber: order.orderNumber
+      orderNumber: order.orderNumber,
+      salesChannel: order.salesChannel
     });
 
     await logAuditEvent(req, {
       action: 'ORDER_CONFIRMED',
       entityType: 'ORDER',
       entityId: order._id.toString(),
-      metadata: { orderNumber: order.orderNumber, total: order.total }
+      metadata: {
+        orderNumber: order.orderNumber,
+        salesChannel: order.salesChannel,
+        total: order.total
+      }
     });
 
     const populated = await OrderModel.findById(order._id)
@@ -529,7 +477,7 @@ export const confirmOrder = async (
 
     res.status(200).json({
       success: true,
-      message: `Order ${order.orderNumber} confirmed successfully. Inventory updated.`,
+      message: `Order ${order.orderNumber} confirmed successfully.`,
       data: populated
     });
   } catch (error: any) {
@@ -541,7 +489,7 @@ export const confirmOrder = async (
 };
 
 /**
- * Cancel order and restore inventory if needed
+ * Cancel order (Status transition only - NO inventory mutation)
  */
 export const cancelOrder = async (
   req: AuthenticatedRequest,
@@ -563,14 +511,9 @@ export const cancelOrder = async (
       return;
     }
 
-    // If inventory was previously deducted, restore it now
-    if (order.inventoryDeducted) {
-      await restoreOrderInventory(order, user._id);
-      order.inventoryDeducted = false; // Prevent duplicate restoration
-    }
-
     order.orderStatus = 'CANCELLED';
     order.cancelledBy = user._id;
+    order.cancelReason = reason ? reason.trim() : 'Cancelled by user';
     if (reason) {
       order.notes = order.notes ? `${order.notes}\nCancellation reason: ${reason}` : `Cancellation reason: ${reason}`;
     }
@@ -594,7 +537,7 @@ export const cancelOrder = async (
 
     res.status(200).json({
       success: true,
-      message: `Order ${order.orderNumber} cancelled. Inventory stock restored where applicable.`,
+      message: `Order ${order.orderNumber} cancelled successfully.`,
       data: populated
     });
   } catch (error: any) {
@@ -606,7 +549,7 @@ export const cancelOrder = async (
 };
 
 /**
- * Update order status workflow (PROCESSING, SHIPPED, DELIVERED)
+ * Update order status workflow (PROCESSING, SHIPPED, DELIVERED, REFUNDED)
  */
 export const updateOrderStatus = async (
   req: AuthenticatedRequest,
@@ -647,7 +590,6 @@ export const updateOrderStatus = async (
     order.orderStatus = status;
 
     if (status === 'DELIVERED' && order.paymentStatus === 'PENDING') {
-      // Auto-mark paid on delivery if manual cash on delivery
       order.paymentStatus = 'PAID';
     }
 

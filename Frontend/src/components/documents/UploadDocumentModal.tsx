@@ -135,7 +135,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
         style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(23, 34, 53, 0.45)',
+          background: 'rgba(0, 0, 0, 0.65)',
           backdropFilter: 'blur(3px)',
           zIndex: 9999,
           display: 'flex',
@@ -150,10 +150,10 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
           transition={{ duration: 0.2 }}
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            border: '1px solid var(--border-strong)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.35)',
             width: '100%',
             maxWidth: '620px',
             maxHeight: '90vh',
@@ -201,14 +201,14 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             {errorMsg && (
               <div
                 style={{
-                  background: '#FEF2F2',
-                  border: '1px solid #FEE2E2',
+                  background: 'var(--color-danger-bg)',
+                  border: '1px solid var(--color-danger-border)',
                   borderRadius: 'var(--radius-sm)',
                   padding: '0.75rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  color: '#DC2626',
+                  color: 'var(--color-danger)',
                   fontSize: '0.85rem'
                 }}
               >
@@ -232,8 +232,8 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  background: selectedFile ? '#F0FDF4' : '#FAFBF8',
-                  borderColor: selectedFile ? '#69C43F' : 'var(--border-color)',
+                  background: selectedFile ? 'var(--color-soft-green)' : 'var(--bg-surface-elevated)',
+                  borderColor: selectedFile ? 'var(--color-primary)' : 'var(--border-color)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -245,8 +245,8 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                 />
                 {selectedFile ? (
                   <div style={{ textAlign: 'center' }}>
-                    <CheckCircle2 size={32} color="#16A34A" style={{ margin: '0 auto 8px' }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#16A34A' }}>
+                    <CheckCircle2 size={32} color="var(--color-primary)" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
                       {selectedFile.name}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
@@ -281,10 +281,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-input)',
                   fontSize: '0.85rem',
                   outline: 'none',
-                  background: '#FFFFFF'
+                  background: 'var(--bg-input)',
+                  color: 'var(--color-text-primary)'
                 }}
               />
             </div>
@@ -303,10 +304,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-input)',
                   fontSize: '0.85rem',
                   outline: 'none',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-input)',
+                  color: 'var(--color-text-primary)',
                   resize: 'vertical'
                 }}
               />
@@ -325,10 +327,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    border: '1px solid var(--border-input)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   {CATEGORIES.map(c => (
@@ -350,10 +353,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    border: '1px solid var(--border-input)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   <option value="">(No folder - Root library)</option>
@@ -379,10 +383,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    border: '1px solid var(--border-input)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   <option value="General">General / Organization</option>
@@ -405,10 +410,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                     width: '100%',
                     padding: '0.65rem 0.85rem',
                     borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
+                    border: '1px solid var(--border-input)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-input)',
+                    color: 'var(--color-text-primary)'
                   }}
                 >
                   <option value="COMPANY">Company-wide (All members)</option>
@@ -434,10 +440,11 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                   width: '100%',
                   padding: '0.65rem 0.85rem',
                   borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
+                  border: '1px solid var(--border-input)',
                   fontSize: '0.85rem',
                   outline: 'none',
-                  background: '#FFFFFF'
+                  background: 'var(--bg-input)',
+                  color: 'var(--color-text-primary)'
                 }}
               />
             </div>
@@ -460,7 +467,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             style={{
               padding: '1rem 1.5rem',
               borderTop: '1px solid var(--border-color)',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',

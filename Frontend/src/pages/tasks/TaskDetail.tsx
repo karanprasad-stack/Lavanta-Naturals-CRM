@@ -16,13 +16,17 @@ import {
   FileText
 } from 'lucide-react';
 import { Task, TaskPriority, TaskStatus, TaskActivity } from '../../types/task';
+import { User as UserType } from '../../types';
 import { taskService } from '../../services/taskService';
+import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { TaskSkeleton } from '../../components/tasks/TaskSkeleton';
 import { TaskActivityTimeline } from '../../components/tasks/TaskActivityTimeline';
 import { TaskCommentsList } from '../../components/tasks/TaskCommentsList';
 import { TaskCompleteModal } from '../../components/tasks/TaskCompleteModal';
+import { TaskEditModal } from '../../components/tasks/TaskEditModal';
+import { getTaskPermissions } from '../../utils/taskPermissions';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 
@@ -37,10 +41,22 @@ export const TaskDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<UserType[]>([]);
 
   const currentUserId = currentUser?.id || (currentUser as any)?._id;
   const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
   const isManagement = userRole === 'FOUNDER' || userRole === 'HR' || userRole === 'MANAGER';
+
+  useEffect(() => {
+    if (isManagement) {
+      userService.getUsers().then(res => {
+        setTeamMembers(res.users);
+      }).catch(err => {
+        console.warn('Could not load team members for task editing:', err);
+      });
+    }
+  }, [isManagement]);
 
   const fetchTaskDetails = useCallback(async () => {
     if (!id) return;
@@ -85,6 +101,27 @@ export const TaskDetail: React.FC = () => {
       fetchTaskDetails();
     } catch (err: any) {
       showToast(err?.message || 'Failed to cancel task.', 'error');
+    }
+  };
+
+  const handleStatusChange = async (newStatus: TaskStatus) => {
+    if (!task) return;
+    try {
+      if (newStatus === 'IN_PROGRESS') {
+        await taskService.startTask(task._id);
+      } else if (newStatus === 'COMPLETED') {
+        setIsCompleteOpen(true);
+        return;
+      } else if (newStatus === 'CANCELLED') {
+        await handleCancelTask();
+        return;
+      } else {
+        await taskService.updateTask(task._id, { status: newStatus });
+      }
+      showToast(`Task status updated to ${newStatus}.`, 'success');
+      fetchTaskDetails();
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to update task status.', 'error');
     }
   };
 
@@ -177,7 +214,7 @@ export const TaskDetail: React.FC = () => {
     );
   }
 
-  const isAssignee = task.assignedTo?._id === currentUserId;
+  const perms = getTaskPermissions(currentUser, task);
   const isOverdue = task.isOverdue && task.status !== 'COMPLETED' && task.status !== 'CANCELLED';
   const deadlineDate = new Date(task.deadline);
 
@@ -237,8 +274,56 @@ export const TaskDetail: React.FC = () => {
 
         {/* Action Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          {/* Employee/Assignee Action */}
-          {isAssignee && task.status === 'TODO' && (
+          {/* Management Status Selector */}
+          {perms.canChangeStatus && perms.isManagement && (
+            <select
+              value={task.status}
+              onChange={e => handleStatusChange(e.target.value as TaskStatus)}
+              style={{
+                padding: '0.45rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+                background: '#FFFFFF',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+                color: 'var(--color-text-primary)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="TODO">To Do</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          )}
+
+          {/* Management Edit Button */}
+          {perms.canEdit && (
+            <Button
+              variant="outline"
+              size="md"
+              icon={<Edit3 size={15} />}
+              onClick={() => setIsEditOpen(true)}
+            >
+              Edit Task
+            </Button>
+          )}
+
+          {/* Management Cancel Button */}
+          {perms.canDelete && task.status !== 'CANCELLED' && (
+            <Button
+              variant="outline"
+              size="md"
+              icon={<Trash2 size={15} />}
+              onClick={handleCancelTask}
+              style={{ color: '#DC2626' }}
+            >
+              Cancel Task
+            </Button>
+          )}
+
+          {/* Employee/Assignee Actions (strictly for non-management assignees) */}
+          {!perms.canEdit && perms.canStart && (
             <Button
               variant="primary"
               size="md"
@@ -249,7 +334,7 @@ export const TaskDetail: React.FC = () => {
             </Button>
           )}
 
-          {isAssignee && task.status === 'IN_PROGRESS' && (
+          {!perms.canEdit && perms.canComplete && (
             <Button
               variant="primary"
               size="md"
@@ -281,19 +366,6 @@ export const TaskDetail: React.FC = () => {
                 {task.completedAt ? new Date(task.completedAt).toLocaleDateString() : 'Successfully'}
               </span>
             </div>
-          )}
-
-          {/* Management Cancellation */}
-          {isManagement && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && (
-            <Button
-              variant="outline"
-              size="md"
-              icon={<Trash2 size={15} />}
-              onClick={handleCancelTask}
-              style={{ color: '#DC2626' }}
-            >
-              Cancel Task
-            </Button>
           )}
         </div>
       </div>
@@ -531,6 +603,18 @@ export const TaskDetail: React.FC = () => {
           setIsCompleteOpen(false);
           fetchTaskDetails();
         }}
+      />
+
+      {/* Edit Modal (Management) */}
+      <TaskEditModal
+        task={task}
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        onUpdated={() => {
+          setIsEditOpen(false);
+          fetchTaskDetails();
+        }}
+        teamMembers={teamMembers}
       />
     </div>
   );

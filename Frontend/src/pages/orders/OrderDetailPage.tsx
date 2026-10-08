@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { orderService } from '../../services/orderService';
 import { Order, OrderStatus, PaymentStatus } from '../../types/sales';
+import { SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Customer } from '../../types/customer';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -55,13 +56,13 @@ export const OrderDetailPage: React.FC = () => {
 
   const handleConfirmOrder = async () => {
     if (!order) return;
-    if (!window.confirm(`Confirm order ${order.orderNumber}? This will immediately deduct inventory.`)) return;
+    if (!window.confirm(`Confirm order ${order.orderNumber}?`)) return;
 
     try {
       setActionLoading(true);
       const updated = await orderService.confirmOrder(order._id);
       setOrder(updated);
-      showToast(`Order ${updated.orderNumber} confirmed & stock deducted!`, 'success');
+      showToast(`Order ${updated.orderNumber} confirmed!`, 'success');
       loadOrder();
     } catch (err: any) {
       showToast(err.message || 'Failed to confirm order', 'error');
@@ -79,7 +80,7 @@ export const OrderDetailPage: React.FC = () => {
       setActionLoading(true);
       const updated = await orderService.cancelOrder(order._id, reason.trim());
       setOrder(updated);
-      showToast(`Order ${updated.orderNumber} cancelled and stock restored!`, 'warning');
+      showToast(`Order ${updated.orderNumber} cancelled.`, 'warning');
       loadOrder();
     } catch (err: any) {
       showToast(err.message || 'Failed to cancel order', 'error');
@@ -163,15 +164,41 @@ export const OrderDetailPage: React.FC = () => {
       <div className="luxury-card" style={{ padding: '1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.25rem', marginBottom: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
               <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.85rem', fontWeight: 700, color: 'var(--color-primary)' }}>
                 {order.orderNumber}
               </h1>
-              <Badge variant="sage">{order.source || 'WEBSITE'}</Badge>
-              {order.inventoryDeducted && (
-                <Badge variant="forest">Stock Deducted</Badge>
+              {(() => {
+                const chKey = (order.salesChannel || 'WEBSITE') as SalesChannel;
+                const cfg = SALES_CHANNEL_CONFIGS[chKey] || SALES_CHANNEL_CONFIGS.WEBSITE;
+                return (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '3px 10px',
+                    borderRadius: '9999px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    backgroundColor: `${cfg.color}15`,
+                    color: cfg.color,
+                    border: `1px solid ${cfg.color}40`
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: cfg.color }} />
+                    {cfg.name}
+                  </span>
+                );
+              })()}
+              {order.source && (
+                <Badge variant="sage">{order.source}</Badge>
               )}
             </div>
+
+            {order.externalOrderId && (
+              <div style={{ fontSize: '0.85rem', color: '#4B5563', marginBottom: '0.35rem', fontFamily: 'monospace' }}>
+                <strong>External Order ID:</strong> {order.externalOrderId}
+              </div>
+            )}
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#6B7280', fontSize: '0.85rem' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -227,7 +254,7 @@ export const OrderDetailPage: React.FC = () => {
                   icon={<CheckCircle2 size={15} />}
                   onClick={handleConfirmOrder}
                 >
-                  Confirm & Deduct Inventory
+                  Confirm Order
                 </Button>
               )}
 
@@ -379,10 +406,24 @@ export const OrderDetailPage: React.FC = () => {
               <span>₹{order.shipping.toFixed(2)}</span>
             </div>
 
+            {order.marketplaceFee !== undefined && order.marketplaceFee > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#B45309' }}>
+                <span>Channel / Marketplace Fee:</span>
+                <span>-₹{order.marketplaceFee.toFixed(2)}</span>
+              </div>
+            )}
+
             <div style={{ borderTop: '2px solid #E5E7EB', paddingTop: '0.75rem', marginTop: '0.5rem', display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>
               <span>Grand Total:</span>
               <span>₹{order.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
+
+            {order.netAmount !== undefined && order.netAmount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16A34A', fontSize: '0.8rem', fontWeight: 600 }}>
+                <span>Net Commercial Settlement:</span>
+                <span>₹{order.netAmount.toFixed(2)}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

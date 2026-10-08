@@ -23,3 +23,4 @@ export * from './Notification.js';
 export * from './AuditLog.js';
 export * from './Conversation.js';
 export * from './Message.js';
+export * from './RoleWorkspaceConfig.js';

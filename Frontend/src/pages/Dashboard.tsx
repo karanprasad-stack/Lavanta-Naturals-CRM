@@ -20,6 +20,7 @@ import { DashboardActionModal, ActionModalType } from '../components/dashboard/D
 import { AnnouncementCreateDrawer } from '../components/announcements/AnnouncementCreateDrawer';
 import { Button } from '../components/ui/Button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { getAuthToken } from '../services/apiClient';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -31,6 +32,11 @@ export const Dashboard: React.FC = () => {
   const [isAnnouncementDrawerOpen, setIsAnnouncementDrawerOpen] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -76,7 +82,7 @@ export const Dashboard: React.FC = () => {
     return (
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '3rem 2rem',
@@ -95,11 +101,12 @@ export const Dashboard: React.FC = () => {
             width: '48px',
             height: '48px',
             borderRadius: '50%',
-            background: '#FEE2E2',
+            background: 'var(--color-danger-bg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#DC2626'
+            color: 'var(--color-danger)',
+            border: '1px solid var(--color-danger-border)'
           }}
         >
           <AlertCircle size={24} />
@@ -130,6 +137,7 @@ export const Dashboard: React.FC = () => {
         <FounderDashboard
           data={data as FounderDashboardData}
           onQuickAction={handleAction}
+          onRefresh={fetchDashboard}
         />
       )}
 

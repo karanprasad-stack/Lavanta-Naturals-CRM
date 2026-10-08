@@ -3,7 +3,6 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import { UserModel } from '../models/User.js';
 import { TaskModel } from '../models/Task.js';
 import { GoalModel } from '../models/Goal.js';
-import { ProductModel } from '../models/Product.js';
 import { OrderModel } from '../models/Order.js';
 import { CustomerModel } from '../models/Customer.js';
 import { ExpenseModel } from '../models/Expense.js';
@@ -11,78 +10,66 @@ import { AnnouncementModel } from '../models/Announcement.js';
 import '../models/index.js';
 import { getUnifiedActivities } from '../services/unifiedActivityService.js';
 
-export const founderController = {
-  /**
-   * GET /api/founder/overview
-   * Consolidated operational cockpit data for the Founder Command Center
-   */
-  async getOverview(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const now = new Date();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+export async function getFounderOverviewData() {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Execute primary aggregate queries in parallel
-      const [
-        totalMembers,
-        userRoleCounts,
-        recentJoiners,
-        allTasks,
-        activeGoalsData,
-        productsData,
-        ordersData,
-        expensesData,
-        announcements,
-        recentActivity
-      ] = await Promise.all([
-        // 1. Team stats
-        UserModel.countDocuments({ status: 'ACTIVE' }),
-        UserModel.aggregate([
-          { $match: { status: 'ACTIVE' } },
-          { $group: { _id: '$role', count: { $sum: 1 } } }
-        ]),
-        UserModel.find({ status: 'ACTIVE' })
-          .sort({ createdAt: -1 })
-          .limit(5)
-          .select('name role department designation profilePhoto joiningDate')
-          .lean(),
+  // Execute primary aggregate queries in parallel
+  const [
+    totalMembers,
+    userRoleCounts,
+    recentJoiners,
+    allTasks,
+    activeGoalsData,
+    ordersData,
+    expensesData,
+    announcements,
+    recentActivity
+  ] = await Promise.all([
+    // 1. Team stats
+    UserModel.countDocuments({ status: 'ACTIVE' }),
+    UserModel.aggregate([
+      { $match: { status: 'ACTIVE' } },
+      { $group: { _id: '$role', count: { $sum: 1 } } }
+    ]),
+    UserModel.find({ status: 'ACTIVE' })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('name role department designation profilePhoto joiningDate')
+      .lean(),
 
-        // 2. Task metrics
-        TaskModel.find().populate('assignedTo', 'name profilePhoto department role').lean(),
+    // 2. Task metrics
+    TaskModel.find().populate('assignedTo', 'name profilePhoto department role').lean(),
 
-        // 3. Goal metrics
-        GoalModel.find().select('title type status progress endDate').lean(),
+    // 3. Goal metrics
+    GoalModel.find().select('title type status progress endDate').lean(),
 
-        // 4. Product / Inventory metrics
-        ProductModel.find({ status: { $ne: 'ARCHIVED' } })
-          .select('name sku stockQuantity lowStockThreshold sellingPrice categoryId status')
-          .lean(),
+    // 4. Order metrics
+    OrderModel.find()
+      .sort({ createdAt: -1 })
+      .populate('customerId', 'name email phone')
+      .lean(),
 
-        // 5. Order metrics
-        OrderModel.find()
-          .sort({ createdAt: -1 })
-          .populate('customerId', 'name email phone')
-          .lean(),
+    // 6. Expense metrics
+    ExpenseModel.find()
+      .sort({ createdAt: -1 })
+      .populate('submittedBy', 'name profilePhoto department')
+      .lean(),
 
-        // 6. Expense metrics
-        ExpenseModel.find()
-          .sort({ createdAt: -1 })
-          .populate('submittedBy', 'name profilePhoto department')
-          .lean(),
+    // 7. Latest Announcements
+    AnnouncementModel.find()
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .select('title type priority targetType targetRoles targetDepartments createdAt createdBy')
+      .populate('createdBy', 'name')
+      .lean(),
 
-        // 7. Latest Announcements
-        AnnouncementModel.find()
-          .sort({ createdAt: -1 })
-          .limit(4)
-          .select('title type priority targetType targetRoles targetDepartments createdAt createdBy')
-          .populate('createdBy', 'name')
-          .lean(),
+    // 8. Unified recent activity
+    getUnifiedActivities(12)
+  ]);
 
-        // 8. Unified recent activity
-        getUnifiedActivities(12)
-      ]);
-
-      // Process Team Overview
+  // Process Team Overview
       const roleMap: Record<string, number> = {
         FOUNDER: 0,
         HR: 0,
@@ -176,31 +163,19 @@ export const founderController = {
           targetDate: g.endDate
         }));
 
-      // Process Inventory
-      let lowStockCount = 0;
-      let outOfStockCount = 0;
-      const lowStockProductsList: any[] = [];
 
-      productsData.forEach((p: any) => {
-        if (p.stockQuantity === 0) {
-          outOfStockCount++;
-        } else if (p.stockQuantity <= p.lowStockThreshold) {
-          lowStockCount++;
-          lowStockProductsList.push({
-            id: p._id,
-            name: p.name,
-            sku: p.sku,
-            stockQuantity: p.stockQuantity,
-            threshold: p.lowStockThreshold
-          });
-        }
-      });
 
       // Process Orders & Sales
       let todayRevenue = 0;
       let monthRevenue = 0;
       let totalRecognizedRevenue = 0;
       let pendingOrdersCount = 0;
+
+      const channelSalesMap: Record<string, { orders: number; revenue: number }> = {
+        WEBSITE: { orders: 0, revenue: 0 },
+        AMAZON: { orders: 0, revenue: 0 },
+        FLIPKART: { orders: 0, revenue: 0 }
+      };
 
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
@@ -214,15 +189,17 @@ export const founderController = {
         dailyRevenueMap[key] = 0;
       }
 
+      const validSalesStatuses = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+
       ordersData.forEach((o: any) => {
         const orderDate = new Date(o.createdAt);
-        const isPaid = o.paymentStatus === 'PAID';
+        const isRecognized = validSalesStatuses.includes(o.orderStatus);
 
         if (o.orderStatus === 'PENDING') {
           pendingOrdersCount++;
         }
 
-        if (isPaid) {
+        if (isRecognized) {
           totalRecognizedRevenue += o.total || 0;
 
           if (orderDate >= startOfDay) {
@@ -231,6 +208,13 @@ export const founderController = {
           if (orderDate >= startOfMonth) {
             monthRevenue += o.total || 0;
           }
+
+          const channel = (o.salesChannel || 'WEBSITE').toUpperCase();
+          if (!channelSalesMap[channel]) {
+            channelSalesMap[channel] = { orders: 0, revenue: 0 };
+          }
+          channelSalesMap[channel].orders += 1;
+          channelSalesMap[channel].revenue += o.total || 0;
 
           const dateKey = orderDate.toISOString().split('T')[0];
           if (dailyRevenueMap[dateKey] !== undefined) {
@@ -242,6 +226,27 @@ export const founderController = {
       const salesTrend = Object.entries(dailyRevenueMap).map(([date, revenue]) => ({
         date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         revenue
+      }));
+
+      const salesByChannel = Object.entries(channelSalesMap).map(([ch, val]) => ({
+        channel: ch,
+        displayName: ch === 'WEBSITE' ? 'Lavanta Website' : ch === 'AMAZON' ? 'Amazon' : ch === 'FLIPKART' ? 'Flipkart' : ch,
+        orders: val.orders,
+        revenue: Number(val.revenue.toFixed(2)),
+        sharePercent: totalRecognizedRevenue > 0 ? Number(((val.revenue / totalRecognizedRevenue) * 100).toFixed(1)) : 0
+      }));
+
+      // Recent 5 Orders for Dashboard
+      const recentOrders = ordersData.slice(0, 5).map((o: any) => ({
+        id: o._id,
+        orderNumber: o.orderNumber,
+        externalOrderId: o.externalOrderId || null,
+        salesChannel: o.salesChannel || 'WEBSITE',
+        customerName: o.customerId?.name || 'Customer',
+        total: o.total || 0,
+        orderStatus: o.orderStatus,
+        paymentStatus: o.paymentStatus,
+        createdAt: o.createdAt
       }));
 
       // Process Expenses
@@ -283,90 +288,111 @@ export const founderController = {
         }
       });
 
+      // Recent 5 Expenses for Dashboard
+      const recentExpenses = expensesData.slice(0, 5).map((e: any) => ({
+        id: e._id,
+        title: e.title,
+        amount: e.amount || 0,
+        category: e.category,
+        salesChannel: e.salesChannel || 'GENERAL',
+        status: e.status,
+        submittedByName: e.submittedBy?.name || 'Team Member',
+        createdAt: e.createdAt
+      }));
+
       // Net operating calculation (Operational Summary)
       const netOperatingDifference = totalRecognizedRevenue - totalRecognizedExpenses;
 
+      return {
+        timestamp: now.toISOString(),
+        // 1. Company Overview
+        companyOverview: {
+          teamMembers: totalMembers,
+          activeTasks: activeTasksCount,
+          overdueTasks: overdueTasksCount,
+          activeGoals: activeGoalsCount,
+          pendingOrders: pendingOrdersCount,
+          pendingExpenses: pendingExpensesCount
+        },
+        // 2. Work Overview
+        workOverview: {
+          activeTasks: activeTasksCount,
+          pendingTasks: pendingTasksCount,
+          completedToday: completedTodayCount,
+          overdue: overdueTasksCount,
+          statusDistribution
+        },
+        // 3. Team Overview
+        teamOverview: {
+          totalMembers,
+          employees: roleMap.EMPLOYEE,
+          interns: roleMap.INTERN,
+          managers: roleMap.MANAGER,
+          hr: roleMap.HR,
+          recentJoiners
+        },
+        // 4. Active Work
+        activeWork: inProgressTasks.slice(0, 6),
+        // 5. Goals Overview
+        goalsOverview: {
+          active: activeGoalsCount,
+          completed: completedGoalsCount,
+          atRisk: atRiskGoalsCount,
+          averageProgress: avgGoalProgress,
+          topActiveGoals
+        },
+
+        // 7. Sales Overview
+        salesOverview: {
+          todayRevenue,
+          monthRevenue,
+          totalRevenue: totalRecognizedRevenue,
+          totalOrders: ordersData.length,
+          pendingOrders: pendingOrdersCount,
+          salesTrend,
+          salesByChannel
+        },
+        // 8. Expense Overview
+        expenseOverview: {
+          pendingApproval: pendingExpensesCount,
+          approvedThisMonth,
+          paidThisMonth,
+          totalThisMonth: totalExpenseMonth,
+          pendingApprovalsList: pendingApprovalsList.slice(0, 5)
+        },
+        // 9. Financial Summary
+        financialSummary: {
+          recognizedRevenue: totalRecognizedRevenue,
+          recognizedExpenses: totalRecognizedExpenses,
+          netOperatingDifference,
+          isOperationalSummary: true
+        },
+        // 10. Dashboard Quick Feeds (Canonical links)
+        recentOrders,
+        recentExpenses,
+        // 11. Announcements & Recent Activity
+        announcements,
+        recentActivity
+      };
+}
+
+export const founderController = {
+  /**
+   * GET /api/founder/overview
+   * Consolidated operational cockpit data for the Founder Command Center
+   */
+  async getOverview(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const data = await getFounderOverviewData();
       res.json({
         success: true,
-        data: {
-          timestamp: now.toISOString(),
-          // 1. Company Overview
-          companyOverview: {
-            teamMembers: totalMembers,
-            activeTasks: activeTasksCount,
-            overdueTasks: overdueTasksCount,
-            activeGoals: activeGoalsCount,
-            lowStock: lowStockCount,
-            pendingOrders: pendingOrdersCount,
-            pendingExpenses: pendingExpensesCount
-          },
-          // 2. Work Overview
-          workOverview: {
-            activeTasks: activeTasksCount,
-            pendingTasks: pendingTasksCount,
-            completedToday: completedTodayCount,
-            overdue: overdueTasksCount,
-            statusDistribution
-          },
-          // 3. Team Overview
-          teamOverview: {
-            totalMembers,
-            employees: roleMap.EMPLOYEE,
-            interns: roleMap.INTERN,
-            managers: roleMap.MANAGER,
-            hr: roleMap.HR,
-            recentJoiners
-          },
-          // 4. Active Work
-          activeWork: inProgressTasks.slice(0, 6),
-          // 5. Goals Overview
-          goalsOverview: {
-            active: activeGoalsCount,
-            completed: completedGoalsCount,
-            atRisk: atRiskGoalsCount,
-            averageProgress: avgGoalProgress,
-            topActiveGoals
-          },
-          // 6. Inventory Overview
-          inventoryOverview: {
-            totalProducts: productsData.length,
-            lowStock: lowStockCount,
-            outOfStock: outOfStockCount,
-            lowStockProducts: lowStockProductsList.slice(0, 5)
-          },
-          // 7. Sales Overview
-          salesOverview: {
-            todayRevenue,
-            monthRevenue,
-            totalOrders: ordersData.length,
-            pendingOrders: pendingOrdersCount,
-            salesTrend
-          },
-          // 8. Expense Overview
-          expenseOverview: {
-            pendingApproval: pendingExpensesCount,
-            approvedThisMonth,
-            paidThisMonth,
-            totalThisMonth: totalExpenseMonth,
-            pendingApprovalsList: pendingApprovalsList.slice(0, 5)
-          },
-          // 9. Financial Summary
-          financialSummary: {
-            recognizedRevenue: totalRecognizedRevenue,
-            recognizedExpenses: totalRecognizedExpenses,
-            netOperatingDifference,
-            isOperationalSummary: true
-          },
-          // 10. Announcements & Recent Activity
-          announcements,
-          recentActivity
-        }
+        data
       });
     } catch (error) {
       console.error('[FounderController] Failed to generate overview:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to generate Founder Command Center overview',
+        message: 'Failed to generate Founder overview',
         error
       });
     }

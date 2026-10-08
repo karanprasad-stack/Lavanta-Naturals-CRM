@@ -99,11 +99,10 @@ export const searchController = {
 
         // 6. Products
         ProductModel.find({
-          status: { $ne: 'ARCHIVED' },
           $or: [{ name: regex }, { sku: regex }, { brand: regex }, { tags: regex }]
         })
           .limit(8)
-          .select('name sku sellingPrice stockQuantity unit')
+          .select('name sku sellingPrice unit category')
           .lean(),
 
         // 7. Orders (restricted to Management)
@@ -111,12 +110,13 @@ export const searchController = {
           ? OrderModel.find({
               $or: [
                 { orderNumber: regex },
+                { externalOrderId: regex },
                 { 'items.productNameSnapshot': regex },
                 { 'items.skuSnapshot': regex }
               ]
             })
               .limit(8)
-              .select('orderNumber total orderStatus paymentStatus createdAt')
+              .select('orderNumber externalOrderId salesChannel total orderStatus paymentStatus createdAt')
               .lean()
           : Promise.resolve([])
       ]);
@@ -153,7 +153,7 @@ export const searchController = {
           id: `prod-${p._id}`,
           category: 'PRODUCTS',
           title: p.name,
-          subtitle: `${p.sku} • Stock: ${p.stockQuantity} • ₹${p.sellingPrice}`,
+          subtitle: `${p.sku} • ₹${p.sellingPrice}`,
           url: `/products/${p._id}`,
           icon: 'Package'
         });
@@ -161,11 +161,12 @@ export const searchController = {
 
       // Format Orders
       orders.forEach((o: any) => {
+        const extStr = o.externalOrderId ? ` (${o.externalOrderId})` : '';
         flatItems.push({
           id: `order-${o._id}`,
           category: 'ORDERS',
-          title: o.orderNumber,
-          subtitle: `₹${o.total?.toLocaleString() || 0} • ${o.orderStatus} • ${o.paymentStatus}`,
+          title: `${o.orderNumber}${extStr}`,
+          subtitle: `${o.salesChannel || 'WEBSITE'} • ₹${o.total?.toLocaleString() || 0} • ${o.orderStatus}`,
           url: `/orders/${o._id}`,
           icon: 'ShoppingBag'
         });

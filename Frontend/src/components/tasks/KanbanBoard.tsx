@@ -11,25 +11,34 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Task, TaskPriority, TaskStatus } from '../../types/task';
+import { User } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { getTaskPermissions } from '../../utils/taskPermissions';
+import { Edit3, Trash2 } from 'lucide-react';
 
 interface KanbanBoardProps {
   tasks: Task[];
   isManagement: boolean;
   currentUserId?: string;
+  currentUser?: User | null;
   onStartTask: (taskId: string) => void;
   onOpenCompleteModal: (task: Task) => void;
   onStatusChange?: (taskId: string, newStatus: TaskStatus) => void;
+  onEditTask?: (task: Task) => void;
+  onDeleteTask?: (taskId: string) => void;
 }
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   tasks,
   isManagement,
   currentUserId,
+  currentUser,
   onStartTask,
   onOpenCompleteModal,
-  onStatusChange
+  onStatusChange,
+  onEditTask,
+  onDeleteTask
 }) => {
   const navigate = useNavigate();
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -161,13 +170,14 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             {/* Task Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {colTasks.map(t => {
+                const perms = getTaskPermissions(currentUser, t);
                 const isOverdue = t.isOverdue && t.status !== 'COMPLETED' && t.status !== 'CANCELLED';
                 const deadlineDate = new Date(t.deadline);
 
                 return (
                   <motion.div
                     key={t._id}
-                    draggable={isManagement}
+                    draggable={perms.canChangeStatus}
                     onDragStart={e => handleDragStart(e as any, t._id)}
                     whileHover={{ y: -2 }}
                     style={{
@@ -175,7 +185,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       borderRadius: 'var(--radius-sm)',
                       border: isOverdue ? '1px solid #FECACA' : '1px solid var(--border-color)',
                       padding: '0.85rem',
-                      cursor: isManagement ? 'grab' : 'pointer',
+                      cursor: perms.canChangeStatus ? 'grab' : 'pointer',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '0.6rem',
@@ -183,25 +193,52 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     }}
                     className="luxury-card"
                   >
-                    {/* Header: Priority & Overdue */}
+                    {/* Header: Priority & Overdue & Edit */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      {getPriorityDot(t.priority)}
-                      {isOverdue && (
-                        <span
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {getPriorityDot(t.priority)}
+                        {isOverdue && (
+                          <span
+                            style={{
+                              fontSize: '0.675rem',
+                              fontWeight: 700,
+                              color: '#DC2626',
+                              background: '#FEE2E2',
+                              padding: '1px 6px',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                          >
+                            <AlertCircle size={10} /> Overdue
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Management Edit Shortcut */}
+                      {perms.canEdit && onEditTask && (
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            onEditTask(t);
+                          }}
                           style={{
-                            fontSize: '0.675rem',
-                            fontWeight: 700,
-                            color: '#DC2626',
-                            background: '#FEE2E2',
-                            padding: '1px 6px',
+                            background: 'transparent',
+                            border: '1px solid var(--border-color)',
                             borderRadius: '4px',
+                            padding: '2px 6px',
+                            cursor: 'pointer',
+                            fontSize: '0.7rem',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '3px'
+                            gap: '3px',
+                            color: 'var(--color-text-secondary)'
                           }}
+                          title="Edit Task"
                         >
-                          <AlertCircle size={10} /> Overdue
-                        </span>
+                          <Edit3 size={10} /> Edit
+                        </button>
                       )}
                     </div>
 
@@ -275,7 +312,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </div>
 
                       <div>
-                        {t.status === 'TODO' && (
+                        {/* Worker Action Buttons: Strictly for assignee when not in management role */}
+                        {!perms.canEdit && perms.canStart && (
                           <button
                             onClick={e => {
                               e.stopPropagation();
@@ -299,7 +337,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                           </button>
                         )}
 
-                        {t.status === 'IN_PROGRESS' && (
+                        {!perms.canEdit && perms.canComplete && (
                           <button
                             onClick={e => {
                               e.stopPropagation();

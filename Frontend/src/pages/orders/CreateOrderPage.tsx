@@ -16,8 +16,9 @@ import { orderService } from '../../services/orderService';
 import { customerService } from '../../services/customerService';
 import { productService } from '../../services/productService';
 import { Customer } from '../../types/customer';
-import { ProductItem } from '../../types/inventory';
+import { ProductItem } from '../../types/product';
 import { CreateOrderItemInput, OrderSource, PaymentStatus } from '../../types/sales';
+import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useToast } from '../../context/ToastContext';
@@ -27,7 +28,6 @@ interface OrderRow {
   quantity: number;
   unitPrice: number;
   discount: number;
-  availableStock: number;
   productName: string;
   sku: string;
 }
@@ -40,6 +40,11 @@ export const CreateOrderPage: React.FC = () => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // Multi-Channel Order Parameters
+  const [salesChannel, setSalesChannel] = useState<SalesChannel>('WEBSITE');
+  const [externalOrderId, setExternalOrderId] = useState('');
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Customer Mode: 'existing' | 'new'
   const [customerMode, setCustomerMode] = useState<'existing' | 'new'>('existing');
@@ -57,7 +62,7 @@ export const CreateOrderPage: React.FC = () => {
   // Order Details
   const [items, setItems] = useState<OrderRow[]>([]);
   const [shippingFee, setShippingFee] = useState<number>(100);
-  const [source, setSource] = useState<OrderSource>('WEBSITE');
+  const [source, setSource] = useState<OrderSource>('MANUAL');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('PENDING');
   const [notes, setNotes] = useState('');
 
@@ -67,7 +72,7 @@ export const CreateOrderPage: React.FC = () => {
         setLoadingInitial(true);
         const [custRes, prodRes] = await Promise.all([
           customerService.getCustomers(),
-          productService.getProducts({ status: 'ACTIVE', limit: 100 })
+          productService.getProducts({ limit: 100 })
         ]);
         setCustomers(custRes);
         setProducts(prodRes.products);
@@ -85,7 +90,6 @@ export const CreateOrderPage: React.FC = () => {
               quantity: 1,
               unitPrice: p.sellingPrice,
               discount: 0,
-              availableStock: p.stockQuantity,
               productName: p.name,
               sku: p.sku
             }
@@ -110,7 +114,6 @@ export const CreateOrderPage: React.FC = () => {
         quantity: 1,
         unitPrice: p.sellingPrice,
         discount: 0,
-        availableStock: p.stockQuantity,
         productName: p.name,
         sku: p.sku
       }
@@ -136,7 +139,6 @@ export const CreateOrderPage: React.FC = () => {
       productName: p.name,
       sku: p.sku,
       unitPrice: p.sellingPrice,
-      availableStock: p.stockQuantity,
       quantity: 1
     };
     setItems(updated);
@@ -168,17 +170,6 @@ export const CreateOrderPage: React.FC = () => {
       return;
     }
 
-    // Validate stock for items
-    for (const item of items) {
-      if (item.quantity > item.availableStock) {
-        showToast(
-          `Insufficient stock for "${item.productName}". Requested: ${item.quantity}, Available: ${item.availableStock}`,
-          'error'
-        );
-        return;
-      }
-    }
-
     if (customerMode === 'new') {
       if (!newCustName.trim() || !newCustPhone.trim()) {
         showToast('Customer name and phone number are required', 'warning');
@@ -196,6 +187,9 @@ export const CreateOrderPage: React.FC = () => {
       }));
 
       const createdOrder = await orderService.createOrder({
+        salesChannel,
+        externalOrderId: externalOrderId.trim() || undefined,
+        orderDate,
         customerId: customerMode === 'existing' ? selectedCustomerId : undefined,
         customerName: customerMode === 'new' ? newCustName.trim() : undefined,
         customerEmail: customerMode === 'new' ? newCustEmail.trim() : undefined,
@@ -208,12 +202,12 @@ export const CreateOrderPage: React.FC = () => {
         shippingFee: Number(shippingFee) || 0,
         paymentStatus,
         orderStatus: confirmImmediately ? 'CONFIRMED' : 'PENDING',
-        source,
+        source: 'MANUAL',
         notes: notes.trim()
       });
 
       showToast(
-        `Order ${createdOrder.orderNumber} created ${confirmImmediately ? 'and confirmed (stock deducted)!' : 'successfully!'}`,
+        `Order ${createdOrder.orderNumber} created ${confirmImmediately ? 'and confirmed successfully!' : 'successfully!'}`,
         'success'
       );
       navigate(`/orders/${createdOrder._id}`);
@@ -258,7 +252,7 @@ export const CreateOrderPage: React.FC = () => {
           Create New Sales Order
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-          Record wholesale salon bookings, direct web clients, and automatically deduct catalog stock
+          Consolidate multi-channel sales, marketplace transactions, and client orders into the unified register
         </p>
       </div>
 
@@ -426,7 +420,6 @@ export const CreateOrderPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {items.map((item, idx) => {
             const lineTotal = item.unitPrice * item.quantity - item.discount;
-            const isStockWarning = item.quantity > item.availableStock;
 
             return (
               <div
@@ -437,8 +430,8 @@ export const CreateOrderPage: React.FC = () => {
                   gap: '0.75rem',
                   padding: '0.75rem',
                   borderRadius: '8px',
-                  border: isStockWarning ? '1px solid #FECDD3' : '1px solid #E5E7EB',
-                  backgroundColor: isStockWarning ? '#FFF5F5' : '#FAFAFA',
+                  border: '1px solid #E5E7EB',
+                  backgroundColor: '#FAFAFA',
                   flexWrap: 'wrap'
                 }}
               >
@@ -461,7 +454,7 @@ export const CreateOrderPage: React.FC = () => {
                   >
                     {products.map((p) => (
                       <option key={p._id} value={p._id}>
-                        {p.name} ({p.sku}) - Stock: {p.stockQuantity}
+                        {p.name} ({p.sku})
                       </option>
                     ))}
                   </select>
@@ -491,7 +484,7 @@ export const CreateOrderPage: React.FC = () => {
                       width: '100%',
                       padding: '0.45rem 0.5rem',
                       borderRadius: '6px',
-                      border: isStockWarning ? '1px solid #EF4444' : '1px solid #D1D5DB',
+                      border: '1px solid #D1D5DB',
                       fontSize: '0.85rem'
                     }}
                   />
@@ -517,7 +510,7 @@ export const CreateOrderPage: React.FC = () => {
                   />
                 </div>
 
-                {/* Total */}
+                {/* Line Total */}
                 <div style={{ width: '110px', textAlign: 'right' }}>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#4B5563', marginBottom: '2px' }}>
                     Line Total
@@ -543,12 +536,6 @@ export const CreateOrderPage: React.FC = () => {
                 >
                   <Trash2 size={16} />
                 </button>
-
-                {isStockWarning && (
-                  <div style={{ width: '100%', fontSize: '0.75rem', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <AlertTriangle size={12} /> Only {item.availableStock} in stock. Please reduce quantity or restock first.
-                  </div>
-                )}
               </div>
             );
           })}
@@ -557,43 +544,73 @@ export const CreateOrderPage: React.FC = () => {
 
       {/* Financials & Order Settings */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        {/* Logistics & Settings */}
+        {/* Multi-Channel & Fulfillment Settings */}
         <div className="luxury-card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '1rem' }}>
-            Fulfillment & Payment
+            Channel & Fulfillment
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#4B5563', marginBottom: '0.25rem' }}>
-                Order Channel / Source
+                Sales Channel *
               </label>
               <select
-                value={source}
-                onChange={(e) => setSource(e.target.value as OrderSource)}
+                value={salesChannel}
+                onChange={(e) => setSalesChannel(e.target.value as SalesChannel)}
                 style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.85rem' }}
               >
-                <option value="WEBSITE">Website D2C</option>
-                <option value="MANUAL">Manual Retail Dispatch</option>
-                <option value="PHONE">Phone / WhatsApp Concierge</option>
-                <option value="SOCIAL">Instagram DM / Social</option>
-                <option value="OTHER">Salon Partner B2B</option>
+                {SALES_CHANNELS.map((ch: any) => (
+                  <option key={ch.code || ch.id} value={ch.code || ch.id}>
+                    {ch.displayName || ch.name} ({ch.shortName || ch.type || ch.code})
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#4B5563', marginBottom: '0.25rem' }}>
-                Payment Status
+                External Order ID (from Channel)
               </label>
-              <select
-                value={paymentStatus}
-                onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+              <input
+                type="text"
+                placeholder="e.g. 403-1234567-1234567, OD123456789, LVN-10293"
+                value={externalOrderId}
+                onChange={(e) => setExternalOrderId(e.target.value)}
                 style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.85rem' }}
-              >
-                <option value="PENDING">Pending Payment</option>
-                <option value="PAID">Paid (Cash / UPI / Bank)</option>
-                <option value="PARTIALLY_PAID">Partially Paid</option>
-              </select>
+              />
+              <span style={{ fontSize: '0.7rem', color: '#9CA3AF', marginTop: '2px', display: 'block' }}>
+                Leave empty for direct walk-in / internal sales without an external ID
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#4B5563', marginBottom: '0.25rem' }}>
+                  Order Date *
+                </label>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#4B5563', marginBottom: '0.25rem' }}>
+                  Payment Status
+                </label>
+                <select
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+                  style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.85rem' }}
+                >
+                  <option value="PENDING">Pending Payment</option>
+                  <option value="PAID">Paid</option>
+                  <option value="PARTIALLY_PAID">Partially Paid</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -611,11 +628,11 @@ export const CreateOrderPage: React.FC = () => {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#4B5563', marginBottom: '0.25rem' }}>
-                Special Notes / Delivery Instructions
+                Special Notes / Reference
               </label>
               <textarea
                 rows={2}
-                placeholder="Add customer delivery notes or packaging requirements..."
+                placeholder="Add reference notes or customer instructions..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 style={{ width: '100%', padding: '0.55rem', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '0.85rem' }}
@@ -671,7 +688,7 @@ export const CreateOrderPage: React.FC = () => {
               icon={<CheckCircle2 size={16} />}
               onClick={() => handleSubmitOrder(true)}
             >
-              {submitting ? 'Processing...' : 'Confirm & Deduct Stock Now'}
+              {submitting ? 'Processing...' : 'Confirm Order'}
             </Button>
 
             <Button

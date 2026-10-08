@@ -4,14 +4,18 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { CommandPaletteProvider } from './context/CommandPaletteContext';
+import { WorkspaceConfigProvider } from './context/WorkspaceConfigContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Layout
 import { AppLayout } from './components/layout/AppLayout';
 
 // Core Phase 1 Pages
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { RoleWorkspaceAccessPage } from './pages/settings/RoleWorkspaceAccessPage';
 import { ModulePlaceholder } from './pages/placeholder/ModulePlaceholder';
 
 import { TeamDirectory } from './pages/team/TeamDirectory';
@@ -44,19 +48,11 @@ import { GoalDetailPage } from './pages/goals/GoalDetailPage';
 import { MyGoalsPage } from './pages/goals/MyGoalsPage';
 import { TeamGoalsPage } from './pages/goals/TeamGoalsPage';
 
-// Phase 10: Documents & Company Knowledge
-import { DocumentsPage } from './pages/documents/DocumentsPage';
-import { DocumentDetailPage } from './pages/documents/DocumentDetailPage';
-
-// Phase 11: Products & Inventory Management
+// Products Management (Catalog & Sales)
 import { ProductsPage } from './pages/products/ProductsPage';
 import { ProductDetailPage } from './pages/products/ProductDetailPage';
 import { AddProductPage } from './pages/products/AddProductPage';
 import { EditProductPage } from './pages/products/EditProductPage';
-import { InventoryPage } from './pages/inventory/InventoryPage';
-import { StockAdjustmentPage } from './pages/inventory/StockAdjustmentPage';
-import { InventoryHistoryPage } from './pages/inventory/InventoryHistoryPage';
-import { InventoryDashboardPage } from './pages/inventory/InventoryDashboardPage';
 
 // Phase 12: Sales, Orders & Expense Management
 import { OrdersPage } from './pages/orders/OrdersPage';
@@ -110,16 +106,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// Founder Route Guard: strictly restricts access to FOUNDER
+// Founder Route: redirects backward-compatible /founder requests to /dashboard
 const FounderRoute: React.FC = () => {
-  const { currentUser } = useAuth();
-  const role = (currentUser?.role || 'EMPLOYEE').toUpperCase();
-
-  if (role !== 'FOUNDER') {
-    return <Navigate to="/403" replace />;
-  }
-
-  return <FounderCommandCenter />;
+  return <Navigate to="/dashboard" replace />;
 };
 
 // Audit Route Guard: strictly restricts access to FOUNDER and HR
@@ -209,14 +198,17 @@ const FinanceRoute: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <ToastProvider>
-          <NotificationProvider>
-            <ChatProvider>
-              <CommandPaletteProvider>
-              <Routes>
-                {/* Public Auth Route */}
-                <Route path="/login" element={<Login />} />
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <NotificationProvider>
+              <ChatProvider>
+                <CommandPaletteProvider>
+                  <WorkspaceConfigProvider>
+                    <Routes>
+                    {/* Public Auth Routes */}
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
 
                 {/* Protected Workspace Layout */}
                 <Route
@@ -279,6 +271,8 @@ export const App: React.FC = () => {
                   {/* System & Operations */}
                   <Route path="notifications" element={<NotificationsPage />} />
                   <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings/workspace-access" element={<RoleWorkspaceAccessPage />} />
+                  <Route path="workspace-access" element={<Navigate to="/settings/workspace-access" replace />} />
 
                   {/* Phase 13: Founder Command Center & System Management */}
                   <Route path="founder" element={<FounderRoute />} />
@@ -286,30 +280,30 @@ export const App: React.FC = () => {
                   <Route path="system" element={<SystemStatusRoute />} />
                   <Route path="403" element={<AccessDeniedPage />} />
 
-                  {/* Phase 11: Products & Inventory Management */}
+                  {/* Products Catalog & Sales */}
                   <Route path="products" element={<ProductsPage />} />
                   <Route path="products/new" element={<AddProductPage />} />
                   <Route path="products/:id" element={<ProductDetailPage />} />
                   <Route path="products/:id/edit" element={<EditProductPage />} />
-                  <Route path="inventory" element={<InventoryPage />} />
-                  <Route path="inventory/adjust" element={<StockAdjustmentPage />} />
-                  <Route path="inventory/history" element={<InventoryHistoryPage />} />
-                  <Route path="inventory/dashboard" element={<InventoryDashboardPage />} />
+                  {/* Inventory module completely removed: safely redirect to products */}
+                  <Route path="inventory" element={<Navigate to="/products" replace />} />
+                  <Route path="inventory/*" element={<Navigate to="/products" replace />} />
 
                   {/* Phase 12: Sales, Orders & Expense Management */}
                   <Route path="orders" element={<OrdersPage />} />
                   <Route path="orders/new" element={<CreateOrderPage />} />
                   <Route path="orders/:id" element={<OrderDetailPage />} />
                   <Route path="sales" element={<SalesRoute />} />
+                  <Route path="sales-analytics" element={<SalesRoute />} />
+                  <Route path="sales-analytics/*" element={<SalesRoute />} />
                   <Route path="sales/:id" element={<Navigate to="/orders/:id" replace />} />
                   <Route path="finance" element={<FinanceRoute />} />
                   <Route path="expenses" element={<ExpensesPage />} />
                   <Route path="expenses/new" element={<CreateExpensePage />} />
                   <Route path="expenses/:id" element={<ExpenseDetailPage />} />
-                  {/* Phase 10: Documents & Company Knowledge */}
-                  <Route path="documents" element={<DocumentsPage />} />
-                  <Route path="documents/:id" element={<DocumentDetailPage />} />
-                  <Route path="documents/folders/:folderId" element={<DocumentsPage />} />
+                  {/* Documents module removed: safely redirect any old bookmarks to dashboard */}
+                  <Route path="documents" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="documents/*" element={<Navigate to="/dashboard" replace />} />
                   <Route
                     path="reports"
                     element={
@@ -340,11 +334,13 @@ export const App: React.FC = () => {
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Routes>
+                </WorkspaceConfigProvider>
               </CommandPaletteProvider>
             </ChatProvider>
           </NotificationProvider>
         </ToastProvider>
       </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 };

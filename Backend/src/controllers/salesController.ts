@@ -2,12 +2,63 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { OrderModel } from '../models/Order.js';
+import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannelType } from '../config/salesChannels.js';
 
+// Recognized revenue statuses (excludes DRAFT and CANCELLED)
 const VALID_SALES_STATUSES = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
 
 /**
+ * Helper to compute date range window
+ */
+function getDateRangeWindow(range: string = '30d', startDateQuery?: string, endDateQuery?: string) {
+  const now = new Date();
+  let startDate: Date;
+  let endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  switch (range) {
+    case 'today':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      break;
+    case 'week':
+    case '7d':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 6);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'month':
+    case 'this_month':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      break;
+    case 'last_month':
+      startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+      break;
+    case '90d':
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 89);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+    case 'custom':
+      startDate = startDateQuery ? new Date(startDateQuery) : new Date(now.getFullYear(), now.getMonth(), 1);
+      if (endDateQuery) {
+        endDate = new Date(endDateQuery);
+        endDate.setHours(23, 59, 59, 999);
+      }
+      break;
+    case '30d':
+    default:
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 29);
+      startDate.setHours(0, 0, 0, 0);
+      break;
+  }
+
+  return { startDate, endDate };
+}
+
+/**
  * GET /api/sales/summary
- * Operational and revenue summary metrics for sales
+ * Operational and revenue summary metrics for sales (derived solely from Orders)
  */
 export const getSalesSummary = async (
   req: AuthenticatedRequest,
@@ -17,19 +68,18 @@ export const getSalesSummary = async (
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
-
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    // Filter to valid sales statuses (excluding DRAFT and CANCELLED for recognized revenue)
     const validSalesFilter = { orderStatus: { $in: VALID_SALES_STATUSES } };
 
     const [
-      todayRevenueAgg,
-      weekRevenueAgg,
-      monthRevenueAgg,
-      totalRevenueAgg,
+      todayAgg,
+      weekAgg,
+      monthAgg,
+      totalAgg,
+      unitsSoldAgg,
       totalOrdersCount,
       todayOrdersCount,
       weekOrdersCount,
@@ -38,7 +88,8 @@ export const getSalesSummary = async (
       processingCount,
       shippedCount,
       deliveredCount,
-      cancelledCount
+      cancelledCount,
+      channelAgg
     ] = await Promise.all([
       // Today revenue
       OrderModel.aggregate([
@@ -60,6 +111,12 @@ export const getSalesSummary = async (
         { $match: validSalesFilter },
         { $group: { _id: null, total: { $sum: '$total' } } }
       ]),
+      // Total units sold across recognized orders
+      OrderModel.aggregate([
+        { $match: validSalesFilter },
+        { $unwind: '$items' },
+        { $group: { _id: null, units: { $sum: '$items.quantity' } } }
+      ]),
       // Total count of orders
       OrderModel.countDocuments(),
       // Today orders count
@@ -68,26 +125,67 @@ export const getSalesSummary = async (
       OrderModel.countDocuments({ createdAt: { $gte: startOfWeek } }),
       // Month orders count
       OrderModel.countDocuments({ createdAt: { $gte: startOfMonth } }),
-      // Pending
+      // Status breakdown
       OrderModel.countDocuments({ orderStatus: 'PENDING' }),
-      // Processing
       OrderModel.countDocuments({ orderStatus: 'PROCESSING' }),
-      // Shipped
       OrderModel.countDocuments({ orderStatus: 'SHIPPED' }),
-      // Delivered
       OrderModel.countDocuments({ orderStatus: 'DELIVERED' }),
-      // Cancelled
-      OrderModel.countDocuments({ orderStatus: 'CANCELLED' })
+      OrderModel.countDocuments({ orderStatus: 'CANCELLED' }),
+      // Channel Breakdown
+      OrderModel.aggregate([
+        { $match: validSalesFilter },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: {
+              orderId: '$_id',
+              channel: '$salesChannel',
+              orderTotal: '$total'
+            },
+            orderUnits: { $sum: '$items.quantity' }
+          }
+        },
+        {
+          $group: {
+            _id: '$_id.channel',
+            orders: { $sum: 1 },
+            revenue: { $sum: '$_id.orderTotal' },
+            units: { $sum: '$orderUnits' }
+          }
+        }
+      ])
     ]);
 
-    const todayRevenue = todayRevenueAgg[0]?.total || 0;
-    const weekRevenue = weekRevenueAgg[0]?.total || 0;
-    const monthRevenue = monthRevenueAgg[0]?.total || 0;
-    const totalRevenue = totalRevenueAgg[0]?.total || 0;
+    const todayRevenue = todayAgg[0]?.total || 0;
+    const weekRevenue = weekAgg[0]?.total || 0;
+    const monthRevenue = monthAgg[0]?.total || 0;
+    const totalRevenue = totalAgg[0]?.total || 0;
+    const totalUnitsSold = unitsSoldAgg[0]?.units || 0;
 
-    // Calculate Average Order Value (AOV) based on recognized orders
     const recognizedOrdersCount = await OrderModel.countDocuments(validSalesFilter);
     const averageOrderValue = recognizedOrdersCount > 0 ? totalRevenue / recognizedOrdersCount : 0;
+
+    // Format sales by channel
+    const channelBreakdown = ['WEBSITE', 'AMAZON', 'FLIPKART'].map((channelCode) => {
+      const match = channelAgg.find(c => c._id === channelCode);
+      const rev = match ? match.revenue : 0;
+      const ordersNum = match ? match.orders : 0;
+      const unitsNum = match ? match.units : 0;
+      const share = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+      const meta = SALES_CHANNEL_CONFIGS[channelCode as SalesChannelType];
+
+      return {
+        channel: channelCode,
+        displayName: meta?.displayName || channelCode,
+        shortName: meta?.shortName || channelCode,
+        orders: ordersNum,
+        units: unitsNum,
+        revenue: Number(rev.toFixed(2)),
+        sharePercent: Number(share.toFixed(1)),
+        color: meta?.badgeColor || '#4B5563',
+        bg: meta?.badgeBg || '#F3F4F6'
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -105,7 +203,9 @@ export const getSalesSummary = async (
           total: totalOrdersCount,
           recognized: recognizedOrdersCount
         },
+        unitsSold: totalUnitsSold,
         averageOrderValue: Number(averageOrderValue.toFixed(2)),
+        channelBreakdown,
         statusBreakdown: {
           pending: pendingCount,
           processing: processingCount,
@@ -124,8 +224,124 @@ export const getSalesSummary = async (
 };
 
 /**
+ * GET /api/sales/channels
+ * Detailed sales breakdown by sales channel (Website, Amazon, Flipkart, etc.)
+ */
+export const getSalesByChannel = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const range = (req.query.range as string) || 'all';
+    const startDateQuery = req.query.startDate as string;
+    const endDateQuery = req.query.endDate as string;
+
+    const matchFilter: Record<string, any> = {
+      orderStatus: { $in: VALID_SALES_STATUSES }
+    };
+
+    if (range !== 'all') {
+      const { startDate, endDate } = getDateRangeWindow(range, startDateQuery, endDateQuery);
+      matchFilter.createdAt = { $gte: startDate, $lte: endDate };
+    }
+
+    // Aggregate orders by salesChannel
+    const aggregation = await OrderModel.aggregate([
+      { $match: matchFilter },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: {
+            orderId: '$_id',
+            channel: { $ifNull: ['$salesChannel', 'WEBSITE'] },
+            orderTotal: '$total'
+          },
+          orderUnits: { $sum: '$items.quantity' }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.channel',
+          ordersCount: { $sum: 1 },
+          revenue: { $sum: '$_id.orderTotal' },
+          unitsSold: { $sum: '$orderUnits' }
+        }
+      },
+      { $sort: { revenue: -1 } }
+    ]);
+
+    const totalRevenue = aggregation.reduce((sum, item) => sum + (item.revenue || 0), 0);
+    const totalOrders = aggregation.reduce((sum, item) => sum + (item.ordersCount || 0), 0);
+    const totalUnits = aggregation.reduce((sum, item) => sum + (item.unitsSold || 0), 0);
+
+    // Ensure all standard initial channels (Website, Amazon, Flipkart) are included
+    const standardChannels: SalesChannelType[] = ['WEBSITE', 'AMAZON', 'FLIPKART'];
+    const channelResults = standardChannels.map(channelCode => {
+      const found = aggregation.find(a => a._id === channelCode);
+      const rev = found ? found.revenue : 0;
+      const orders = found ? found.ordersCount : 0;
+      const units = found ? found.unitsSold : 0;
+      const share = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+      const meta = SALES_CHANNEL_CONFIGS[channelCode];
+
+      return {
+        channel: channelCode,
+        displayName: meta?.displayName || channelCode,
+        shortName: meta?.shortName || channelCode,
+        orders,
+        units,
+        revenue: Number(rev.toFixed(2)),
+        sharePercent: Number(share.toFixed(1)),
+        avgOrderValue: orders > 0 ? Number((rev / orders).toFixed(2)) : 0,
+        badgeColor: meta?.badgeColor || '#4B5563',
+        badgeBg: meta?.badgeBg || '#F3F4F6'
+      };
+    });
+
+    // Also include any other channels that have sales
+    aggregation.forEach(item => {
+      if (!standardChannels.includes(item._id as SalesChannelType)) {
+        const rev = item.revenue || 0;
+        const orders = item.ordersCount || 0;
+        const units = item.unitsSold || 0;
+        const share = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+        const meta = SALES_CHANNEL_CONFIGS[item._id as SalesChannelType];
+
+        channelResults.push({
+          channel: item._id,
+          displayName: meta?.displayName || item._id,
+          shortName: meta?.shortName || item._id,
+          orders,
+          units,
+          revenue: Number(rev.toFixed(2)),
+          sharePercent: Number(share.toFixed(1)),
+          avgOrderValue: orders > 0 ? Number((rev / orders).toFixed(2)) : 0,
+          badgeColor: meta?.badgeColor || '#4B5563',
+          badgeBg: meta?.badgeBg || '#F3F4F6'
+        });
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        totalOrders,
+        totalUnits,
+        channels: channelResults
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch sales by channel'
+    });
+  }
+};
+
+/**
  * GET /api/sales/trends
- * Revenue and order count time series for Recharts
+ * Revenue and order count time series
  */
 export const getSalesTrends = async (
   req: AuthenticatedRequest,
@@ -133,21 +349,20 @@ export const getSalesTrends = async (
 ): Promise<void> => {
   try {
     const range = (req.query.range as string) || '30d';
-    let days = 30;
-    if (range === '7d') days = 7;
-    else if (range === '90d') days = 90;
+    const channel = req.query.channel as string;
+    const { startDate, endDate } = getDateRangeWindow(range);
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - (days - 1));
-    startDate.setHours(0, 0, 0, 0);
+    const matchFilter: Record<string, any> = {
+      orderStatus: { $in: VALID_SALES_STATUSES },
+      createdAt: { $gte: startDate, $lte: endDate }
+    };
+
+    if (channel && channel !== 'ALL') {
+      matchFilter.salesChannel = channel.toUpperCase();
+    }
 
     const aggregation = await OrderModel.aggregate([
-      {
-        $match: {
-          orderStatus: { $in: VALID_SALES_STATUSES },
-          createdAt: { $gte: startDate }
-        }
-      },
+      { $match: matchFilter },
       {
         $group: {
           _id: {
@@ -161,7 +376,10 @@ export const getSalesTrends = async (
       { $sort: { _id: 1 } }
     ]);
 
-    // Build complete date map so there are no empty gaps in chart
+    // Calculate total days in range
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
     const dateMap = new Map<string, { date: string; revenue: number; ordersCount: number; itemsSold: number }>();
 
     for (let i = 0; i < days; i++) {
@@ -206,17 +424,26 @@ export const getSalesTrends = async (
 
 /**
  * GET /api/sales/top-products
- * Aggregated top performing products by units sold and revenue
+ * Aggregated top performing products by units sold and revenue (catalog master only, NO stock fields)
  */
 export const getTopProducts = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 5, 1), 20);
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 5, 1), 50);
+    const channel = req.query.channel as string;
+
+    const matchFilter: Record<string, any> = {
+      orderStatus: { $in: VALID_SALES_STATUSES }
+    };
+
+    if (channel && channel !== 'ALL') {
+      matchFilter.salesChannel = channel.toUpperCase();
+    }
 
     const aggregation = await OrderModel.aggregate([
-      { $match: { orderStatus: { $in: VALID_SALES_STATUSES } } },
+      { $match: matchFilter },
       { $unwind: '$items' },
       {
         $group: {

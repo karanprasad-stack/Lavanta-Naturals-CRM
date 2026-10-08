@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Package, Plus, Sparkles, Tag, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Package, Plus, Tag, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { productService } from '../../services/productService';
-import { ProductCategory, ProductUnit } from '../../types/inventory';
+import { ProductCategory, ProductUnit } from '../../types/product';
 
 const UNITS: ProductUnit[] = [
   'PIECE',
@@ -38,12 +38,9 @@ export const AddProductPage: React.FC = () => {
   const [unit, setUnit] = useState<ProductUnit>('PIECE');
   const [sellingPrice, setSellingPrice] = useState<string>('');
   const [costPrice, setCostPrice] = useState<string>('');
-  const [openingStock, setOpeningStock] = useState<number>(0);
-  const [lowStockThreshold, setLowStockThreshold] = useState<number>(10);
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
 
   // Quick Category creation modal
   const [showCatModal, setShowCatModal] = useState(false);
@@ -154,11 +151,8 @@ export const AddProductPage: React.FC = () => {
         unit,
         sellingPrice: sPrice,
         costPrice: cPrice,
-        openingStock: Math.max(0, openingStock),
-        lowStockThreshold: Math.max(0, lowStockThreshold),
         tags,
-        images: imageUrl.trim() ? [imageUrl.trim()] : [],
-        status
+        images: imageUrl.trim() ? [imageUrl.trim()] : []
       });
 
       showToast(`Product "${newProduct.name}" created successfully!`, 'success');
@@ -192,18 +186,17 @@ export const AddProductPage: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold text-[#1B2533]">Add New Product</h1>
             <p className="text-xs text-[#5A667A]">
-              Register an official Lavanta Naturals SKU and initialize inventory.
+              Register an official Lavanta Naturals SKU in the catalog.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section 1: Core Information */}
+        {/* Section 1: Basic Information */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAEFE9] shadow-xs space-y-5">
           <h2 className="text-base font-bold text-[#1B2533] border-b border-[#F2F5F0] pb-3">
-            1. Core Information
+            1. Basic Information
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,7 +208,7 @@ export const AddProductPage: React.FC = () => {
               <input
                 type="text"
                 required
-                placeholder="e.g. Lavanta Face Serum - Advanced Botanical Glow"
+                placeholder="e.g. Lavender Botanical Facial Mist 100ml"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 onBlur={handleNameBlur}
@@ -225,47 +218,44 @@ export const AddProductPage: React.FC = () => {
 
             {/* SKU */}
             <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">
-                SKU (Stock Keeping Unit) *
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-semibold text-[#5A667A]">SKU Code *</label>
+                <span className="text-[10px] text-[#8C9BAE]">Unique SKU identifier</span>
+              </div>
               <input
                 type="text"
                 required
-                placeholder="e.g. LAV-FS-001"
+                placeholder="LAV-MIS-101"
                 value={sku}
                 onChange={e => setSku(e.target.value.toUpperCase())}
                 className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
               />
-              <span className="text-[11px] text-[#8C9BAE] mt-0.5 block">Must be unique across all products</span>
             </div>
 
             {/* Category */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-semibold text-[#5A667A]">Category *</label>
+                <label className="text-xs font-semibold text-[#5A667A]">Category *</label>
                 <button
                   type="button"
                   onClick={() => setShowCatModal(true)}
-                  className="text-xs text-[#69C43F] font-semibold hover:underline flex items-center gap-1"
+                  className="text-[11px] font-medium text-[#69C43F] hover:underline flex items-center gap-1"
                 >
-                  <Plus className="w-3 h-3" /> New Category
+                  <Plus className="w-3 h-3" /> New
                 </button>
               </div>
               <select
+                required
                 value={categoryId}
                 onChange={e => setCategoryId(e.target.value)}
-                required
+                disabled={loadingCats}
                 className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
               >
-                {loadingCats ? (
-                  <option value="">Loading categories...</option>
-                ) : (
-                  categories.map(cat => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))
-                )}
+                {categories.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -282,7 +272,7 @@ export const AddProductPage: React.FC = () => {
 
             {/* Unit */}
             <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Inventory Unit</label>
+              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Package Unit</label>
               <select
                 value={unit}
                 onChange={e => setUnit(e.target.value as ProductUnit)}
@@ -301,7 +291,7 @@ export const AddProductPage: React.FC = () => {
               <label className="block text-xs font-semibold text-[#5A667A] mb-1">Description</label>
               <textarea
                 rows={3}
-                placeholder="Botanical ingredients, usage recommendations, skin benefits..."
+                placeholder="Key botanicals, skin benefits, formulation highlights..."
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
@@ -310,10 +300,10 @@ export const AddProductPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 2: Pricing & Initial Inventory */}
+        {/* Section 2: Pricing */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAEFE9] shadow-xs space-y-5">
           <h2 className="text-base font-bold text-[#1B2533] border-b border-[#F2F5F0] pb-3">
-            2. Pricing & Initial Inventory
+            2. Pricing
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -358,40 +348,6 @@ export const AddProductPage: React.FC = () => {
                   className="w-full pl-8 pr-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
                 />
               </div>
-            </div>
-
-            {/* Opening Stock */}
-            <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">
-                Opening Stock Units
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={openingStock}
-                onChange={e => setOpeningStock(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-              />
-              <span className="text-[11px] text-[#8C9BAE] mt-0.5 block">
-                Automatically logs an initial OPENING_STOCK movement in audit history.
-              </span>
-            </div>
-
-            {/* Low-Stock Threshold */}
-            <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">
-                Low-Stock Alert Threshold
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={lowStockThreshold}
-                onChange={e => setLowStockThreshold(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-              />
-              <span className="text-[11px] text-[#8C9BAE] mt-0.5 block">
-                Triggers LOW_STOCK alert when stock falls below or equal to this level.
-              </span>
             </div>
           </div>
         </div>
@@ -453,19 +409,6 @@ export const AddProductPage: React.FC = () => {
                 className="w-full sm:w-72 px-3 py-1.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
               />
             </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Status</label>
-              <select
-                value={status}
-                onChange={e => setStatus(e.target.value as any)}
-                className="w-full sm:w-48 px-3.5 py-2 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
-            </div>
           </div>
         </div>
 
@@ -522,7 +465,7 @@ export const AddProductPage: React.FC = () => {
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Brief category summary..."
+                  placeholder="Optional category description"
                   value={newCatDesc}
                   onChange={e => setNewCatDesc(e.target.value)}
                   className="w-full px-3 py-2 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
@@ -533,16 +476,16 @@ export const AddProductPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCatModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#5A667A] hover:bg-[#F2F5F0] rounded-lg"
+                  className="px-4 py-2 text-xs font-medium text-[#5A667A] hover:bg-[#F2F5F0] rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingCat}
-                  className="px-4 py-1.5 text-xs font-medium text-white bg-[#69C43F] hover:bg-[#5BAE37] rounded-lg shadow-xs"
+                  className="px-4 py-2 text-xs font-medium text-white bg-[#69C43F] hover:bg-[#5BAE37] rounded-xl shadow-xs transition-colors"
                 >
-                  {savingCat ? 'Saving...' : 'Save Category'}
+                  {savingCat ? 'Saving...' : 'Create Category'}
                 </button>
               </div>
             </form>

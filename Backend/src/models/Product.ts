@@ -1,7 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type ProductStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
-
 export type ProductUnit =
   | 'PIECE'
   | 'BOX'
@@ -12,8 +10,6 @@ export type ProductUnit =
   | 'ML'
   | 'BOTTLE'
   | 'OTHER';
-
-export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
 
 export interface IProduct extends Document {
   _id: Types.ObjectId;
@@ -26,17 +22,12 @@ export interface IProduct extends Document {
   unit: ProductUnit;
   sellingPrice: number;
   costPrice: number;
-  stockQuantity: number;
-  lowStockThreshold: number;
-  status: ProductStatus;
   images: string[];
   tags: string[];
   documentIds: Types.ObjectId[];
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
-  // Virtual derived field
-  stockStatus: StockStatus;
 }
 
 const ProductSchema = new Schema(
@@ -92,24 +83,6 @@ const ProductSchema = new Schema(
       min: [0, 'Cost price cannot be negative'],
       default: 0
     },
-    stockQuantity: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: [0, 'Stock quantity cannot be negative']
-    },
-    lowStockThreshold: {
-      type: Number,
-      required: true,
-      default: 10,
-      min: [0, 'Low stock threshold cannot be negative']
-    },
-    status: {
-      type: String,
-      enum: ['ACTIVE', 'INACTIVE', 'ARCHIVED'],
-      default: 'ACTIVE',
-      index: true
-    },
     images: {
       type: [String],
       default: []
@@ -132,26 +105,31 @@ const ProductSchema = new Schema(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toJSON: {
+      virtuals: true,
+      transform: (_doc, ret: any) => {
+        delete ret.stockQuantity;
+        delete ret.lowStockThreshold;
+        delete ret.status;
+        delete ret.stockStatus;
+        return ret;
+      }
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_doc, ret: any) => {
+        delete ret.stockQuantity;
+        delete ret.lowStockThreshold;
+        delete ret.status;
+        delete ret.stockStatus;
+        return ret;
+      }
+    }
   }
 );
 
-// Virtual derived stockStatus
-ProductSchema.virtual('stockStatus').get(function (this: IProduct) {
-  if (this.stockQuantity <= 0) {
-    return 'OUT_OF_STOCK';
-  }
-  if (this.stockQuantity <= this.lowStockThreshold) {
-    return 'LOW_STOCK';
-  }
-  return 'IN_STOCK';
-});
-
 // Indexes for high performance searches and filters
 ProductSchema.index({ name: 'text', description: 'text', brand: 'text', tags: 'text' });
-ProductSchema.index({ categoryId: 1, status: 1 });
-ProductSchema.index({ stockQuantity: 1, lowStockThreshold: 1 });
 ProductSchema.index({ createdAt: -1 });
 
 export const ProductModel = mongoose.model<IProduct>('Product', ProductSchema);

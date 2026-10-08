@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Edit3, Lock, AlertCircle, Tag, Check, Layers } from 'lucide-react';
+import { ArrowLeft, Edit3, Tag, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { productService } from '../../services/productService';
-import { ProductCategory, ProductUnit } from '../../types/inventory';
+import { ProductCategory, ProductUnit } from '../../types/product';
 
 const UNITS: ProductUnit[] = [
   'PIECE',
@@ -39,12 +39,9 @@ export const EditProductPage: React.FC = () => {
   const [unit, setUnit] = useState<ProductUnit>('PIECE');
   const [sellingPrice, setSellingPrice] = useState<string>('');
   const [costPrice, setCostPrice] = useState<string>('');
-  const [currentStock, setCurrentStock] = useState<number>(0);
-  const [lowStockThreshold, setLowStockThreshold] = useState<number>(10);
   const [tags, setTags] = useState<string[]>([]);
   const [customTag, setCustomTag] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE' | 'ARCHIVED'>('ACTIVE');
 
   useEffect(() => {
     const init = async () => {
@@ -68,11 +65,8 @@ export const EditProductPage: React.FC = () => {
         setUnit(prod.unit || 'PIECE');
         setSellingPrice(prod.sellingPrice?.toString() || '0');
         setCostPrice(prod.costPrice?.toString() || '0');
-        setCurrentStock(prod.stockQuantity);
-        setLowStockThreshold(prod.lowStockThreshold || 10);
         setTags(prod.tags || []);
         setImageUrl(prod.images?.[0] || '');
-        setStatus(prod.status as any);
       } catch (err: any) {
         showToast(err.message || 'Failed to load product for editing', 'error');
       } finally {
@@ -133,10 +127,8 @@ export const EditProductPage: React.FC = () => {
         unit,
         sellingPrice: sPrice,
         costPrice: cPrice,
-        lowStockThreshold: Math.max(0, lowStockThreshold),
         tags,
-        images: imageUrl.trim() ? [imageUrl.trim()] : [],
-        status
+        images: imageUrl.trim() ? [imageUrl.trim()] : []
       });
 
       showToast('Product updated successfully!', 'success');
@@ -187,32 +179,11 @@ export const EditProductPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Audit Protection Notice regarding Stock */}
-      <div className="bg-[#FAFBF8] p-4 rounded-2xl border border-[#EAEFE9] flex items-start gap-3">
-        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-          <Lock className="w-4 h-4" />
-        </div>
-        <div className="space-y-1">
-          <h4 className="text-xs font-bold text-[#1B2533]">Stock Modification Policy</h4>
-          <p className="text-xs text-[#5A667A]">
-            Current stock is locked to <strong>{currentStock} {unit.toLowerCase()}s</strong>. Direct stock quantity
-            editing is strictly disabled to preserve inventory audit trails. To change stock levels, please use{' '}
-            <Link
-              to={`/inventory/adjust?productId=${id}`}
-              className="text-[#69C43F] font-semibold hover:underline inline-flex items-center gap-1"
-            >
-              Stock Adjustment <Layers className="w-3 h-3" />
-            </Link>.
-          </p>
-        </div>
-      </div>
-
-      {/* Edit Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Core Details */}
+        {/* Basic Information */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAEFE9] shadow-xs space-y-5">
           <h2 className="text-base font-bold text-[#1B2533] border-b border-[#F2F5F0] pb-3">
-            Core Information
+            Product Information
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -228,7 +199,7 @@ export const EditProductPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">SKU *</label>
+              <label className="block text-xs font-semibold text-[#5A667A] mb-1">SKU Code *</label>
               <input
                 type="text"
                 required
@@ -241,14 +212,14 @@ export const EditProductPage: React.FC = () => {
             <div>
               <label className="block text-xs font-semibold text-[#5A667A] mb-1">Category *</label>
               <select
+                required
                 value={categoryId}
                 onChange={e => setCategoryId(e.target.value)}
-                required
                 className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
               >
-                {categories.map(cat => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
+                {categories.map(c => (
+                  <option key={c._id} value={c._id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -265,7 +236,7 @@ export const EditProductPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Inventory Unit</label>
+              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Unit</label>
               <select
                 value={unit}
                 onChange={e => setUnit(e.target.value as ProductUnit)}
@@ -291,10 +262,10 @@ export const EditProductPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Pricing & Threshold */}
+        {/* Pricing */}
         <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#EAEFE9] shadow-xs space-y-5">
           <h2 className="text-base font-bold text-[#1B2533] border-b border-[#F2F5F0] pb-3">
-            Pricing & Thresholds
+            Pricing
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -321,32 +292,6 @@ export const EditProductPage: React.FC = () => {
                 onChange={e => setCostPrice(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
               />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">
-                Low-Stock Threshold
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={lowStockThreshold}
-                onChange={e => setLowStockThreshold(Math.max(0, parseInt(e.target.value, 10) || 0))}
-                className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[#5A667A] mb-1">Status</label>
-              <select
-                value={status}
-                onChange={e => setStatus(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 bg-[#FAFBF8] border border-[#EAEFE9] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#69C43F]/20 focus:border-[#69C43F]"
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-                <option value="ARCHIVED">Archived</option>
-              </select>
             </div>
           </div>
         </div>

@@ -117,6 +117,7 @@ export interface UpdateTaskPayload {
   description?: string;
   assignedTo?: string;
   priority?: TaskPriority;
+  status?: TaskStatus;
   deadline?: string;
 }
 

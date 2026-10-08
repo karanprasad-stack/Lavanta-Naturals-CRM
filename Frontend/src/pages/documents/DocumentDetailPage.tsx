@@ -185,7 +185,7 @@ export const DocumentDetailPage: React.FC = () => {
               padding: '6px 12px',
               borderRadius: 'var(--radius-xs)',
               border: '1px solid var(--border-color)',
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -258,7 +258,7 @@ export const DocumentDetailPage: React.FC = () => {
       {/* 2. Document Summary Card */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -291,7 +291,7 @@ export const DocumentDetailPage: React.FC = () => {
           <div
             style={{
               padding: '0.75rem 1.25rem',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated)',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
               display: 'flex',
@@ -345,7 +345,7 @@ export const DocumentDetailPage: React.FC = () => {
                 <span
                   key={t}
                   style={{
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     border: '1px solid var(--border-color)',
                     padding: '2px 8px',
                     borderRadius: '12px',
@@ -395,7 +395,7 @@ export const DocumentDetailPage: React.FC = () => {
         {activeTab === 'PREVIEW' && (
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-header)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               minHeight: '520px',
@@ -412,7 +412,7 @@ export const DocumentDetailPage: React.FC = () => {
                 style={{ width: '100%', height: '700px', border: 'none' }}
               />
             ) : document.fileType === 'IMAGE' ? (
-              <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#FAFBF8' }}>
+              <div style={{ padding: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-surface-elevated)' }}>
                 <img
                   src={previewUrl}
                   alt={document.title}
@@ -423,7 +423,7 @@ export const DocumentDetailPage: React.FC = () => {
               <iframe
                 src={previewUrl}
                 title={document.title}
-                style={{ width: '100%', height: '500px', border: 'none', padding: '1rem', background: '#FAFBF8', fontFamily: 'monospace' }}
+                style={{ width: '100%', height: '500px', border: 'none', padding: '1rem', background: 'var(--bg-surface-elevated)', color: 'var(--color-text-primary)', fontFamily: 'monospace' }}
               />
             ) : (
               /* Fallback: Preview unavailable */
@@ -442,7 +442,7 @@ export const DocumentDetailPage: React.FC = () => {
                     width: '54px',
                     height: '54px',
                     borderRadius: '50%',
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -473,7 +473,7 @@ export const DocumentDetailPage: React.FC = () => {
         {activeTab === 'VERSIONS' && (
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -512,8 +512,8 @@ export const DocumentDetailPage: React.FC = () => {
                     padding: '1rem',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
-                    background: v.version === document.version ? '#F0FDF4' : '#FFFFFF',
-                    borderColor: v.version === document.version ? '#DCFCE7' : 'var(--border-color)',
+                    background: v.version === document.version ? 'var(--color-soft-green)' : 'var(--bg-surface-elevated)',
+                    borderColor: v.version === document.version ? 'var(--color-success-border)' : 'var(--border-color)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -556,7 +556,7 @@ export const DocumentDetailPage: React.FC = () => {
         {activeTab === 'ACCESS' && (
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -588,7 +588,7 @@ export const DocumentDetailPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-              <div style={{ padding: '1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <div style={{ padding: '1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   Visibility Level
                 </div>
@@ -606,7 +606,7 @@ export const DocumentDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ padding: '1rem', background: '#FAFBF8', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+              <div style={{ padding: '1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
                   Permitted Roles
                 </div>
@@ -630,7 +630,7 @@ export const DocumentDetailPage: React.FC = () => {
         {activeTab === 'ACTIVITY' && (
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',

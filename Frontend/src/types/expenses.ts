@@ -1,15 +1,23 @@
 export type ExpenseCategory =
+  | 'MARKETPLACE_FEES'
+  | 'PAYMENT_FEES'
+  | 'SHIPPING'
+  | 'PACKAGING'
+  | 'MARKETING'
+  | 'ADVERTISING'
+  | 'OPERATIONS'
+  | 'SALARY'
+  | 'RENT'
+  | 'UTILITIES'
+  | 'SOFTWARE'
   | 'OFFICE'
   | 'TRAVEL'
-  | 'MARKETING'
-  | 'SOFTWARE'
-  | 'SALARY'
-  | 'UTILITIES'
   | 'SUPPLIES'
-  | 'INVENTORY'
-  | 'SHIPPING'
   | 'MAINTENANCE'
+  | 'INVENTORY'
   | 'OTHER';
+
+export type ExpenseSalesChannel = 'GENERAL' | 'WEBSITE' | 'AMAZON' | 'FLIPKART' | 'OTHER';
 
 export type ExpenseStatus =
   | 'DRAFT'
@@ -48,6 +56,7 @@ export interface Expense {
   description?: string;
   amount: number;
   category: ExpenseCategory;
+  salesChannel?: ExpenseSalesChannel;
   submittedBy: {
     _id: string;
     name: string;
@@ -113,6 +122,7 @@ export interface CreateExpenseInput {
   description?: string;
   amount: number;
   category: ExpenseCategory;
+  salesChannel?: ExpenseSalesChannel;
   expenseDate?: string;
   paymentMethod?: string;
   department?: string;

@@ -1,16 +1,23 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { EXPENSE_CHANNELS, ExpenseChannelType } from '../config/salesChannels.js';
 
 export type ExpenseCategory =
+  | 'MARKETPLACE_FEES'
+  | 'PAYMENT_FEES'
+  | 'SHIPPING'
+  | 'PACKAGING'
+  | 'MARKETING'
+  | 'ADVERTISING'
+  | 'OPERATIONS'
+  | 'SALARY'
+  | 'RENT'
+  | 'UTILITIES'
+  | 'SOFTWARE'
   | 'OFFICE'
   | 'TRAVEL'
-  | 'MARKETING'
-  | 'SOFTWARE'
-  | 'SALARY'
-  | 'UTILITIES'
   | 'SUPPLIES'
-  | 'INVENTORY'
-  | 'SHIPPING'
   | 'MAINTENANCE'
+  | 'INVENTORY' // legacy compatibility
   | 'OTHER';
 
 export type ExpenseStatus =
@@ -35,6 +42,7 @@ export interface IExpense extends Document {
   description?: string;
   amount: number;
   category: ExpenseCategory;
+  salesChannel: ExpenseChannelType; // Related Sales Channel: Website, Amazon, Flipkart, General
   submittedBy: Types.ObjectId;
   submittedAt?: Date | null;
   department: string;
@@ -88,18 +96,30 @@ const ExpenseSchema = new Schema(
       type: String,
       required: [true, 'Expense category is required'],
       enum: [
+        'MARKETPLACE_FEES',
+        'PAYMENT_FEES',
+        'SHIPPING',
+        'PACKAGING',
+        'MARKETING',
+        'ADVERTISING',
+        'OPERATIONS',
+        'SALARY',
+        'RENT',
+        'UTILITIES',
+        'SOFTWARE',
         'OFFICE',
         'TRAVEL',
-        'MARKETING',
-        'SOFTWARE',
-        'SALARY',
-        'UTILITIES',
         'SUPPLIES',
-        'INVENTORY',
-        'SHIPPING',
         'MAINTENANCE',
+        'INVENTORY',
         'OTHER'
       ],
+      index: true
+    },
+    salesChannel: {
+      type: String,
+      enum: EXPENSE_CHANNELS,
+      default: 'GENERAL',
       index: true
     },
     submittedBy: {
@@ -191,6 +211,7 @@ const ExpenseSchema = new Schema(
 );
 
 ExpenseSchema.index({ createdAt: -1 });
+ExpenseSchema.index({ salesChannel: 1, status: 1 });
 ExpenseSchema.index({ submittedBy: 1, status: 1 });
 ExpenseSchema.index({ department: 1, status: 1 });
 

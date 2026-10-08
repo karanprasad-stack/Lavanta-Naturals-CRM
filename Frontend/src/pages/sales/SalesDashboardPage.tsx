@@ -25,7 +25,8 @@ import {
   CartesianGrid
 } from 'recharts';
 import { salesService } from '../../services/salesService';
-import { SalesSummary, SalesTrendPoint, TopProduct } from '../../types/sales';
+import { SalesSummary, SalesTrendPoint, TopProduct, SalesByChannelResponse, SalesByChannelItem } from '../../types/sales';
+import { SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
@@ -38,20 +39,23 @@ export const SalesDashboardPage: React.FC = () => {
   const [summary, setSummary] = useState<SalesSummary | null>(null);
   const [trends, setTrends] = useState<SalesTrendPoint[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [channelData, setChannelData] = useState<SalesByChannelResponse | null>(null);
+  const [timeRange, setTimeRange] = useState<string>('30d');
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [sumData, trendData, topProdData] = await Promise.all([
+      const [sumData, trendData, topProdData, chData] = await Promise.all([
         salesService.getSalesSummary(),
         salesService.getSalesTrends(timeRange),
-        salesService.getTopProducts(5)
+        salesService.getTopProducts(5),
+        salesService.getSalesByChannel(timeRange)
       ]);
       setSummary(sumData);
       setTrends(trendData);
       setTopProducts(topProdData);
+      setChannelData(chData);
     } catch (err: any) {
       showToast(err.message || 'Failed to load sales dashboard', 'error');
     } finally {
@@ -136,31 +140,31 @@ export const SalesDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* This Month Revenue */}
+        {/* Total Orders */}
         <div className="luxury-card" style={{ padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6B7280', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>THIS MONTH'S SALES</span>
-            <Calendar size={16} color="#3B82F6" />
+            <span>TOTAL ORDERS</span>
+            <ShoppingBag size={16} color="#3B82F6" />
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#1E3A8A', marginTop: '0.5rem' }}>
-            ₹{revenue.thisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {orders.recognized}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
-            {orders.thisMonth} orders booked this month
+            {orders.total} total transactions booked
           </div>
         </div>
 
-        {/* This Week / Today */}
+        {/* Units Sold */}
         <div className="luxury-card" style={{ padding: '1.25rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#6B7280', fontSize: '0.8rem', fontWeight: 600 }}>
-            <span>THIS WEEK REVENUE</span>
-            <Clock size={16} color="#8B5CF6" />
+            <span>TOTAL UNITS SOLD</span>
+            <Package size={16} color="#8B5CF6" />
           </div>
           <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#5B21B6', marginTop: '0.5rem' }}>
-            ₹{revenue.thisWeek.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {(summary?.unitsSold || 0).toLocaleString()}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
-            Today: ₹{revenue.today.toLocaleString()} ({orders.today} orders)
+            Across all catalog formulations
           </div>
         </div>
 
@@ -174,7 +178,7 @@ export const SalesDashboardPage: React.FC = () => {
             ₹{(summary?.averageOrderValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#6B7280', marginTop: '0.25rem' }}>
-            Across {orders.recognized} recognized fulfillments
+            Across {orders.recognized} recognized orders
           </div>
         </div>
       </div>
@@ -220,25 +224,32 @@ export const SalesDashboardPage: React.FC = () => {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.25rem', background: '#F3F4F6', padding: '3px', borderRadius: '8px' }}>
-            {(['7d', '30d', '90d'] as const).map((r) => (
+          <div style={{ display: 'flex', gap: '0.25rem', background: '#F3F4F6', padding: '3px', borderRadius: '8px', flexWrap: 'wrap' }}>
+            {[
+              { key: 'today', label: 'Today' },
+              { key: 'week', label: 'This Week' },
+              { key: 'month', label: 'This Month' },
+              { key: 'last_month', label: 'Last Month' },
+              { key: '30d', label: '30 Days' },
+              { key: '90d', label: '90 Days' }
+            ].map((r) => (
               <button
-                key={r}
+                key={r.key}
                 type="button"
-                onClick={() => setTimeRange(r)}
+                onClick={() => setTimeRange(r.key)}
                 style={{
-                  padding: '4px 12px',
+                  padding: '4px 10px',
                   borderRadius: '6px',
                   border: 'none',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  backgroundColor: timeRange === r ? '#FFFFFF' : 'transparent',
-                  color: timeRange === r ? 'var(--color-primary)' : '#6B7280',
-                  boxShadow: timeRange === r ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                  backgroundColor: timeRange === r.key ? '#FFFFFF' : 'transparent',
+                  color: timeRange === r.key ? 'var(--color-primary)' : '#6B7280',
+                  boxShadow: timeRange === r.key ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
                 }}
               >
-                {r.toUpperCase()}
+                {r.label}
               </button>
             ))}
           </div>
@@ -284,6 +295,100 @@ export const SalesDashboardPage: React.FC = () => {
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Sales by Channel Breakdown */}
+      <div className="luxury-card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--color-primary)', margin: 0 }}>
+              Sales by Sales Channel
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>
+              Consolidated revenue contribution across external platforms & direct channels
+            </span>
+          </div>
+          {channelData && (
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-primary)' }}>
+              Total: ₹{channelData.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({channelData.totalOrders} orders)
+            </span>
+          )}
+        </div>
+
+        {!channelData || channelData.channels.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#6B7280', fontSize: '0.875rem' }}>
+            No recognized sales in this period.
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
+              <thead>
+                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '0.75rem 1.5rem' }}>Channel</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Orders</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Units Sold</th>
+                  <th style={{ padding: '0.75rem 1rem' }}>Revenue</th>
+                  <th style={{ padding: '0.75rem 1.5rem', width: '250px' }}>Share of Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {channelData.channels.map((ch) => {
+                  const channelKey = ch.channel as SalesChannel;
+                  const cfg = SALES_CHANNEL_CONFIGS[channelKey] || SALES_CHANNEL_CONFIGS.WEBSITE;
+
+                  return (
+                    <tr key={ch.channel} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                      <td style={{ padding: '0.9rem 1.5rem', fontWeight: 600 }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '3px 10px',
+                          borderRadius: '9999px',
+                          fontSize: '0.8rem',
+                          fontWeight: 600,
+                          backgroundColor: `${cfg.color}15`,
+                          color: cfg.color,
+                          border: `1px solid ${cfg.color}40`
+                        }}>
+                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: cfg.color }} />
+                          {ch.displayName || cfg.name}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', color: '#111827', fontWeight: 500 }}>
+                        {ch.orders}
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', color: '#4B5563' }}>
+                        {ch.units} units
+                      </td>
+                      <td style={{ padding: '0.9rem 1rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                        ₹{ch.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td style={{ padding: '0.9rem 1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <div style={{ flex: 1, height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                width: `${Math.min(ch.sharePercent, 100)}%`,
+                                height: '100%',
+                                backgroundColor: cfg.color,
+                                borderRadius: '4px',
+                                transition: 'width 0.3s ease'
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151', minWidth: '35px', textAlign: 'right' }}>
+                            {ch.sharePercent}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Top Products Leaderboard */}

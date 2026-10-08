@@ -1,4 +1,7 @@
 import { Customer } from './customer';
+import { SalesChannelType } from '../data/salesChannels';
+
+export type SalesChannel = SalesChannelType | string;
 
 export type OrderStatus =
   | 'DRAFT'
@@ -51,13 +54,19 @@ export interface OrderActivity {
 export interface Order {
   _id: string;
   id?: string;
-  orderNumber: string;
+  orderNumber: string; // Internal CRM Order ID (e.g. CRM-000123 / LN-2026-...)
+  externalOrderId?: string | null; // Platform Order ID (e.g. Amazon: 403-..., Flipkart: OD..., Website: LVN-...)
+  salesChannel: SalesChannel; // WEBSITE, AMAZON, FLIPKART, etc.
+  orderDate?: string;
   customerId: Customer | string;
   items: OrderItem[];
   subtotal: number;
   discount: number;
   tax: number;
   shipping: number;
+  marketplaceFee?: number;
+  grossAmount?: number;
+  netAmount?: number;
   total: number;
   paymentStatus: PaymentStatus;
   orderStatus: OrderStatus;
@@ -65,7 +74,6 @@ export interface Order {
   source: OrderSource;
   notes?: string;
   cancelReason?: string;
-  inventoryDeducted: boolean;
   createdBy?: {
     _id: string;
     name: string;
@@ -112,10 +120,34 @@ export interface SalesSummaryStatusBreakdown {
   cancelled: number;
 }
 
+export interface SalesByChannelItem {
+  channel: string;
+  displayName: string;
+  shortName: string;
+  orders: number;
+  units: number;
+  revenue: number;
+  sharePercent: number;
+  avgOrderValue?: number;
+  color?: string;
+  bg?: string;
+  badgeColor?: string;
+  badgeBg?: string;
+}
+
+export interface SalesByChannelResponse {
+  totalRevenue: number;
+  totalOrders: number;
+  totalUnits: number;
+  channels: SalesByChannelItem[];
+}
+
 export interface SalesSummary {
   revenue: SalesSummaryRevenue;
   orders: SalesSummaryOrders;
+  unitsSold: number;
   averageOrderValue: number;
+  channelBreakdown: SalesByChannelItem[];
   statusBreakdown: SalesSummaryStatusBreakdown;
 }
 
@@ -143,6 +175,9 @@ export interface CreateOrderItemInput {
 }
 
 export interface CreateOrderInput {
+  salesChannel: string; // WEBSITE, AMAZON, FLIPKART, etc. (mandatory)
+  externalOrderId?: string; // Platform order ID (optional for manual orders)
+  orderDate?: string;
   customerId?: string;
   customerName?: string;
   customerEmail?: string;
@@ -153,6 +188,7 @@ export interface CreateOrderInput {
   customerPincode?: string;
   items: CreateOrderItemInput[];
   shippingFee?: number;
+  marketplaceFee?: number;
   taxPercent?: number;
   paymentStatus?: PaymentStatus;
   orderStatus?: 'PENDING' | 'CONFIRMED';

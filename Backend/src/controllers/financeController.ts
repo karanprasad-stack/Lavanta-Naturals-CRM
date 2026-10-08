@@ -246,3 +246,90 @@ export const getExpenseBreakdown = async (
     });
   }
 };
+
+/**
+ * GET /api/finance/channel-profitability
+ * High-level channel financial contribution: Revenue vs Channel Fees vs Allocated Expenses
+ */
+export const getChannelProfitability = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const [channelRevenueAgg, channelExpenseAgg] = await Promise.all([
+      // Orders revenue and marketplace fees per channel
+      OrderModel.aggregate([
+        { $match: { orderStatus: { $in: VALID_SALES_STATUSES } } },
+        {
+          $group: {
+            _id: { $ifNull: ['$salesChannel', 'WEBSITE'] },
+            revenue: { $sum: '$total' },
+            orderCount: { $sum: 1 },
+            orderFees: { $sum: { $ifNull: ['$marketplaceFee', 0] } }
+          }
+        }
+      ]),
+      // Committed expenses per channel
+      ExpenseModel.aggregate([
+        { $match: { status: { $in: COMMITTED_EXPENSE_STATUSES } } },
+        {
+          $group: {
+            _id: { $ifNull: ['$salesChannel', 'GENERAL'] },
+            totalExpense: { $sum: '$amount' },
+            expenseCount: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+
+    const channels = ['WEBSITE', 'AMAZON', 'FLIPKART'];
+    const channelData = channels.map(channel => {
+      const revMatch = channelRevenueAgg.find(r => r._id === channel);
+      const expMatch = channelExpenseAgg.find(e => e._id === channel);
+
+      const revenue = revMatch?.revenue || 0;
+      const orderCount = revMatch?.orderCount || 0;
+      const channelFees = revMatch?.orderFees || 0;
+      const directExpenses = expMatch?.totalExpense || 0;
+      const netContribution = revenue - channelFees - directExpenses;
+      const contributionMargin = revenue > 0 ? (netContribution / revenue) * 100 : 0;
+
+      return {
+        channel,
+        displayName: channel === 'WEBSITE' ? 'Lavanta Website' : channel === 'AMAZON' ? 'Amazon' : 'Flipkart',
+        revenue: Number(revenue.toFixed(2)),
+        orderCount,
+        channelFees: Number(channelFees.toFixed(2)),
+        allocatedExpenses: Number(directExpenses.toFixed(2)),
+        netContribution: Number(netContribution.toFixed(2)),
+        contributionMarginPercent: Number(contributionMargin.toFixed(1))
+      };
+    });
+
+    const generalExpMatch = channelExpenseAgg.find(e => e._id === 'GENERAL');
+    const generalOverhead = generalExpMatch?.totalExpense || 0;
+
+    const totalRevenue = channelData.reduce((s, c) => s + c.revenue, 0);
+    const totalAllocated = channelData.reduce((s, c) => s + c.channelFees + c.allocatedExpenses, 0);
+    const totalContribution = channelData.reduce((s, c) => s + c.netContribution, 0);
+    const netBusinessResult = totalContribution - generalOverhead;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        totalAllocatedCost: Number(totalAllocated.toFixed(2)),
+        totalContribution: Number(totalContribution.toFixed(2)),
+        generalOverhead: Number(generalOverhead.toFixed(2)),
+        netBusinessResult: Number(netBusinessResult.toFixed(2)),
+        channels: channelData
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch channel profitability'
+    });
+  }
+};
+

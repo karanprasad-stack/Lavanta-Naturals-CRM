@@ -4,6 +4,7 @@ import { Expense, ExpenseSummary, CreateExpenseInput } from '../types/expenses';
 export interface GetExpensesParams {
   status?: string;
   category?: string;
+  salesChannel?: string;
   department?: string;
   search?: string;
   startDate?: string;
@@ -27,6 +28,7 @@ export const expenseService = {
     const query = new URLSearchParams();
     if (params.status && params.status !== 'ALL') query.append('status', params.status);
     if (params.category && params.category !== 'ALL') query.append('category', params.category);
+    if (params.salesChannel && params.salesChannel !== 'ALL') query.append('salesChannel', params.salesChannel);
     if (params.department && params.department !== 'ALL') query.append('department', params.department);
     if (params.search) query.append('search', params.search);
     if (params.startDate) query.append('startDate', params.startDate);
@@ -57,6 +59,7 @@ export const expenseService = {
       if (input.description) formData.append('description', input.description);
       formData.append('amount', input.amount.toString());
       formData.append('category', input.category);
+      if (input.salesChannel) formData.append('salesChannel', input.salesChannel);
       if (input.expenseDate) formData.append('expenseDate', input.expenseDate);
       if (input.paymentMethod) formData.append('paymentMethod', input.paymentMethod);
       if (input.department) formData.append('department', input.department);

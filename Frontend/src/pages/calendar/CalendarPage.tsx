@@ -2,20 +2,24 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon,
-  Search, X, PanelLeft, Filter
+  Search, X, PanelLeft, Sparkles
 } from 'lucide-react';
 import {
   AnyCalendarEntry, CalendarEvent, CalendarEventType,
-  EVENT_TYPE_COLORS, EVENT_TYPE_LABELS, isTaskDeadline
+  EVENT_TYPE_COLORS, EVENT_TYPE_LABELS, isTaskDeadline,
+  FestivalCalendarEntry, isFestivalEntry
 } from '../../types/calendar';
 import { calendarService } from '../../services/calendarService';
 import { CreateEventModal } from '../../components/calendar/CreateEventModal';
 import { EventDetailPanel } from '../../components/calendar/EventDetailPanel';
 import { CalendarSidebar, CalendarCategoryFilters } from '../../components/calendar/CalendarSidebar';
+import { FestivalDetailModal } from '../../components/calendar/FestivalDetailModal';
+import { getFestivalsForDateRange } from '../../data/festivalsData';
 import { useAuth } from '../../context/AuthContext';
 
 type CalendarView = 'month' | 'week' | 'day' | 'agenda';
 type FilterType = 'ALL' | CalendarEventType;
+type PrimaryCalendarFilter = 'ALL' | 'COMPANY_EVENTS' | 'TASKS' | 'FESTIVALS';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -33,10 +37,11 @@ export const CalendarPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<AnyCalendarEntry | null>(null);
+  const [selectedFestival, setSelectedFestival] = useState<FestivalCalendarEntry | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<CalendarEvent | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [filterType, setFilterType] = useState<FilterType>('ALL');
+  const [primaryFilter, setPrimaryFilter] = useState<PrimaryCalendarFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth > 960);
 
@@ -45,7 +50,8 @@ export const CalendarPage: React.FC = () => {
     meetings: true,
     taskDeadlines: true,
     teamEvents: true,
-    companyEvents: true
+    companyEvents: true,
+    festivals: true
   });
 
   // Check if event param in URL
@@ -86,12 +92,38 @@ export const CalendarPage: React.FC = () => {
       const res = await calendarService.getEvents({
         start: start.toISOString(),
         end: end.toISOString(),
-        type: filterType === 'ALL' ? undefined : filterType,
         search: searchQuery || undefined
       });
+
+      // Load curated Indian festivals for date range
+      const rangeFestivals = getFestivalsForDateRange(start, end);
+      const festivalEntries: FestivalCalendarEntry[] = rangeFestivals
+        .filter(fest => {
+          if (!searchQuery) return true;
+          const q = searchQuery.toLowerCase();
+          return fest.name.toLowerCase().includes(q) || fest.description.toLowerCase().includes(q);
+        })
+        .map(fest => ({
+          _id: `festival-${fest.id}`,
+          id: `festival-${fest.id}`,
+          title: `${fest.icon ? `${fest.icon} ` : ''}${fest.name}`,
+          description: fest.description,
+          type: 'FESTIVAL' as const,
+          startDateTime: `${fest.date}T00:00:00.000Z`,
+          endDateTime: `${fest.date}T23:59:59.999Z`,
+          allDay: true,
+          visibility: 'COMPANY' as const,
+          reminder: 'NONE' as const,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          isFestival: true as const,
+          festivalData: fest
+        }));
+
       const all: AnyCalendarEntry[] = [
         ...res.events,
-        ...res.taskEntries
+        ...res.taskEntries,
+        ...festivalEntries
       ];
       setEvents(all);
     } catch (err: any) {
@@ -99,34 +131,50 @@ export const CalendarPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentDate, view, filterType, searchQuery]);
+  }, [currentDate, view, searchQuery]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
 
-  // Filter events based on sidebar checkboxes
+  // Filter events based on 4-way filter and sidebar checkboxes
   const visibleEvents = useMemo(() => {
     return events.filter(ev => {
+      const isFest = isFestivalEntry(ev);
       const isTask = isTaskDeadline(ev);
-      if (isTask) {
+
+      // 1. Primary 4-way filter
+      if (primaryFilter === 'COMPANY_EVENTS') {
+        if (isTask || isFest) return false;
+        if (ev.type !== 'COMPANY_EVENT' && ev.visibility !== 'COMPANY') return false;
+      } else if (primaryFilter === 'TASKS') {
+        if (!isTask) return false;
+      } else if (primaryFilter === 'FESTIVALS') {
+        if (!isFest) return false;
+      }
+
+      // 2. Sidebar granular category filters
+      if (isFest) {
+        if (!categoryFilters.festivals) return false;
+      } else if (isTask) {
         if (!categoryFilters.taskDeadlines) return false;
-      }
-      if (ev.type === 'PERSONAL' || ev.type === 'REMINDER' || ev.type === 'FOLLOW_UP') {
-        if (!categoryFilters.personal) return false;
-      }
-      if (ev.type === 'MEETING' || ev.type === 'CALL') {
-        if (!categoryFilters.meetings) return false;
-      }
-      if (ev.visibility === 'TEAM' && !isTask) {
-        if (!categoryFilters.teamEvents) return false;
-      }
-      if (ev.type === 'COMPANY_EVENT' || ev.visibility === 'COMPANY') {
-        if (!categoryFilters.companyEvents) return false;
+      } else {
+        if (ev.type === 'PERSONAL' || ev.type === 'REMINDER' || ev.type === 'FOLLOW_UP') {
+          if (!categoryFilters.personal) return false;
+        }
+        if (ev.type === 'MEETING' || ev.type === 'CALL') {
+          if (!categoryFilters.meetings) return false;
+        }
+        if (ev.visibility === 'TEAM' && !isTask) {
+          if (!categoryFilters.teamEvents) return false;
+        }
+        if (ev.type === 'COMPANY_EVENT' || ev.visibility === 'COMPANY') {
+          if (!categoryFilters.companyEvents) return false;
+        }
       }
       return true;
     });
-  }, [events, categoryFilters]);
+  }, [events, primaryFilter, categoryFilters]);
 
   const toggleCategory = (cat: keyof CalendarCategoryFilters) => {
     setCategoryFilters(prev => ({ ...prev, [cat]: !prev[cat] }));
@@ -155,13 +203,28 @@ export const CalendarPage: React.FC = () => {
     });
   };
 
+  const handleEntryClick = (ev: AnyCalendarEntry) => {
+    if (isFestivalEntry(ev)) {
+      setSelectedEvent(null);
+      setSelectedFestival(ev as FestivalCalendarEntry);
+    } else {
+      setSelectedFestival(null);
+      setSelectedEvent(ev);
+    }
+  };
+
   // Drag and Drop support
   const handleDragStart = (e: React.DragEvent, ev: AnyCalendarEntry) => {
+    if (isFestivalEntry(ev)) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData(
       'application/json',
       JSON.stringify({
         id: ev._id || (ev as any).id,
         isTaskDeadline: isTaskDeadline(ev),
+        isFestival: false,
         type: ev.type,
         title: ev.title
       })
@@ -175,6 +238,10 @@ export const CalendarPage: React.FC = () => {
       const raw = e.dataTransfer.getData('application/json');
       if (!raw) return;
       const data = JSON.parse(raw);
+
+      if (data.isFestival || data.type === 'FESTIVAL') {
+        return;
+      }
 
       if (data.isTaskDeadline) {
         alert('Task deadline can only be changed from the task itself.');
@@ -271,22 +338,22 @@ export const CalendarPage: React.FC = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #F1F5F9' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--cal-border-grid)', backgroundColor: 'var(--cal-bg-header)' }}>
           {DAYS_OF_WEEK.map(d => (
-            <div key={d} style={{ textAlign: 'center', padding: '0.5rem', fontSize: '0.725rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div key={d} style={{ textAlign: 'center', padding: '0.5rem', fontSize: '0.725rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {d}
             </div>
           ))}
         </div>
 
         {/* Weeks */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateRows: `repeat(${cells.length / 7}, 1fr)`, overflow: 'hidden' }}>
+        <div style={{ flex: 1, display: 'grid', gridTemplateRows: `repeat(${cells.length / 7}, 1fr)`, overflow: 'hidden', backgroundColor: 'var(--cal-bg-grid)' }}>
           {Array.from({ length: cells.length / 7 }, (_, week) => (
-            <div key={week} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid #F1F5F9' }}>
+            <div key={week} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--cal-border-grid)' }}>
               {cells.slice(week * 7, (week + 1) * 7).map((cell, i) => {
                 if (!cell) {
                   return (
-                    <div key={`empty-${i}`} style={{ borderRight: i < 6 ? '1px solid #F1F5F9' : 'none', backgroundColor: '#FAFBF8', minHeight: '80px' }} />
+                    <div key={`empty-${i}`} style={{ borderRight: i < 6 ? '1px solid var(--cal-border-grid)' : 'none', backgroundColor: 'var(--cal-bg-grid)', minHeight: '80px' }} />
                   );
                 }
                 const dayEvents = getEventsOnDate(cell);
@@ -304,18 +371,18 @@ export const CalendarPage: React.FC = () => {
                     onDragOver={e => e.preventDefault()}
                     onDrop={e => handleDropOnDate(cell, e)}
                     style={{
-                      borderRight: i < 6 ? '1px solid #F1F5F9' : 'none',
+                      borderRight: i < 6 ? '1px solid var(--cal-border-grid)' : 'none',
                       minHeight: '80px',
                       padding: '0.35rem',
                       cursor: 'pointer',
-                      backgroundColor: isTodayDate ? '#F0FFF4' : '#FFFFFF',
+                      backgroundColor: isTodayDate ? 'var(--cal-bg-cell-selected)' : 'var(--cal-bg-cell)',
                       transition: 'background 0.1s'
                     }}
                     onMouseEnter={e => {
-                      if (!isTodayDate) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                      if (!isTodayDate) e.currentTarget.style.backgroundColor = 'var(--cal-bg-cell-hover)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.backgroundColor = isTodayDate ? '#F0FFF4' : '#FFFFFF';
+                      e.currentTarget.style.backgroundColor = isTodayDate ? 'var(--cal-bg-cell-selected)' : 'var(--cal-bg-cell)';
                     }}
                   >
                     <div
@@ -328,37 +395,39 @@ export const CalendarPage: React.FC = () => {
                         borderRadius: '50%',
                         fontSize: '0.8rem',
                         fontWeight: isTodayDate ? 700 : 400,
-                        backgroundColor: isTodayDate ? '#69C43F' : 'transparent',
-                        color: isTodayDate ? '#FFFFFF' : isCurrentMonth ? '#1B2533' : '#CBD5E1',
+                        backgroundColor: isTodayDate ? '#58C83A' : 'transparent',
+                        color: isTodayDate ? '#FFFFFF' : isCurrentMonth ? 'var(--cal-text-day-number)' : 'var(--cal-text-muted-month)',
                         marginBottom: '0.25rem'
                       }}
                     >
                       {cell.getDate()}
                     </div>
                     {dayEvents.slice(0, 3).map((ev, ei) => {
+                      const isFest = isFestivalEntry(ev);
                       const colors = EVENT_TYPE_COLORS[ev.type];
                       return (
                         <div
                           key={ei}
-                          draggable={true}
+                          draggable={!isFest}
                           onDragStart={e => handleDragStart(e, ev)}
                           onClick={e => {
                             e.stopPropagation();
-                            setSelectedEvent(ev);
+                            handleEntryClick(ev);
                           }}
                           style={{
-                            backgroundColor: colors.bg,
-                            borderLeft: `3px solid ${colors.dot}`,
-                            color: colors.text,
+                            backgroundColor: isFest ? '#FEF3C7' : colors.bg,
+                            border: isFest ? '1px solid #FDE68A' : undefined,
+                            borderLeft: `3px solid ${isFest ? '#F59E0B' : colors.dot}`,
+                            color: isFest ? '#92400E' : colors.text,
                             borderRadius: '3px',
                             padding: '1px 5px',
                             fontSize: '0.68rem',
-                            fontWeight: 600,
+                            fontWeight: isFest ? 700 : 600,
                             marginBottom: '2px',
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            cursor: 'grab'
+                            cursor: isFest ? 'pointer' : 'grab'
                           }}
                         >
                           {!ev.allDay && `${new Date(ev.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} `}
@@ -367,7 +436,7 @@ export const CalendarPage: React.FC = () => {
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div style={{ fontSize: '0.65rem', color: '#94A3B8', fontWeight: 600 }}>
+                      <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                         +{dayEvents.length - 3} more
                       </div>
                     )}
@@ -392,15 +461,15 @@ export const CalendarPage: React.FC = () => {
     const today = new Date();
 
     return (
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', backgroundColor: 'var(--cal-bg-grid)' }}>
         {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '2px solid #E2E8F0', position: 'sticky', top: 0, backgroundColor: '#FFFFFF', zIndex: 10 }}>
-          <div style={{ padding: '0.5rem', borderRight: '1px solid #F1F5F9' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '2px solid var(--border-color)', position: 'sticky', top: 0, backgroundColor: 'var(--cal-bg-header)', zIndex: 10 }}>
+          <div style={{ padding: '0.5rem', borderRight: '1px solid var(--cal-border-grid)' }} />
           {weekDays.map((d, i) => {
             const isToday = d.toDateString() === today.toDateString();
             return (
-              <div key={i} style={{ textAlign: 'center', padding: '0.5rem 0.25rem', borderRight: i < 6 ? '1px solid #F1F5F9' : 'none' }}>
-                <div style={{ fontSize: '0.7rem', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div key={i} style={{ textAlign: 'center', padding: '0.5rem 0.25rem', borderRight: i < 6 ? '1px solid var(--cal-border-grid)' : 'none' }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
                   {DAYS_OF_WEEK[d.getDay()]}
                 </div>
                 <div
@@ -408,8 +477,8 @@ export const CalendarPage: React.FC = () => {
                     width: '30px',
                     height: '30px',
                     borderRadius: '50%',
-                    backgroundColor: isToday ? '#69C43F' : 'transparent',
-                    color: isToday ? '#FFFFFF' : '#1B2533',
+                    backgroundColor: isToday ? '#58C83A' : 'transparent',
+                    color: isToday ? '#FFFFFF' : 'var(--cal-text-day-number)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -427,8 +496,8 @@ export const CalendarPage: React.FC = () => {
 
         {/* Hour rows */}
         {HOURS.map(hour => (
-          <div key={hour} style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '1px solid #F8FAFC' }}>
-            <div style={{ padding: '0.3rem 0.5rem', fontSize: '0.65rem', color: '#94A3B8', textAlign: 'right', borderRight: '1px solid #F1F5F9', paddingTop: '0.15rem' }}>
+          <div key={hour} style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '1px solid var(--cal-border-grid)' }}>
+            <div style={{ padding: '0.3rem 0.5rem', fontSize: '0.65rem', color: 'var(--color-text-muted)', textAlign: 'right', borderRight: '1px solid var(--cal-border-grid)', paddingTop: '0.15rem' }}>
               {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
             </div>
             {weekDays.map((day, di) => {
@@ -448,32 +517,34 @@ export const CalendarPage: React.FC = () => {
                   }}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => handleDropOnDate(cellDate, e)}
-                  style={{ borderRight: di < 6 ? '1px solid #F1F5F9' : 'none', minHeight: '50px', padding: '2px', cursor: 'pointer', position: 'relative' }}
+                  style={{ borderRight: di < 6 ? '1px solid var(--cal-border-grid)' : 'none', minHeight: '50px', padding: '2px', cursor: 'pointer', position: 'relative' }}
                 >
                   {dayEventsAtHour.map((ev, ei) => {
+                    const isFest = isFestivalEntry(ev);
                     const colors = EVENT_TYPE_COLORS[ev.type];
                     return (
                       <div
                         key={ei}
-                        draggable={true}
+                        draggable={!isFest}
                         onDragStart={e => handleDragStart(e, ev)}
                         onClick={e => {
                           e.stopPropagation();
-                          setSelectedEvent(ev);
+                          handleEntryClick(ev);
                         }}
                         style={{
-                          backgroundColor: colors.bg,
-                          borderLeft: `3px solid ${colors.dot}`,
-                          color: colors.text,
+                          backgroundColor: isFest ? '#FEF3C7' : colors.bg,
+                          border: isFest ? '1px solid #FDE68A' : undefined,
+                          borderLeft: `3px solid ${isFest ? '#F59E0B' : colors.dot}`,
+                          color: isFest ? '#92400E' : colors.text,
                           padding: '2px 5px',
                           borderRadius: '4px',
                           fontSize: '0.68rem',
-                          fontWeight: 600,
+                          fontWeight: isFest ? 700 : 600,
                           marginBottom: '2px',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
-                          cursor: 'grab'
+                          cursor: isFest ? 'pointer' : 'grab'
                         }}
                       >
                         {ev.title}
@@ -496,13 +567,13 @@ export const CalendarPage: React.FC = () => {
     );
     if (dayEvents.length === 0) {
       return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', textAlign: 'center', padding: '2rem' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', textAlign: 'center', padding: '2rem' }}>
           <CalendarIcon size={40} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
-          <p style={{ margin: 0, fontWeight: 600, color: '#64748B' }}>Your day is clear.</p>
+          <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-secondary)' }}>Your day is clear.</p>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>No events scheduled for this day.</p>
           <button
             onClick={() => setIsCreateOpen(true)}
-            style={{ marginTop: '1rem', padding: '8px 16px', borderRadius: '8px', backgroundColor: '#69C43F', border: 'none', color: '#FFFFFF', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer' }}
+            style={{ marginTop: '1rem', padding: '8px 16px', borderRadius: '8px', backgroundColor: '#58C83A', border: 'none', color: '#FFFFFF', fontSize: '0.825rem', fontWeight: 600, cursor: 'pointer' }}
           >
             + Create Event
           </button>
@@ -513,44 +584,57 @@ export const CalendarPage: React.FC = () => {
     return (
       <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
         {dayEvents.map((ev, i) => {
+          const isFest = isFestivalEntry(ev);
           const colors = EVENT_TYPE_COLORS[ev.type];
           return (
             <div
               key={i}
-              draggable={true}
+              draggable={!isFest}
               onDragStart={e => handleDragStart(e, ev)}
-              onClick={() => setSelectedEvent(ev)}
+              onClick={() => handleEntryClick(ev)}
               style={{
                 display: 'flex',
                 alignItems: 'flex-start',
                 gap: '0.75rem',
                 padding: '0.85rem 1rem',
                 borderRadius: '10px',
-                backgroundColor: colors.bg,
-                border: `1px solid ${colors.border}`,
+                backgroundColor: isFest ? '#FEF3C7' : colors.bg,
+                border: `1px solid ${isFest ? '#FDE68A' : colors.border}`,
                 cursor: 'pointer',
                 transition: 'all 0.12s ease'
               }}
-              onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)')}
+              onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)')}
               onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
             >
-              <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '4px', backgroundColor: colors.dot, flexShrink: 0 }} />
+              <div style={{ width: '4px', alignSelf: 'stretch', borderRadius: '4px', backgroundColor: isFest ? '#F59E0B' : colors.dot, flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1B2533' }}>{ev.title}</span>
-                  <span style={{ fontSize: '0.7rem', color: colors.text, fontWeight: 600, backgroundColor: `${colors.dot}18`, padding: '2px 8px', borderRadius: '8px' }}>
-                    {EVENT_TYPE_LABELS[ev.type]}
-                  </span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isFest ? '#78350F' : 'var(--color-text-primary)' }}>{ev.title}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    {isFest && (ev as FestivalCalendarEntry).festivalData?.isHoliday && (
+                      <span style={{ fontSize: '0.68rem', color: '#B45309', fontWeight: 700, backgroundColor: '#FDE68A', padding: '2px 8px', borderRadius: '8px' }}>
+                        Holiday
+                      </span>
+                    )}
+                    <span style={{ fontSize: '0.7rem', color: colors.text, fontWeight: 600, backgroundColor: `${colors.dot}20`, padding: '2px 8px', borderRadius: '8px' }}>
+                      {EVENT_TYPE_LABELS[ev.type]}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.775rem', color: '#64748B' }}>
+                <div style={{ fontSize: '0.775rem', color: isFest ? '#92400E' : 'var(--color-text-secondary)' }}>
                   {ev.allDay
                     ? 'All Day'
                     : `${new Date(ev.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${
                         ev.endDateTime ? ` — ${new Date(ev.endDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
                       }`}
                 </div>
+                {ev.description && (
+                  <div style={{ fontSize: '0.74rem', color: isFest ? '#78350F' : 'var(--color-text-muted)', marginTop: '4px', lineHeight: 1.4 }}>
+                    {ev.description}
+                  </div>
+                )}
                 {(ev as any).participants && (ev as any).participants.length > 0 && (
-                  <div style={{ fontSize: '0.72rem', color: '#94A3B8', marginTop: '2px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                     👥 {(ev as any).participants.length} participant{(ev as any).participants.length !== 1 ? 's' : ''}
                   </div>
                 )}
@@ -570,9 +654,9 @@ export const CalendarPage: React.FC = () => {
 
     if (sortedEvents.length === 0) {
       return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94A3B8', padding: '2rem', textAlign: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)', padding: '2rem', textAlign: 'center' }}>
           <CalendarIcon size={40} style={{ marginBottom: '0.75rem', opacity: 0.4 }} />
-          <p style={{ margin: 0, fontWeight: 600, color: '#64748B' }}>No upcoming events.</p>
+          <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text-secondary)' }}>No upcoming events.</p>
           <p style={{ margin: '0.25rem 0 0', fontSize: '0.8rem' }}>Your schedule is clear for this period.</p>
         </div>
       );
@@ -593,14 +677,14 @@ export const CalendarPage: React.FC = () => {
           const isTod = date.toDateString() === new Date().toDateString();
           return (
             <div key={dateStr} style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem', paddingBottom: '0.5rem', borderBottom: '1px solid #F1F5F9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.65rem', paddingBottom: '0.5rem', borderBottom: '1px solid var(--cal-border-grid)' }}>
                 <div
                   style={{
                     width: '44px',
                     height: '44px',
                     borderRadius: '10px',
-                    backgroundColor: isTod ? '#69C43F' : '#F1F5F9',
-                    color: isTod ? '#FFFFFF' : '#334155',
+                    backgroundColor: isTod ? '#58C83A' : 'var(--bg-surface-elevated)',
+                    color: isTod ? '#FFFFFF' : 'var(--color-text-primary)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -613,47 +697,55 @@ export const CalendarPage: React.FC = () => {
                   <span style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1 }}>{date.getDate()}</span>
                 </div>
                 <div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1B2533' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
                     {isTod ? 'Today' : date.toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
                     {dateEvents.length} event{dateEvents.length !== 1 ? 's' : ''}
                   </div>
                 </div>
               </div>
 
               {dateEvents.map((ev, i) => {
+                const isFest = isFestivalEntry(ev);
                 const colors = EVENT_TYPE_COLORS[ev.type];
                 return (
                   <div
                     key={i}
-                    onClick={() => setSelectedEvent(ev)}
+                    onClick={() => handleEntryClick(ev)}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.75rem',
                       padding: '0.7rem 0.85rem',
                       borderRadius: '10px',
-                      backgroundColor: '#FFFFFF',
-                      border: `1px solid ${colors.border}`,
+                      backgroundColor: isFest ? '#FFFBEB' : 'var(--bg-surface)',
+                      border: `1px solid ${isFest ? '#FDE68A' : colors.border}`,
                       marginBottom: '0.4rem',
                       cursor: 'pointer',
                       transition: 'all 0.12s ease'
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = colors.bg)}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = isFest ? '#FEF3C7' : colors.bg)}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = isFest ? '#FFFBEB' : 'var(--bg-surface)')}
                   >
-                    <div style={{ width: '3px', alignSelf: 'stretch', borderRadius: '4px', backgroundColor: colors.dot, flexShrink: 0 }} />
+                    <div style={{ width: '3px', alignSelf: 'stretch', borderRadius: '4px', backgroundColor: isFest ? '#F59E0B' : colors.dot, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1B2533', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 600, color: isFest ? '#78350F' : 'var(--color-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>
                           {ev.title}
                         </span>
-                        <span style={{ fontSize: '0.7rem', color: colors.text, fontWeight: 600 }}>
-                          {EVENT_TYPE_LABELS[ev.type]}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          {isFest && (ev as FestivalCalendarEntry).festivalData?.isHoliday && (
+                            <span style={{ fontSize: '0.68rem', color: '#B45309', fontWeight: 700, backgroundColor: '#FDE68A', padding: '1px 6px', borderRadius: '6px' }}>
+                              Holiday
+                            </span>
+                          )}
+                          <span style={{ fontSize: '0.7rem', color: colors.text, fontWeight: 600 }}>
+                            {EVENT_TYPE_LABELS[ev.type]}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.75rem', color: isFest ? '#92400E' : 'var(--color-text-secondary)', marginTop: '2px' }}>
                         {ev.allDay
                           ? 'All Day'
                           : `${new Date(ev.startDateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}${
@@ -673,20 +765,8 @@ export const CalendarPage: React.FC = () => {
     );
   };
 
-  // ── FILTER TYPES ──────────────────────────
-  const filterOptions: { value: FilterType; label: string }[] = [
-    { value: 'ALL', label: 'All Events' },
-    { value: 'MEETING', label: 'Meetings' },
-    { value: 'TASK_DEADLINE', label: 'Task Deadlines' },
-    { value: 'REMINDER', label: 'Reminders' },
-    { value: 'CALL', label: 'Calls' },
-    { value: 'FOLLOW_UP', label: 'Follow-Ups' },
-    { value: 'COMPANY_EVENT', label: 'Company Events' },
-    { value: 'PERSONAL', label: 'Personal' }
-  ];
-
   return (
-    <div style={{ display: 'flex', height: '100%', backgroundColor: '#FAFBF8', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--cal-bg-page)', overflow: 'hidden' }}>
       {/* 1. Left Sidebar (Collapsible) */}
       {isSidebarOpen && (
         <CalendarSidebar
@@ -698,14 +778,14 @@ export const CalendarPage: React.FC = () => {
           categoryFilters={categoryFilters}
           onToggleCategory={toggleCategory}
           events={visibleEvents}
-          onSelectEvent={ev => setSelectedEvent(ev)}
+          onSelectEvent={ev => handleEntryClick(ev)}
         />
       )}
 
       {/* 2. Main Calendar Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', backgroundColor: 'var(--cal-bg-container)' }}>
         {/* Calendar Toolbar */}
-        <div style={{ padding: '0.85rem 1.5rem', backgroundColor: '#FFFFFF', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ padding: '0.85rem 1.5rem', backgroundColor: 'var(--cal-bg-header)', borderBottom: '1px solid var(--cal-border-header)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           {/* Sidebar Toggle & Navigation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <button
@@ -713,9 +793,9 @@ export const CalendarPage: React.FC = () => {
               style={{
                 padding: '6px',
                 borderRadius: '6px',
-                border: '1px solid #E2E8F0',
-                backgroundColor: isSidebarOpen ? '#EAF7E6' : '#FFFFFF',
-                color: isSidebarOpen ? '#377E1E' : '#334155',
+                border: '1px solid var(--cal-btn-border)',
+                backgroundColor: isSidebarOpen ? 'var(--color-soft-green)' : 'var(--cal-btn-bg)',
+                color: isSidebarOpen ? 'var(--color-primary-deep)' : 'var(--cal-btn-text)',
                 cursor: 'pointer',
                 display: 'flex'
               }}
@@ -725,31 +805,31 @@ export const CalendarPage: React.FC = () => {
             </button>
             <button
               onClick={() => navigate_calendar(-1)}
-              style={{ padding: '6px', borderRadius: '6px', border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: '#334155', cursor: 'pointer', display: 'flex' }}
+              style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--cal-btn-border)', backgroundColor: 'var(--cal-btn-bg)', color: 'var(--cal-btn-text)', cursor: 'pointer', display: 'flex' }}
             >
               <ChevronLeft size={16} />
             </button>
             <button
               onClick={goToToday}
-              style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: '#334155', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
+              style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid var(--cal-btn-border)', backgroundColor: 'var(--cal-btn-bg)', color: 'var(--cal-btn-text)', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
             >
               Today
             </button>
             <button
               onClick={() => navigate_calendar(1)}
-              style={{ padding: '6px', borderRadius: '6px', border: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: '#334155', cursor: 'pointer', display: 'flex' }}
+              style={{ padding: '6px', borderRadius: '6px', border: '1px solid var(--cal-btn-border)', backgroundColor: 'var(--cal-btn-bg)', color: 'var(--cal-btn-text)', cursor: 'pointer', display: 'flex' }}
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
           {/* Period label */}
-          <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#1B2533', flex: 1, minWidth: '150px' }}>
+          <h2 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: 'var(--cal-period-text)', flex: 1, minWidth: '150px' }}>
             {formatCurrentPeriod()}
           </h2>
 
           {/* View switcher */}
-          <div style={{ display: 'flex', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', backgroundColor: 'var(--bg-input)', borderRadius: '8px', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
             {(['month', 'week', 'day', 'agenda'] as CalendarView[]).map(v => (
               <button
                 key={v}
@@ -760,9 +840,9 @@ export const CalendarPage: React.FC = () => {
                   cursor: 'pointer',
                   fontSize: '0.775rem',
                   fontWeight: view === v ? 700 : 500,
-                  backgroundColor: view === v ? '#FFFFFF' : 'transparent',
-                  color: view === v ? '#1B2533' : '#64748B',
-                  boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  backgroundColor: view === v ? 'var(--bg-surface)' : 'transparent',
+                  color: view === v ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
+                  boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.18)' : 'none',
                   transition: 'all 0.1s'
                 }}
               >
@@ -772,17 +852,17 @@ export const CalendarPage: React.FC = () => {
           </div>
 
           {/* Search */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '5px 10px' }}>
-            <Search size={14} color="#94A3B8" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-input)', borderRadius: '8px', padding: '5px 10px' }}>
+            <Search size={14} color="var(--color-text-muted)" />
             <input
               type="text"
               placeholder="Search events..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: '0.8rem', color: '#1B2533', width: '130px' }}
+              style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: '0.8rem', color: 'var(--color-text-primary)', width: '130px' }}
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 0 }}>
+              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer', padding: 0 }}>
                 <X size={13} />
               </button>
             )}
@@ -794,36 +874,48 @@ export const CalendarPage: React.FC = () => {
               setEditEvent(null);
               setIsCreateOpen(true);
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#69C43F', color: '#FFFFFF', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#58C83A', color: '#FFFFFF', border: 'none', borderRadius: '8px', padding: '7px 14px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
           >
             <Plus size={16} />
             <span>Create Event</span>
           </button>
         </div>
 
-        {/* Filter Chips */}
-        <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #F1F5F9', padding: '0.5rem 1.5rem', display: 'flex', gap: '0.4rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {filterOptions.map(opt => {
-            const isActive = filterType === opt.value;
-            const colors = opt.value !== 'ALL' ? EVENT_TYPE_COLORS[opt.value as CalendarEventType] : null;
+        {/* 4-Item Primary Filter (All / Company Events / Tasks / Festivals & Holidays) */}
+        <div style={{ backgroundColor: 'var(--cal-bg-header)', borderBottom: '1px solid var(--cal-border-header)', padding: '0.5rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '0.2rem' }}>
+            Filter:
+          </span>
+          {[
+            { id: 'ALL' as const, label: 'All', icon: '📅' },
+            { id: 'COMPANY_EVENTS' as const, label: 'Company Events', icon: '🏢' },
+            { id: 'TASKS' as const, label: 'Tasks', icon: '✓' },
+            { id: 'FESTIVALS' as const, label: 'Festivals / Holidays', icon: '🪔' },
+          ].map(opt => {
+            const isActive = primaryFilter === opt.id;
             return (
               <button
-                key={opt.value}
-                onClick={() => setFilterType(opt.value)}
+                key={opt.id}
+                onClick={() => setPrimaryFilter(opt.id)}
                 style={{
-                  padding: '4px 12px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '5px 14px',
                   borderRadius: '16px',
-                  fontSize: '0.725rem',
+                  fontSize: '0.74rem',
                   fontWeight: isActive ? 700 : 500,
                   whiteSpace: 'nowrap',
-                  border: isActive ? `2px solid ${colors ? colors.dot : '#69C43F'}` : '1px solid #E2E8F0',
-                  backgroundColor: isActive ? (colors ? colors.bg : '#EAF7E6') : '#FFFFFF',
-                  color: isActive ? (colors ? colors.text : '#377E1E') : '#64748B',
+                  border: isActive ? '1.5px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  backgroundColor: isActive ? 'var(--color-soft-green)' : 'var(--bg-surface)',
+                  color: isActive ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
                   cursor: 'pointer',
-                  transition: 'all 0.12s ease'
+                  transition: 'all 0.12s ease',
+                  boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'
                 }}
               >
-                {opt.label}
+                <span>{opt.icon}</span>
+                <span>{opt.label}</span>
               </button>
             );
           })}
@@ -832,16 +924,16 @@ export const CalendarPage: React.FC = () => {
         {/* Loading / Error / Calendar Content */}
         {isLoading ? (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ width: '32px', height: '32px', border: '3px solid #E2E8F0', borderTopColor: '#69C43F', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <span style={{ fontSize: '0.85rem', color: '#64748B' }}>Loading calendar...</span>
+            <div style={{ width: '32px', height: '32px', border: '3px solid var(--border-color)', borderTopColor: '#58C83A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <span style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Loading calendar...</span>
             <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
           </div>
         ) : error ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem', color: '#64748B' }}>
-            <span style={{ color: '#EF4444', fontWeight: 600 }}>⚠ {error}</span>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '0.75rem', color: 'var(--color-text-muted)' }}>
+            <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>⚠ {error}</span>
             <button
               onClick={fetchEvents}
-              style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#69C43F', border: 'none', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem' }}
+              style={{ padding: '7px 14px', borderRadius: '8px', backgroundColor: '#58C83A', border: 'none', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer', fontSize: '0.8rem' }}
             >
               Retry
             </button>
@@ -857,8 +949,8 @@ export const CalendarPage: React.FC = () => {
       </div>
 
       {/* 3. Right: Event Detail Panel (when event selected) */}
-      {selectedEvent && (
-        <div style={{ width: '340px', flexShrink: 0, borderLeft: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', overflowY: 'auto' }}>
+      {selectedEvent && !isFestivalEntry(selectedEvent) && (
+        <div style={{ width: '340px', flexShrink: 0, borderLeft: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)', overflowY: 'auto' }}>
           <EventDetailPanel
             event={selectedEvent}
             onClose={() => setSelectedEvent(null)}
@@ -878,6 +970,13 @@ export const CalendarPage: React.FC = () => {
         onSubmit={handleCreateEvent}
         initialDate={selectedDate || new Date()}
         editEvent={editEvent}
+      />
+
+      {/* Read-Only Festival Detail Modal */}
+      <FestivalDetailModal
+        festival={selectedFestival}
+        isOpen={Boolean(selectedFestival)}
+        onClose={() => setSelectedFestival(null)}
       />
     </div>
   );
