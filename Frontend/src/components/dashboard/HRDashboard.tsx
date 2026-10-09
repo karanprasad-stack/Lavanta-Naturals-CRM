@@ -10,17 +10,13 @@ import {
   CheckSquare,
   Megaphone,
   ArrowRight,
-  Sparkles,
-  CheckCircle2,
+  Clock,
   Calendar,
-  Clock
+  AlertCircle
 } from 'lucide-react';
 import { HRDashboardData } from '../../services/dashboardService';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { CalendarWidget } from './CalendarWidget';
-import { WorkActivityWidget } from './WorkActivityWidget';
-import { GoalsWidget } from './GoalsWidget';
 
 interface HRDashboardProps {
   data: HRDashboardData;
@@ -29,15 +25,28 @@ interface HRDashboardProps {
 
 export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction }) => {
   const navigate = useNavigate();
-  const firstName = (data.user?.name || 'HR').split(' ')[0];
+  const firstName = (data.user?.name || 'HR Specialist').split(' ')[0];
 
   const getRoleBadge = (role: string) => {
-    const r = role.toUpperCase();
+    const r = (role || '').toUpperCase();
     if (r === 'FOUNDER') return <Badge variant="green" size="sm">FOUNDER</Badge>;
     if (r === 'HR' || r === 'MANAGER' || r === 'HR_MANAGER') return <Badge variant="lavender" size="sm">{r.replace('_', ' ')}</Badge>;
     if (r === 'INTERN') return <Badge variant="warning" size="sm">INTERN</Badge>;
     return <Badge variant="neutral" size="sm">EMPLOYEE</Badge>;
   };
+
+  const getPriorityBadge = (priority: string) => {
+    const p = (priority || '').toUpperCase();
+    if (p === 'URGENT' || p === 'HIGH') return <Badge variant="danger" size="sm">High</Badge>;
+    if (p === 'MEDIUM') return <Badge variant="warning" size="sm">Medium</Badge>;
+    return <Badge variant="neutral" size="sm">Normal</Badge>;
+  };
+
+  const hrTasks = data.hrTasks || [];
+  const announcements = data.announcements || [];
+  const recentActivities = data.recentActivities || [];
+  const directoryPreview = data.teamDirectoryPreview || [];
+  const hrWork = data.hrWorkOverview || { tasksAssigned: 0, tasksInProgress: 0, tasksCompleted: 0, overdueTasks: 0 };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -50,7 +59,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -61,20 +70,20 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6D28D9', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-deep)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               People & Culture Operations
             </span>
-            <Badge variant="lavender" size="sm">HR MANAGEMENT</Badge>
+            <Badge variant="lavender" size="sm">HR OPERATIONS</Badge>
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            Good morning, {firstName} 👋
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            Welcome back, {firstName} 👋
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
-            Workforce distribution, onboarding pipeline, and organizational health.
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: '4px 0 0' }}>
+            Workforce distribution, active personnel records, and HR operational tasks.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Button
             variant="outline"
             size="sm"
@@ -95,7 +104,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
       </motion.div>
 
       {/* 2. People KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
         {/* Total Employees */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -109,21 +118,20 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Employees
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-deep)' }}>
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(74, 222, 128, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
               <ShieldCheck size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: 'var(--color-primary-deep)', margin: '4px 0' }}>
-            {data.peopleStats.totalEmployees}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {data.peopleStats?.totalEmployees ?? 0}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
-            <span>Full-time Staff</span>
+            <span>Active Staff</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
@@ -141,18 +149,17 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Interns
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309' }}>
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309' }}>
               <GraduationCap size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: '#B45309', margin: '4px 0' }}>
-            {data.peopleStats.totalInterns}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {data.peopleStats?.totalInterns ?? 0}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#B45309', fontWeight: 600 }}>
             <span>Active Cohort</span>
@@ -173,29 +180,28 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Active on Duty
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
-              <Activity size={16} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Active Workforce
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+              <Users size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: '#16A34A', margin: '4px 0' }}>
-            {data.peopleStats.activeMembers}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {data.peopleStats?.activeMembers ?? 0}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#16A34A', fontWeight: 600 }}>
-            <span>Active Attendance</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#2563EB', fontWeight: 600 }}>
+            <span>Total Operational</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
 
-        {/* New Joiners */}
+        {/* Pending HR Tasks */}
         <motion.div
           whileHover={{ y: -2 }}
-          onClick={() => navigate('/team')}
+          onClick={() => navigate('/tasks')}
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
@@ -205,156 +211,197 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              New Joiners
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6D28D9' }}>
-              <Sparkles size={16} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Pending HR Tasks
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(168, 85, 247, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9333EA' }}>
+              <CheckSquare size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: '#6D28D9', margin: '4px 0' }}>
-            {data.peopleStats.newJoiners}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {hrWork.tasksAssigned}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#6D28D9', fontWeight: 600 }}>
-            <span>Onboarding Pipeline</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9333EA', fontWeight: 600 }}>
+            <span>Actionable Items</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
       </div>
 
-      {/* 3. HR Content Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
-        {/* LEFT COLUMN: Team Directory Preview & HR Work Overview */}
+      {/* 3. Main Operational Sections (2 Columns) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* LEFT COLUMN: Pending HR Tasks & Team Directory */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Pending HR Tasks */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Pending HR Tasks & Onboarding
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                  Onboarding milestones, compliance, and assigned HR deliverables.
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
+                All Tasks →
+              </Button>
+            </div>
+
+            {hrTasks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                <CheckSquare size={32} style={{ margin: '0 auto 8px', opacity: 0.4 }} />
+                No pending HR tasks right now.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {hrTasks.slice(0, 6).map(task => (
+                  <div
+                    key={task.id}
+                    onClick={() => navigate('/tasks')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckSquare size={16} color="var(--color-primary-deep)" />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                          {task.title}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                          <span>Assignee: {task.assignedTo?.name || 'Unassigned'}</span>
+                          {task.deadline && (
+                            <>
+                              <span>•</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <Clock size={12} />
+                                {task.deadline}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getPriorityBadge(task.priority)}
+                      <ArrowRight size={14} color="var(--color-text-muted)" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Team Directory Preview */}
           <div
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem 1.75rem',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  Team Directory Preview
-                </h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
-                  Operational staff, intern cohorts, and team status.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/team')}
-                style={{ fontSize: '0.8rem' }}
-              >
-                Full Directory →
-              </Button>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {data.teamDirectoryPreview.slice(0, 6).map(u => (
-                <div
-                  key={u.id}
-                  onClick={() => navigate(`/team/${u.id}`)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-surface-elevated)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                  className="luxury-card"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <img
-                      src={u.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                      alt={u.name}
-                      style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                        {u.name}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
-                        {u.designation} • <span style={{ color: 'var(--color-primary-deep)', fontWeight: 500 }}>{u.department}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                      Joined {u.joiningDate}
-                    </span>
-                    {getRoleBadge(u.role)}
-                    <ArrowRight size={14} color="var(--color-text-muted)" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* HR Work Overview */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '1.5rem 1.75rem',
+              padding: '1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  HR Work Overview
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Workforce Directory
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
-                  Work items and onboarding tasks assigned by HR.
+                  Recently joined team members and staff overview.
                 </p>
               </div>
-              <Badge variant="lavender" size="sm">Phase 4 Tasks</Badge>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Assigned</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-text-primary)', marginTop: '2px' }}>{data.hrWorkOverview.tasksAssigned}</div>
-              </div>
-              <div style={{ background: 'var(--color-soft-lavender)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-lavender-dark)', textTransform: 'uppercase' }}>In Progress</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-lavender-dark)', marginTop: '2px' }}>{data.hrWorkOverview.tasksInProgress}</div>
-              </div>
-              <div style={{ background: 'var(--color-soft-green)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>Completed</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-deep)', marginTop: '2px' }}>{data.hrWorkOverview.tasksCompleted}</div>
-              </div>
-              <div style={{ background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', borderRadius: 'var(--radius-sm)', padding: '0.85rem 1rem', textAlign: 'center' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--color-danger)', textTransform: 'uppercase' }}>Overdue</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-danger)', marginTop: '2px' }}>{data.hrWorkOverview.overdueTasks}</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', background: 'var(--bg-surface-elevated)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
-              <span>Assign onboarding milestones and evaluate intern deliverables directly in Phase 4.</span>
-              <Button variant="outline" size="sm" onClick={() => onQuickAction('assign_task')}>
-                Assign Task
+              <Button variant="ghost" size="sm" onClick={() => navigate('/team')}>
+                Full Directory →
               </Button>
             </div>
+
+            {directoryPreview.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+                No active records found.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {directoryPreview.slice(0, 5).map(u => (
+                  <div
+                    key={u.id}
+                    onClick={() => navigate(`/team/${u.id}`)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          background: 'var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          color: 'var(--color-text-primary)',
+                          overflow: 'hidden'
+                        }}
+                      >
+                        {u.profilePhoto ? (
+                          <img src={u.profilePhoto} alt={u.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          u.name.charAt(0)
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                          {u.name}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>
+                          {u.designation} • {u.department}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getRoleBadge(u.role)}
+                      <ArrowRight size={13} color="var(--color-text-muted)" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN: HR Actions & Recent Joiners */}
+        {/* RIGHT COLUMN: Quick Actions, Recent Activity & Announcements */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* HR Quick Actions */}
           <div
@@ -362,126 +409,154 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
-              HR Quick Actions
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
+              HR Actions
             </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
               <Button
                 variant="primary"
-                size="md"
-                icon={<UserPlus size={16} />}
+                size="sm"
+                icon={<UserPlus size={14} />}
                 onClick={() => navigate('/team?action=add&role=EMPLOYEE')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                style={{ justifyContent: 'center' }}
               >
-                + Add Employee
+                + Employee
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<GraduationCap size={16} />}
+                size="sm"
+                icon={<GraduationCap size={14} />}
                 onClick={() => navigate('/team?action=add&role=INTERN')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                style={{ justifyContent: 'center' }}
               >
-                + Add Intern
+                + Intern
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<CheckSquare size={16} />}
+                size="sm"
+                icon={<CheckSquare size={14} />}
                 onClick={() => onQuickAction('assign_task')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                style={{ justifyContent: 'center' }}
               >
                 Assign Task
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<Megaphone size={16} />}
+                size="sm"
+                icon={<Megaphone size={14} />}
                 onClick={() => onQuickAction('create_announcement')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                style={{ justifyContent: 'center' }}
               >
-                Create Announcement
+                Announce
               </Button>
             </div>
           </div>
 
-          {/* Recent Joiners Spotlight */}
+          {/* Announcements */}
           <div
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Recent Joiners
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                Company Broadcasts
               </h3>
-              <Badge variant="lavender" size="sm">Onboarding</Badge>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/announcements')}>
+                View All →
+              </Button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {data.recentJoiners.map(j => (
-                <div
-                  key={j.id}
-                  onClick={() => navigate(`/team/${j.id}`)}
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--bg-surface-elevated)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                  className="luxury-card"
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <img
-                      src={j.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                      alt={j.name}
-                      style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                    />
+            {announcements.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                No announcements right now.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {announcements.slice(0, 4).map((ann: any) => (
+                  <div
+                    key={ann.id || ann._id}
+                    onClick={() => navigate(`/announcements/${ann.id || ann._id}`)}
+                    style={{
+                      padding: '0.65rem 0.85rem',
+                      background: 'var(--bg-surface-elevated)',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)' }}>
-                        {j.name}
+                      <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        {ann.title}
                       </div>
                       <div style={{ fontSize: '0.725rem', color: 'var(--color-text-secondary)' }}>
-                        {j.designation}
+                        {ann.date}
                       </div>
                     </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {getRoleBadge(j.role)}
                     <ArrowRight size={13} color="var(--color-text-muted)" />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Team Activity */}
+          <div
+            style={{
+              background: 'var(--bg-surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)',
+              padding: '1.25rem 1.5rem',
+              boxShadow: 'var(--shadow-xs)'
+            }}
+          >
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
+              Recent HR & Team Activity
+            </h3>
+
+            {recentActivities.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                No recent activity logged.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {recentActivities.slice(0, 5).map(act => (
+                  <div
+                    key={act.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'space-between',
+                      fontSize: '0.8rem',
+                      paddingBottom: '0.5rem',
+                      borderBottom: '1px solid var(--border-color)'
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{act.actorName}</span>{' '}
+                      <span style={{ color: 'var(--color-text-secondary)' }}>{act.message}</span>
+                    </div>
+                    <span style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', marginLeft: '8px' }}>
+                      {act.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      {/* Phase 9: Goals & OKRs Widget */}
-      <GoalsWidget maxItems={4} />
-
-      {/* Phase 8: Work Activity Monitoring Widget */}
-      <WorkActivityWidget maxItems={4} />
-
-      {/* Phase 7: Today's Calendar Widget */}
-      <CalendarWidget maxItems={5} />
     </div>
   );
 };

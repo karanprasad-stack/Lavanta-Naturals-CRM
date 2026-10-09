@@ -280,9 +280,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                     position: 'absolute',
                     top: '-3px',
                     right: '-3px',
-                    width: '16px',
+                    minWidth: '16px',
                     height: '16px',
-                    borderRadius: '50%',
+                    padding: '0 3px',
+                    borderRadius: '8px',
                     background: 'var(--color-primary)',
                     color: '#FFFFFF',
                     fontSize: '0.625rem',
@@ -293,7 +294,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                     border: '2px solid #FFFFFF'
                   }}
                 >
-                  {unreadCount}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
@@ -364,11 +365,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 {notifications.length > 0 ? (
                   notifications.slice(0, 5).map(n => {
                     const link =
-                      n.relatedEntityType === 'TASK' || n.taskId
+                      n.link ||
+                      (n.relatedEntityType === 'TASK' || n.taskId
                         ? `/tasks/${n.relatedEntityId || n.taskId}`
                         : n.relatedEntityType === 'ANNOUNCEMENT'
                         ? `/announcements/${n.relatedEntityId}`
-                        : undefined;
+                        : n.relatedEntityType === 'CONVERSATION' || n.relatedEntityType === 'MESSAGE'
+                        ? `/chat?conversationId=${n.relatedEntityId}`
+                        : undefined);
 
                     return (
                       <div

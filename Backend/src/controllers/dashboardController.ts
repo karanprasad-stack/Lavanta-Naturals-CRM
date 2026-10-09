@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { UserModel, UserRole, IUser } from '../models/User.js';
 import { TaskModel } from '../models/Task.js';
+import { TaskActivityModel } from '../models/TaskActivity.js';
 import { AnnouncementModel } from '../models/Announcement.js';
 import { AnnouncementReadModel } from '../models/AnnouncementRead.js';
 import { NotificationModel } from '../models/Notification.js';
@@ -181,46 +182,46 @@ export const dashboardController = {
       // 2. HR DASHBOARD: People Operations & Team Welfare
       if (role === 'HR') {
         const [
-          statsAggregation,
-          recentMembers,
-          allMembers,
-          assignedTasksCount,
-          inProgressTasksCount,
-          completedTasksCount,
-          overdueTasksCount
+          totalEmployees,
+          totalInterns,
+          totalActive,
+          recentJoiners,
+          hrTasks,
+          hrPendingCount,
+          hrOverdueCount,
+          recentActivities
         ] = await Promise.all([
-          UserModel.aggregate([
-            {
-              $group: {
-                _id: null,
-                total: { $sum: 1 },
-                employees: { $sum: { $cond: [{ $eq: ['$role', 'EMPLOYEE'] }, 1, 0] } },
-                interns: { $sum: { $cond: [{ $eq: ['$role', 'INTERN'] }, 1, 0] } },
-                active: { $sum: { $cond: [{ $eq: ['$status', 'ACTIVE'] }, 1, 0] } }
-              }
-            }
-          ]),
-          UserModel.find()
-            .sort({ createdAt: -1 })
-            .limit(5),
-          UserModel.find({ role: { $in: ['EMPLOYEE', 'INTERN', 'MANAGER', 'HR'] } })
-            .sort({ joiningDate: -1 })
+          UserModel.countDocuments({ role: 'EMPLOYEE', status: 'ACTIVE' }),
+          UserModel.countDocuments({ role: 'INTERN', status: 'ACTIVE' }),
+          UserModel.countDocuments({ status: 'ACTIVE' }),
+          UserModel.find({ status: 'ACTIVE' })
+            .sort({ joiningDate: -1, createdAt: -1 })
             .limit(8),
-          TaskModel.countDocuments({ status: { $ne: 'CANCELLED' } }),
-          TaskModel.countDocuments({ status: 'IN_PROGRESS' }),
-          TaskModel.countDocuments({ status: 'COMPLETED' }),
+          TaskModel.find({
+            $or: [
+              { department: 'HR' },
+              { assignedTo: user._id }
+            ],
+            status: { $nin: ['COMPLETED', 'CANCELLED'] }
+          })
+            .populate('assignedTo', 'name role department designation profilePhoto')
+            .populate('assignedBy', 'name role')
+            .sort({ deadline: 1 })
+            .limit(6),
           TaskModel.countDocuments({
+            $or: [{ department: 'HR' }, { assignedTo: user._id }],
+            status: { $in: ['TODO', 'IN_PROGRESS'] }
+          }),
+          TaskModel.countDocuments({
+            $or: [{ department: 'HR' }, { assignedTo: user._id }],
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
-          })
+          }),
+          TaskActivityModel.find()
+            .populate('actorId', 'name designation role profilePhoto')
+            .sort({ createdAt: -1 })
+            .limit(6)
         ]);
-
-        const stats = statsAggregation[0] || {
-          total: 0,
-          employees: 0,
-          interns: 0,
-          active: 0
-        };
 
         res.json({
           success: true,
@@ -228,12 +229,12 @@ export const dashboardController = {
           user: sanitizedUser,
           unreadNotificationsCount,
           peopleStats: {
-            totalEmployees: stats.employees,
-            totalInterns: stats.interns,
-            activeMembers: stats.active,
-            newJoiners: Math.min(stats.total, 4)
+            totalEmployees,
+            totalInterns,
+            activeMembers: totalActive,
+            newJoiners: Math.min(recentJoiners.length, 5)
           },
-          teamDirectoryPreview: allMembers.map(u => ({
+          teamDirectoryPreview: recentJoiners.map(u => ({
             id: u._id,
             name: u.name,
             role: u.role,
@@ -244,12 +245,27 @@ export const dashboardController = {
             status: u.status
           })),
           hrWorkOverview: {
-            tasksAssigned: assignedTasksCount,
-            tasksInProgress: inProgressTasksCount,
-            tasksCompleted: completedTasksCount,
-            overdueTasks: overdueTasksCount
+            tasksAssigned: hrPendingCount,
+            tasksInProgress: hrTasks.filter(t => t.status === 'IN_PROGRESS').length,
+            tasksCompleted: await TaskModel.countDocuments({ department: 'HR', status: 'COMPLETED' }),
+            overdueTasks: hrOverdueCount
           },
-          recentJoiners: recentMembers.map(u => ({
+          hrTasks: hrTasks.map(t => ({
+            id: t._id,
+            title: t.title,
+            priority: t.priority,
+            status: t.status,
+            deadline: new Date(t.deadline).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            }),
+            assignedTo: t.assignedTo ? {
+              id: (t.assignedTo as any)._id,
+              name: (t.assignedTo as any).name,
+              profilePhoto: (t.assignedTo as any).profilePhoto || ''
+            } : null
+          })),
+          recentJoiners: recentJoiners.slice(0, 5).map(u => ({
             id: u._id,
             name: u.name,
             role: u.role,
@@ -259,6 +275,14 @@ export const dashboardController = {
             profilePhoto: u.profilePhoto || '',
             status: u.status
           })),
+          recentActivities: recentActivities.map(a => ({
+            id: a._id,
+            actorName: (a.actorId as any)?.name || 'System',
+            actorPhoto: (a.actorId as any)?.profilePhoto || '',
+            message: a.message,
+            type: a.type,
+            time: new Date(a.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+          })),
           announcements: roleAnnouncements,
           quickActions: ['add_employee', 'add_intern', 'assign_task', 'create_announcement']
         });
@@ -267,43 +291,98 @@ export const dashboardController = {
 
       // 3. MANAGER DASHBOARD: Team & Workflow Operations
       if (role === 'MANAGER') {
+        const departmentMembers = await UserModel.find({
+          $or: [
+            { department },
+            { role: { $in: ['EMPLOYEE', 'INTERN'] } }
+          ],
+          status: 'ACTIVE'
+        }).sort({ name: 1 });
+
+        const deptMemberIds = departmentMembers.map(m => m._id);
+
         const [
-          departmentMembers,
-          totalDeptCount,
           assignedDeptTasks,
           inProgressDeptTasks,
           completedDeptTasks,
           overdueDeptTasks,
-          deptExpensesAgg,
-          deptPendingExpensesCount
+          inProgressTasksList,
+          overdueTasksList,
+          workloadAggregation,
+          recentDeptActivities
         ] = await Promise.all([
-          UserModel.find({
-            $or: [
-              { department },
-              { role: { $in: ['EMPLOYEE', 'INTERN'] } }
-            ]
-          }).limit(10),
-          UserModel.countDocuments({ department }),
-          TaskModel.countDocuments({ department, status: { $ne: 'CANCELLED' } }),
-          TaskModel.countDocuments({ department, status: 'IN_PROGRESS' }),
-          TaskModel.countDocuments({ department, status: 'COMPLETED' }),
           TaskModel.countDocuments({
-            department,
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            status: { $ne: 'CANCELLED' }
+          }),
+          TaskModel.countDocuments({
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            status: 'IN_PROGRESS'
+          }),
+          TaskModel.countDocuments({
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            status: 'COMPLETED'
+          }),
+          TaskModel.countDocuments({
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
-          ExpenseModel.aggregate([
-            { $match: { department, status: { $in: ['APPROVED', 'PAID'] } } },
-            { $group: { _id: null, total: { $sum: '$amount' } } }
+          TaskModel.find({
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            status: 'IN_PROGRESS'
+          })
+            .populate('assignedTo', 'name role department designation profilePhoto')
+            .sort({ deadline: 1 })
+            .limit(6),
+          TaskModel.find({
+            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            status: { $nin: ['COMPLETED', 'CANCELLED'] },
+            deadline: { $lt: now }
+          })
+            .populate('assignedTo', 'name role department designation profilePhoto')
+            .sort({ deadline: 1 })
+            .limit(5),
+          TaskModel.aggregate([
+            {
+              $match: {
+                $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+                status: { $in: ['TODO', 'IN_PROGRESS'] }
+              }
+            },
+            {
+              $group: {
+                _id: '$assignedTo',
+                count: { $sum: 1 }
+              }
+            }
           ]),
-          ExpenseModel.countDocuments({ department, status: 'SUBMITTED' })
+          TaskActivityModel.find()
+            .populate('actorId', 'name role designation profilePhoto')
+            .sort({ createdAt: -1 })
+            .limit(6)
         ]);
-
-        const deptExpensesTotal = deptExpensesAgg[0]?.total || 0;
 
         const employeesInDept = departmentMembers.filter(u => u.role === 'EMPLOYEE').length;
         const internsInDept = departmentMembers.filter(u => u.role === 'INTERN').length;
         const activeInDept = departmentMembers.filter(u => u.status === 'ACTIVE').length;
+
+        // Build workload map
+        const workloadMap: Record<string, number> = {};
+        workloadAggregation.forEach(w => {
+          if (w._id) workloadMap[w._id.toString()] = w.count;
+        });
+
+        const teamWorkload = departmentMembers.slice(0, 8).map(u => ({
+          user: {
+            id: u._id,
+            name: u.name,
+            role: u.role,
+            designation: u.designation,
+            profilePhoto: u.profilePhoto || ''
+          },
+          taskCount: workloadMap[u._id.toString()] || 0
+        }));
 
         res.json({
           success: true,
@@ -311,10 +390,10 @@ export const dashboardController = {
           user: sanitizedUser,
           unreadNotificationsCount,
           teamStats: {
-            teamMembers: departmentMembers.length || totalDeptCount,
-            employees: employeesInDept || 4,
-            interns: internsInDept || 2,
-            activeMembers: activeInDept || departmentMembers.length
+            teamMembers: departmentMembers.length,
+            employees: employeesInDept,
+            interns: internsInDept,
+            activeMembers: activeInDept
           },
           teamTaskOverview: {
             assigned: assignedDeptTasks,
@@ -322,10 +401,36 @@ export const dashboardController = {
             completed: completedDeptTasks,
             overdue: overdueDeptTasks
           },
-          expenseOverview: {
-            departmentExpenses: Number(deptExpensesTotal.toFixed(2)),
-            pendingApprovals: deptPendingExpensesCount
-          },
+          inProgressTasks: inProgressTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            priority: t.priority,
+            deadline: new Date(t.deadline).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            }),
+            assignedTo: t.assignedTo ? {
+              id: (t.assignedTo as any)._id,
+              name: (t.assignedTo as any).name,
+              designation: (t.assignedTo as any).designation,
+              profilePhoto: (t.assignedTo as any).profilePhoto || ''
+            } : null
+          })),
+          overdueTasks: overdueTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            priority: t.priority,
+            deadline: new Date(t.deadline).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            }),
+            assignedTo: t.assignedTo ? {
+              id: (t.assignedTo as any)._id,
+              name: (t.assignedTo as any).name,
+              profilePhoto: (t.assignedTo as any).profilePhoto || ''
+            } : null
+          })),
+          teamWorkload,
           teamMembers: departmentMembers.map(u => ({
             id: u._id,
             name: u.name,
@@ -336,8 +441,16 @@ export const dashboardController = {
             profilePhoto: u.profilePhoto || '',
             status: u.status
           })),
+          recentActivities: recentDeptActivities.map(a => ({
+            id: a._id,
+            actorName: (a.actorId as any)?.name || 'Team Member',
+            actorPhoto: (a.actorId as any)?.profilePhoto || '',
+            message: a.message,
+            type: a.type,
+            time: new Date(a.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+          })),
           announcements: roleAnnouncements,
-          quickActions: ['assign_task', 'view_team', 'create_announcement', 'view_announcements', 'view_expenses']
+          quickActions: ['assign_task', 'view_team', 'create_announcement', 'open_chat']
         });
         return;
       }
@@ -349,7 +462,9 @@ export const dashboardController = {
           myInProgressTasks,
           myCompletedTasks,
           myOverdueTasks,
-          todayTasks
+          activeTasksList,
+          completedTasksList,
+          recentActivities
         ] = await Promise.all([
           TaskModel.countDocuments({ assignedTo: user._id, status: { $ne: 'CANCELLED' } }),
           TaskModel.countDocuments({ assignedTo: user._id, status: 'IN_PROGRESS' }),
@@ -360,7 +475,14 @@ export const dashboardController = {
             deadline: { $lt: now }
           }),
           TaskModel.find({ assignedTo: user._id, status: { $in: ['TODO', 'IN_PROGRESS'] } })
+            .populate('assignedBy', 'name role')
             .sort({ deadline: 1 })
+            .limit(6),
+          TaskModel.find({ assignedTo: user._id, status: 'COMPLETED' })
+            .sort({ completedAt: -1, updatedAt: -1 })
+            .limit(5),
+          TaskActivityModel.find({ actorId: user._id })
+            .sort({ createdAt: -1 })
             .limit(5)
         ]);
 
@@ -375,7 +497,18 @@ export const dashboardController = {
             completed: myCompletedTasks,
             overdue: myOverdueTasks
           },
-          todayWork: todayTasks.map(t => ({
+          activeTasks: activeTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            priority: t.priority,
+            status: t.status,
+            assignedBy: (t.assignedBy as any)?.name || 'Lead',
+            deadline: new Date(t.deadline).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            })
+          })),
+          todayWork: activeTasksList.map(t => ({
             id: t._id,
             title: t.title,
             deadline: new Date(t.deadline).toLocaleDateString(undefined, {
@@ -385,10 +518,20 @@ export const dashboardController = {
               minute: '2-digit'
             })
           })),
+          completedTasks: completedTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            completedAt: t.completedAt ? new Date(t.completedAt).toLocaleDateString() : 'Recently'
+          })),
+          recentActivities: recentActivities.map(a => ({
+            id: a._id,
+            message: a.message,
+            time: new Date(a.createdAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+          })),
           announcement: roleAnnouncements[0] || null,
           announcements: roleAnnouncements,
           recentChat: await getDashboardRecentChat(user),
-          quickActions: ['view_my_tasks', 'open_chat', 'view_announcements', 'view_calendar']
+          quickActions: ['view_my_tasks', 'open_chat', 'view_announcements', 'view_profile']
         });
         return;
       }
@@ -400,7 +543,8 @@ export const dashboardController = {
           internInProgressTasks,
           internCompletedTasks,
           internOverdueTasks,
-          assignedTasks
+          assignedTasksList,
+          completedTasksList
         ] = await Promise.all([
           TaskModel.countDocuments({ assignedTo: user._id, status: 'TODO' }),
           TaskModel.countDocuments({ assignedTo: user._id, status: 'IN_PROGRESS' }),
@@ -411,8 +555,11 @@ export const dashboardController = {
             deadline: { $lt: now }
           }),
           TaskModel.find({ assignedTo: user._id, status: { $in: ['TODO', 'IN_PROGRESS'] } })
-            .populate('assignedBy', 'name role')
+            .populate('assignedBy', 'name role designation profilePhoto')
             .sort({ deadline: 1 })
+            .limit(6),
+          TaskModel.find({ assignedTo: user._id, status: 'COMPLETED' })
+            .sort({ completedAt: -1, updatedAt: -1 })
             .limit(5)
         ]);
 
@@ -427,7 +574,18 @@ export const dashboardController = {
             completed: internCompletedTasks,
             overdue: internOverdueTasks
           },
-          importantTasks: assignedTasks.map(t => ({
+          assignedTasks: assignedTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            priority: t.priority,
+            status: t.status,
+            assignedBy: (t.assignedBy as any)?.name || 'Mentor',
+            deadline: new Date(t.deadline).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric'
+            })
+          })),
+          importantTasks: assignedTasksList.map(t => ({
             id: t._id,
             title: t.title,
             assignedBy: (t.assignedBy as any)?.name || 'Lead Mentor',
@@ -439,13 +597,14 @@ export const dashboardController = {
             }),
             urgency: t.priority === 'HIGH' ? 'High' : t.priority === 'MEDIUM' ? 'Medium' : 'Standard'
           })),
+          completedTasks: completedTasksList.map(t => ({
+            id: t._id,
+            title: t.title,
+            completedAt: t.completedAt ? new Date(t.completedAt).toLocaleDateString() : 'Completed'
+          })),
           announcement: roleAnnouncements[0] || null,
           announcements: roleAnnouncements,
-          upcoming: [
-            { id: 'up-1', title: 'Weekly Mentorship 1-on-1 Review', date: 'Thursday • 4:00 PM' },
-            { id: 'up-2', title: 'Ingredient Safety & Compliance Check', date: 'Next Tuesday • 11:00 AM' }
-          ],
-          quickActions: ['view_my_tasks', 'view_announcements', 'view_calendar']
+          quickActions: ['view_my_tasks', 'open_chat', 'view_announcements']
         });
         return;
       }

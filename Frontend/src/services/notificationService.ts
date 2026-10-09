@@ -12,9 +12,10 @@ export interface AppNotification {
   type: string;
   title: string;
   message: string;
-  relatedEntityType: 'TASK' | 'ANNOUNCEMENT' | 'SYSTEM';
+  relatedEntityType: string;
   relatedEntityId?: string | null;
   taskId?: string | null;
+  link?: string | null;
   isRead: boolean;
   read: boolean;
   readAt?: string | null;

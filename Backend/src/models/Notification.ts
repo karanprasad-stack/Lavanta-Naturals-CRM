@@ -2,12 +2,16 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type NotificationType =
   | 'TASK_ASSIGNED'
+  | 'TASK_REASSIGNED'
   | 'TASK_STARTED'
   | 'TASK_COMPLETED'
   | 'TASK_OVERDUE'
   | 'TASK_DEADLINE_APPROACHING'
+  | 'TASK_DEADLINE_CHANGED'
   | 'ANNOUNCEMENT_PUBLISHED'
   | 'ANNOUNCEMENT_IMPORTANT'
+  | 'DIRECT_MESSAGE'
+  | 'MESSAGE_RECEIVED'
   | 'SYSTEM'
   | 'TASK_STATUS_CHANGED'
   | 'COMMENT_ADDED'
@@ -43,6 +47,8 @@ export type NotificationType =
 export type RelatedEntityType =
   | 'TASK'
   | 'ANNOUNCEMENT'
+  | 'MESSAGE'
+  | 'CONVERSATION'
   | 'SYSTEM'
   | 'EVENT'
   | 'GOAL'
@@ -67,6 +73,8 @@ export interface INotification extends Document {
   entityType?: RelatedEntityType; // compatibility alias
   entityId?: Types.ObjectId | null; // compatibility alias
   taskId?: Types.ObjectId | null; // compatibility alias
+  link?: string | null;
+  idempotencyKey?: string | null;
   isRead: boolean;
   read?: boolean; // compatibility alias
   readAt?: Date | null;
@@ -91,12 +99,16 @@ const NotificationSchema = new Schema(
       required: true,
       enum: [
         'TASK_ASSIGNED',
+        'TASK_REASSIGNED',
         'TASK_STARTED',
         'TASK_COMPLETED',
         'TASK_OVERDUE',
         'TASK_DEADLINE_APPROACHING',
+        'TASK_DEADLINE_CHANGED',
         'ANNOUNCEMENT_PUBLISHED',
         'ANNOUNCEMENT_IMPORTANT',
+        'DIRECT_MESSAGE',
+        'MESSAGE_RECEIVED',
         'SYSTEM',
         'TASK_STATUS_CHANGED',
         'COMMENT_ADDED',
@@ -137,6 +149,8 @@ const NotificationSchema = new Schema(
       enum: [
         'TASK',
         'ANNOUNCEMENT',
+        'MESSAGE',
+        'CONVERSATION',
         'SYSTEM',
         'EVENT',
         'GOAL',
@@ -152,6 +166,15 @@ const NotificationSchema = new Schema(
     relatedEntityId: {
       type: Schema.Types.ObjectId,
       default: null
+    },
+    link: {
+      type: String,
+      default: null
+    },
+    idempotencyKey: {
+      type: String,
+      default: null,
+      index: true
     },
     isRead: {
       type: Boolean,
@@ -220,5 +243,6 @@ NotificationSchema.virtual('entityType').get(function () {
 
 // Compound indexes for rapid lookup
 NotificationSchema.index({ recipientId: 1, isRead: 1, createdAt: -1 });
+NotificationSchema.index({ recipientId: 1, idempotencyKey: 1 }, { sparse: true });
 
 export const NotificationModel = mongoose.model<INotification>('Notification', NotificationSchema);

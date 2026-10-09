@@ -352,34 +352,28 @@ export const ExpensesPage: React.FC = () => {
       )}
 
       {/* Quick Status Filter Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="expense-filter-group" role="tablist" aria-label="Expense status filters">
         {[
           { key: 'ALL', label: 'All Expenses' },
           { key: 'SUBMITTED', label: 'Pending Review' },
           { key: 'APPROVED', label: 'Approved' },
           { key: 'PAID', label: 'Paid' },
           { key: 'REJECTED', label: 'Rejected' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => handleStatusFilterChange(tab.key)}
-            style={{
-              padding: '0.4rem 0.85rem',
-              borderRadius: '9999px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid #E5E7EB',
-              background: statusFilter === tab.key ? 'var(--color-primary)' : '#FFFFFF',
-              color: statusFilter === tab.key ? '#FFFFFF' : 'var(--color-text-secondary)',
-              boxShadow: statusFilter === tab.key ? '0 1px 3px rgba(105, 196, 63, 0.25)' : 'none',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        ].map(tab => {
+          const isActive = statusFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              className={`expense-filter-btn ${isActive ? 'active' : ''}`}
+              onClick={() => handleStatusFilterChange(tab.key)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter and Search Bar */}
@@ -395,10 +389,11 @@ export const ExpensesPage: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '0.55rem 0.75rem 0.55rem 2.25rem',
-                border: '1px solid #E5E7EB',
+                border: '1px solid var(--border-input)',
                 borderRadius: '8px',
                 fontSize: '0.875rem',
-                backgroundColor: '#FFFFFF'
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--color-text-primary)'
               }}
             />
           </div>
@@ -408,7 +403,7 @@ export const ExpensesPage: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
-              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+              style={{ padding: '0.55rem 0.75rem', border: '1px solid var(--border-input)', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: 'var(--bg-input)', color: 'var(--color-text-primary)', cursor: 'pointer' }}
             >
               <option value="ALL">All Statuses</option>
               <option value="SUBMITTED">Pending Review</option>
@@ -427,7 +422,7 @@ export const ExpensesPage: React.FC = () => {
                 setChannelFilter(e.target.value);
                 setPage(1);
               }}
-              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF', cursor: 'pointer' }}
+              style={{ padding: '0.55rem 0.75rem', border: '1px solid var(--border-input)', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: 'var(--bg-input)', color: 'var(--color-text-primary)', cursor: 'pointer' }}
             >
               <option value="ALL">All Channels</option>
               <option value="GENERAL">General Corporate</option>
@@ -445,7 +440,7 @@ export const ExpensesPage: React.FC = () => {
                 setCategoryFilter(e.target.value);
                 setPage(1);
               }}
-              style={{ padding: '0.55rem 0.75rem', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: '#FFFFFF' }}
+              style={{ padding: '0.55rem 0.75rem', border: '1px solid var(--border-input)', borderRadius: '8px', fontSize: '0.85rem', backgroundColor: 'var(--bg-input)', color: 'var(--color-text-primary)' }}
             >
               <option value="ALL">All Categories</option>
               <option value="MARKETPLACE_FEES">Marketplace Fees</option>

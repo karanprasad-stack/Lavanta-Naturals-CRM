@@ -4,23 +4,17 @@ import { motion } from 'framer-motion';
 import {
   GraduationCap,
   CheckSquare,
-  Calendar,
-  MessageSquare,
-  Megaphone,
-  User,
-  ArrowRight,
   Clock,
   CheckCircle2,
   AlertCircle,
-  BookOpen,
-  HelpCircle
+  MessageSquare,
+  Megaphone,
+  ArrowRight,
+  ListTodo
 } from 'lucide-react';
 import { InternDashboardData } from '../../services/dashboardService';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
-import { CalendarWidget } from './CalendarWidget';
-import { WorkActivityWidget } from './WorkActivityWidget';
-import { GoalsWidget } from './GoalsWidget';
 
 interface InternDashboardProps {
   data: InternDashboardData;
@@ -31,12 +25,24 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
   const navigate = useNavigate();
   const firstName = (data.user?.name || 'Intern').split(' ')[0];
 
-  const getUrgencyBadge = (urgency: string) => {
-    const u = urgency.toUpperCase();
-    if (u === 'HIGH' || u === 'URGENT') return <Badge variant="danger" size="sm">High</Badge>;
-    if (u === 'MEDIUM') return <Badge variant="warning" size="sm">Medium</Badge>;
-    return <Badge variant="neutral" size="sm">Standard</Badge>;
+  const getPriorityBadge = (priority: string) => {
+    const p = (priority || '').toUpperCase();
+    if (p === 'URGENT' || p === 'HIGH') return <Badge variant="danger" size="sm">High</Badge>;
+    if (p === 'MEDIUM') return <Badge variant="warning" size="sm">Medium</Badge>;
+    return <Badge variant="neutral" size="sm">Normal</Badge>;
   };
+
+  const getStatusBadge = (status: string) => {
+    const s = (status || '').toUpperCase();
+    if (s === 'IN_PROGRESS') return <Badge variant="lavender" size="sm">In Progress</Badge>;
+    if (s === 'COMPLETED') return <Badge variant="green" size="sm">Completed</Badge>;
+    return <Badge variant="neutral" size="sm">Assigned</Badge>;
+  };
+
+  const assignedTasks = data.assignedTasks || [];
+  const completedTasks = data.completedTasks || [];
+  const announcements = data.announcements || [];
+  const myTasks = data.myTasks || { todo: 0, inProgress: 0, completed: 0, overdue: 0 };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -49,7 +55,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
+          padding: '1.5rem 1.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -61,32 +67,32 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Internship Workspace & Learning Track
+              Internship Learning Track
             </span>
-            <Badge variant="warning" size="sm">INTERN COHORT</Badge>
+            <Badge variant="warning" size="sm">INTERN</Badge>
           </div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
-            Good morning, {firstName} 👋
+          <h1 style={{ fontSize: '1.65rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+            Welcome, {firstName} 👋
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.9rem', margin: '4px 0 0' }}>
-            Track assignments, onboarding milestones, and mentorship feedback.
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: '4px 0 0' }}>
+            Track your assigned learning deliverables, milestones, and submissions.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Button
             variant="outline"
             size="sm"
-            icon={<User size={15} />}
-            onClick={() => navigate('/profile')}
+            icon={<MessageSquare size={15} />}
+            onClick={() => navigate('/chat')}
           >
-            Intern Profile
+            Ask Mentor / Team
           </Button>
           <Button
             variant="primary"
             size="sm"
             icon={<CheckSquare size={15} />}
-            onClick={() => onQuickAction('view_tasks')}
+            onClick={() => navigate('/tasks')}
           >
             My Assignments
           </Button>
@@ -94,11 +100,11 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
       </motion.div>
 
       {/* 2. Intern Assignment KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
-        {/* To Do */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+        {/* Assigned */}
         <motion.div
           whileHover={{ y: -2 }}
-          onClick={() => onQuickAction('view_tasks')}
+          onClick={() => navigate('/tasks?filter=TODO')}
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
@@ -108,21 +114,20 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              To Do Tasks
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309' }}>
-              <CheckSquare size={16} />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Assigned Tasks
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563EB' }}>
+              <ListTodo size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
-            {data.myTasks.todo}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {myTasks.todo}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#B45309', fontWeight: 600 }}>
-            <span>Pending Start</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#2563EB', fontWeight: 600 }}>
+            <span>To Do Queue</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
@@ -130,7 +135,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
         {/* In Progress */}
         <motion.div
           whileHover={{ y: -2 }}
-          onClick={() => onQuickAction('view_tasks')}
+          onClick={() => navigate('/tasks?filter=IN_PROGRESS')}
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
@@ -140,21 +145,51 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               In Progress
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-deep)' }}>
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309' }}>
               <Clock size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: 'var(--color-primary-deep)', margin: '4px 0' }}>
-            {data.myTasks.inProgress}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {myTasks.inProgress}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
-            <span>Underway</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#B45309', fontWeight: 600 }}>
+            <span>Work In Flight</span>
+            <ArrowRight size={13} />
+          </div>
+        </motion.div>
+
+        {/* Overdue / Due Soon */}
+        <motion.div
+          whileHover={{ y: -2 }}
+          onClick={() => navigate('/tasks?filter=OVERDUE')}
+          style={{
+            background: 'var(--bg-surface)',
+            border: myTasks.overdue > 0 ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            padding: '1.25rem 1.5rem',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-xs)',
+            transition: 'all 0.18s ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: myTasks.overdue > 0 ? '#EF4444' : 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Overdue
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EF4444' }}>
+              <AlertCircle size={16} />
+            </div>
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: myTasks.overdue > 0 ? '#EF4444' : 'var(--color-text-primary)', margin: '4px 0' }}>
+            {myTasks.overdue}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: myTasks.overdue > 0 ? '#EF4444' : 'var(--color-text-muted)', fontWeight: 600 }}>
+            <span>Needs Attention</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
@@ -162,7 +197,7 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
         {/* Completed */}
         <motion.div
           whileHover={{ y: -2 }}
-          onClick={() => onQuickAction('view_tasks')}
+          onClick={() => navigate('/tasks?filter=COMPLETED')}
           style={{
             background: 'var(--bg-surface)',
             border: '1px solid var(--border-color)',
@@ -172,168 +207,172 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
             boxShadow: 'var(--shadow-xs)',
             transition: 'all 0.18s ease'
           }}
-          className="luxury-card"
         >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Completed
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
+            </span>
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(74, 222, 128, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16A34A' }}>
               <CheckCircle2 size={16} />
             </div>
           </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: '#16A34A', margin: '4px 0' }}>
-            {data.myTasks.completed}
+          <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: '4px 0' }}>
+            {myTasks.completed}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: '#16A34A', fontWeight: 600 }}>
-            <span>Verified Tasks</span>
-            <ArrowRight size={13} />
-          </div>
-        </motion.div>
-
-        {/* Overdue */}
-        <motion.div
-          whileHover={{ y: -2 }}
-          onClick={() => onQuickAction('view_tasks')}
-          style={{
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 'var(--radius-md)',
-            padding: '1.25rem 1.5rem',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-xs)',
-            transition: 'all 0.18s ease'
-          }}
-          className="luxury-card"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Overdue
-            </div>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#DC2626' }}>
-              <AlertCircle size={16} />
-            </div>
-          </div>
-          <div style={{ fontSize: '2.15rem', fontWeight: 800, color: data.myTasks.overdue > 0 ? '#DC2626' : 'var(--color-text-secondary)', margin: '4px 0' }}>
-            {data.myTasks.overdue}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: data.myTasks.overdue > 0 ? '#DC2626' : 'var(--color-text-secondary)', fontWeight: 600 }}>
-            <span>Attention Needed</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
+            <span>Accomplishments</span>
             <ArrowRight size={13} />
           </div>
         </motion.div>
       </div>
 
-      {/* 3. Main Intern Content Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
-        {/* LEFT COLUMN: Important Tasks & Mentorship Guidelines */}
+      {/* 3. Main Intern Content Layout (2 Columns) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+        {/* LEFT COLUMN: Assigned Work & Completed Deliverables */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Important Assigned Tasks */}
+          {/* Assigned Work */}
           <div
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem 1.75rem',
+              padding: '1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  Important Assigned Tasks
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Assigned Deliverables & Milestones
                 </h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
-                  Assignments delegated by mentors and leads.
+                  Assignments currently under your learning track.
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onQuickAction('view_tasks')}
-                style={{ fontSize: '0.8rem' }}
-              >
+              <Button variant="ghost" size="sm" onClick={() => navigate('/tasks')}>
                 All Assignments →
               </Button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {data.importantTasks && data.importantTasks.length > 0 ? (
-                data.importantTasks.map(task => (
+            {assignedTasks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
+                <CheckCircle2 size={32} style={{ margin: '0 auto 8px', color: 'var(--color-primary-deep)', opacity: 0.7 }} />
+                No assignments pending. Check in with your manager or mentor!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {assignedTasks.map(task => (
                   <div
                     key={task.id}
-                    onClick={() => onQuickAction('view_tasks')}
+                    onClick={() => navigate('/tasks')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '0.85rem 1rem',
+                      padding: '0.75rem 1rem',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
                       background: 'var(--bg-surface-elevated)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
-                    className="luxury-card"
                   >
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--color-text-primary)' }}>
-                        {task.title}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                        Assigned by <strong style={{ color: 'var(--color-primary-deep)' }}>{task.assignedBy}</strong> • Due: {task.deadline}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckSquare size={16} color="var(--color-primary-deep)" />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
+                          {task.title}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                          <span>Assigned by {task.assignedBy}</span>
+                          {task.deadline && (
+                            <>
+                              <span>•</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <Clock size={12} />
+                                Due {task.deadline}
+                              </span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {getUrgencyBadge(task.urgency)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {getStatusBadge(task.status)}
+                      {getPriorityBadge(task.priority)}
                       <ArrowRight size={14} color="var(--color-text-muted)" />
                     </div>
                   </div>
-                ))
-              ) : (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.875rem' }}>
-                  No active assignments currently.
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Intern Mentorship & Learning Note */}
+          {/* Completed Deliverables */}
           <div
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem 1.75rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1.25rem',
+              padding: '1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309', flexShrink: 0 }}>
-              <BookOpen size={22} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                  Completed Milestones
+                </h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+                  Finished work verified in your cohort.
+                </p>
+              </div>
+              <Badge variant="green" size="sm">{completedTasks.length} Completed</Badge>
             </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Lavanta Naturals Mentorship Program
-              </h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
-                Need help or clarification on your assignments? Connect directly with your assigned mentor via team chat or during weekly check-ins.
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onQuickAction('open_chat')}
-            >
-              Contact Mentor
-            </Button>
+
+            {completedTasks.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1.5rem 1rem', color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>
+                Completed assignments will appear here once submitted.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {completedTasks.slice(0, 5).map(task => (
+                  <div
+                    key={task.id}
+                    onClick={() => navigate('/tasks')}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.65rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface-elevated)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <CheckCircle2 size={15} color="#16A34A" />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)', textDecoration: 'line-through', opacity: 0.85 }}>
+                          {task.title}
+                        </div>
+                        <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)' }}>
+                          Completed on {task.completedAt}
+                        </div>
+                      </div>
+                    </div>
+
+                    <ArrowRight size={13} color="var(--color-text-muted)" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Intern Actions, Cohort Notices, Upcoming */}
+        {/* RIGHT COLUMN: Quick Navigation & Announcements */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Quick Actions */}
           <div
@@ -341,156 +380,109 @@ export const InternDashboard: React.FC<InternDashboardProps> = ({ data, onQuickA
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
-              Intern Quick Actions
+            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
+              Quick Navigation
             </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
               <Button
                 variant="primary"
-                size="md"
-                icon={<CheckSquare size={16} />}
-                onClick={() => onQuickAction('view_tasks')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                size="sm"
+                icon={<CheckSquare size={14} />}
+                onClick={() => navigate('/tasks')}
+                style={{ justifyContent: 'center' }}
               >
-                View My Tasks
+                My Tasks
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<MessageSquare size={16} />}
-                onClick={() => onQuickAction('open_chat')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                size="sm"
+                icon={<MessageSquare size={14} />}
+                onClick={() => navigate('/chat')}
+                style={{ justifyContent: 'center' }}
               >
-                Contact Mentor
+                Chat Mentor
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<Megaphone size={16} />}
-                onClick={() => onQuickAction('view_announcements')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                size="sm"
+                icon={<Megaphone size={14} />}
+                onClick={() => navigate('/announcements')}
+                style={{ justifyContent: 'center' }}
               >
-                Cohort Announcements
+                Announcements
               </Button>
-
               <Button
                 variant="outline"
-                size="md"
-                icon={<Calendar size={16} />}
-                onClick={() => onQuickAction('view_calendar')}
-                style={{ justifyContent: 'flex-start', width: '100%' }}
+                size="sm"
+                icon={<Clock size={14} />}
+                onClick={() => navigate('/notifications')}
+                style={{ justifyContent: 'center' }}
               >
-                View Calendar
+                Notifications
               </Button>
             </div>
           </div>
 
-          {/* Upcoming Schedule */}
+          {/* Announcements */}
           <div
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Upcoming Check-ins
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                Company Broadcasts
               </h3>
-              <Calendar size={15} color="var(--color-text-muted)" />
+              <Button variant="ghost" size="sm" onClick={() => navigate('/announcements')}>
+                View All →
+              </Button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              {data.upcoming && data.upcoming.length > 0 ? (
-                data.upcoming.map(item => (
+            {announcements.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.8rem' }}>
+                No announcements right now.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {announcements.slice(0, 4).map((ann: any) => (
                   <div
-                    key={item.id}
+                    key={ann.id || ann._id}
+                    onClick={() => navigate(`/announcements/${ann.id || ann._id}`)}
                     style={{
-                      padding: '0.65rem 0.75rem',
-                      borderRadius: 'var(--radius-sm)',
+                      padding: '0.65rem 0.85rem',
                       background: 'var(--bg-surface-elevated)',
+                      borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border-color)',
-                      fontSize: '0.8rem'
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
                     }}
                   >
-                    <div style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      {item.title}
+                    <div>
+                      <div style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        {ann.title}
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--color-text-secondary)' }}>
+                        {ann.date}
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.725rem', color: 'var(--color-primary-deep)', marginTop: '2px' }}>
-                      {item.date}
-                    </div>
+                    <ArrowRight size={13} color="var(--color-text-muted)" />
                   </div>
-                ))
-              ) : (
-                <div style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>
-                  No upcoming syncs scheduled.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Cohort Announcements */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '1.5rem',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Cohort Briefings
-              </h3>
-              <Badge variant="warning" size="sm">Interns</Badge>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {data.announcements && data.announcements.map(notice => (
-                <div
-                  key={notice.id}
-                  style={{
-                    padding: '0.75rem',
-                    background: 'var(--bg-surface-elevated)',
-                    borderRadius: 'var(--radius-sm)',
-                    border: '1px solid var(--border-color)',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-text-muted)', fontSize: '0.7rem' }}>
-                    <span>Notice</span>
-                    <span>{notice.date}</span>
-                  </div>
-                  <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginTop: '2px' }}>
-                    {notice.title}
-                  </div>
-                  <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.75rem', marginTop: '2px' }}>
-                    {notice.description}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-      {/* Phase 9: Goals & OKRs Widget */}
-      <GoalsWidget maxItems={4} />
-
-      {/* Phase 8: Personal Work Activity Widget */}
-      <WorkActivityWidget maxItems={4} />
-
-      {/* Phase 7: Today's Calendar Widget */}
-      <CalendarWidget maxItems={5} />
     </div>
   );
 };

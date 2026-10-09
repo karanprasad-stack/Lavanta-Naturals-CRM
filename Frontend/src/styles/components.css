@@ -734,3 +734,417 @@
   border-bottom-color: var(--color-primary);
   font-weight: 600;
 }
+
+/* ==========================================================================
+   Expenses Module - Filter Button Group
+   ========================================================================== */
+.expense-filter-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.expense-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--expense-filter-inactive-bg);
+  color: var(--expense-filter-inactive-text);
+  border: 1px solid var(--expense-filter-inactive-border);
+  outline: none;
+  box-shadow: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.expense-filter-btn:hover:not(.active) {
+  background-color: var(--expense-filter-hover-bg);
+  color: var(--expense-filter-hover-text);
+  border-color: var(--expense-filter-hover-border);
+}
+
+.expense-filter-btn:focus-visible,
+.expense-filter-btn:focus {
+  outline: none;
+  box-shadow: var(--expense-filter-focus-ring);
+  border-color: #65C943;
+}
+
+.expense-filter-btn.active {
+  background-color: var(--expense-filter-active-bg);
+  color: var(--expense-filter-active-text);
+  border: 1px solid var(--expense-filter-active-border);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(101, 201, 67, 0.25);
+}
+
+.expense-filter-btn.active:hover {
+  background-color: var(--expense-filter-active-bg);
+  color: var(--expense-filter-active-text);
+}
+
+.expense-filter-btn.active:focus-visible,
+.expense-filter-btn.active:focus {
+  outline: none;
+  box-shadow: var(--expense-filter-focus-ring);
+}
+
+@media (max-width: 640px) {
+  .expense-filter-btn {
+    padding: 0.375rem 0.8rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* ==========================================================================
+   Announcement Modal / Drawer Form Styles
+   ========================================================================== */
+.announcement-audience-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  line-height: 1.25;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--announcement-audience-bg-inactive);
+  color: var(--announcement-audience-text-inactive);
+  border: 1px solid var(--announcement-audience-border-inactive);
+  outline: none;
+  box-shadow: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.announcement-audience-btn:hover:not(.selected) {
+  background-color: var(--announcement-audience-bg-hover);
+  color: var(--announcement-audience-text-hover);
+  border-color: var(--announcement-audience-border-hover);
+}
+
+.announcement-audience-btn:focus-visible,
+.announcement-audience-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-audience-focus-ring);
+  border-color: #65C943;
+}
+
+.announcement-audience-btn.selected {
+  background-color: var(--announcement-audience-bg-selected);
+  color: var(--announcement-audience-text-selected);
+  border: 1px solid var(--announcement-audience-border-selected);
+  font-weight: 600;
+}
+
+.announcement-audience-btn.selected:hover {
+  background-color: var(--announcement-audience-bg-selected);
+  color: var(--announcement-audience-text-selected);
+  border-color: var(--announcement-audience-border-selected);
+}
+
+.announcement-audience-btn.selected:focus-visible,
+.announcement-audience-btn.selected:focus {
+  outline: none;
+  box-shadow: var(--announcement-audience-focus-ring);
+}
+
+/* Department and Role Toggle Pills */
+.announcement-dept-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-weight: 500;
+  cursor: pointer;
+  background-color: var(--announcement-dept-bg-inactive);
+  color: var(--announcement-dept-text-inactive);
+  border: 1px solid var(--announcement-dept-border-inactive);
+  outline: none;
+  box-shadow: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.announcement-dept-btn:hover:not(.selected):not(:disabled) {
+  background-color: var(--announcement-dept-bg-hover);
+  color: var(--announcement-dept-text-hover);
+  border-color: var(--announcement-dept-border-hover);
+}
+
+.announcement-dept-btn:focus-visible,
+.announcement-dept-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-dept-focus-ring);
+  border-color: #65C943;
+}
+
+.announcement-dept-btn.selected {
+  background-color: var(--announcement-dept-bg-selected);
+  color: var(--announcement-dept-text-selected);
+  border: 1px solid var(--announcement-dept-border-selected);
+  font-weight: 600;
+}
+
+.announcement-dept-btn.selected:hover {
+  background-color: var(--announcement-dept-bg-selected);
+  color: var(--announcement-dept-text-selected);
+  border-color: var(--announcement-dept-border-selected);
+}
+
+.announcement-dept-btn.selected:focus-visible,
+.announcement-dept-btn.selected:focus {
+  outline: none;
+  box-shadow: var(--announcement-dept-focus-ring);
+}
+
+.announcement-dept-btn:disabled,
+.announcement-dept-btn.disabled {
+  background-color: var(--announcement-dept-bg-disabled);
+  color: var(--announcement-dept-text-disabled);
+  border: 1px solid var(--announcement-dept-border-disabled);
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+/* Announcement Image Upload Area */
+.announcement-upload-area {
+  border: 2px dashed var(--announcement-upload-border);
+  border-radius: 10px;
+  padding: 1.75rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background-color: var(--announcement-upload-bg);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.announcement-upload-area:hover:not(.dragging) {
+  background-color: var(--announcement-upload-hover-bg);
+  border-color: #40516A;
+}
+
+.announcement-upload-area.dragging {
+  background-color: var(--announcement-upload-drag-bg);
+  border-color: var(--announcement-upload-drag-border);
+  border-style: dashed;
+}
+
+.announcement-upload-area:focus-visible,
+.announcement-upload-area:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-surface), 0 0 0 4px #65C943;
+}
+
+/* Form Dropdowns & Date input dark mode support */
+.input-field option,
+select.input-field option,
+.form-select option {
+  background-color: var(--bg-surface);
+  color: var(--color-text-primary);
+}
+
+:root[data-theme="dark"] input[type="date"],
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   Announcement Details Page - Header Actions & Layout
+   ========================================================================== */
+.announcement-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.announcement-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.announcement-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.825rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.announcement-detail-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Back Button */
+.announcement-detail-back-btn {
+  background-color: var(--announcement-btn-back-bg);
+  color: var(--announcement-btn-back-text);
+  border-color: var(--announcement-btn-back-border);
+}
+
+.announcement-detail-back-btn:hover:not(:disabled) {
+  background-color: var(--announcement-btn-back-hover-bg);
+  color: var(--announcement-btn-back-text);
+  border-color: var(--announcement-btn-back-border);
+}
+
+.announcement-detail-back-btn:focus-visible,
+.announcement-detail-back-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-btn-focus-ring);
+}
+
+/* Add to Calendar Button */
+.announcement-detail-cal-btn {
+  background-color: var(--announcement-btn-calendar-bg);
+  color: var(--announcement-btn-calendar-text);
+  border-color: var(--announcement-btn-calendar-border);
+}
+
+.announcement-detail-cal-btn:hover:not(:disabled) {
+  background-color: var(--announcement-btn-calendar-hover-bg);
+  color: var(--announcement-btn-calendar-text);
+  border-color: var(--announcement-btn-calendar-border);
+}
+
+.announcement-detail-cal-btn:focus-visible,
+.announcement-detail-cal-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-btn-cal-focus-ring);
+}
+
+/* Read Receipts Button */
+.announcement-detail-receipts-btn {
+  background-color: var(--announcement-btn-receipts-bg);
+  color: var(--announcement-btn-receipts-text);
+  border-color: var(--announcement-btn-receipts-border);
+}
+
+.announcement-detail-receipts-btn:hover:not(:disabled) {
+  background-color: var(--announcement-btn-receipts-hover-bg);
+  color: var(--announcement-btn-receipts-text);
+  border-color: var(--announcement-btn-receipts-border);
+}
+
+.announcement-detail-receipts-btn:focus-visible,
+.announcement-detail-receipts-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-btn-focus-ring);
+}
+
+/* Delete Announcement Icon Button */
+.announcement-detail-delete-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--radius-md, 8px);
+  background-color: var(--announcement-btn-delete-bg);
+  color: var(--announcement-btn-delete-icon);
+  border-color: var(--announcement-btn-delete-border);
+}
+
+.announcement-detail-delete-btn:hover:not(:disabled) {
+  background-color: var(--announcement-btn-delete-hover-bg);
+  color: var(--announcement-btn-delete-icon);
+  border-color: var(--announcement-btn-delete-border);
+}
+
+.announcement-detail-delete-btn:focus-visible,
+.announcement-detail-delete-btn:focus {
+  outline: none;
+  box-shadow: var(--announcement-btn-del-focus-ring);
+}
+
+@media (max-width: 640px) {
+  .announcement-detail-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .announcement-detail-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
+/* ==========================================================================
+   Announcement & Notification List - Unread Only Filter Button
+   ========================================================================== */
+.announcement-unread-btn,
+.notification-unread-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+  background-color: var(--announcement-unread-bg-inactive);
+  color: var(--announcement-unread-text-inactive);
+  border: 1px solid var(--announcement-unread-border-inactive);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.announcement-unread-btn svg,
+.notification-unread-btn svg {
+  color: currentColor;
+  flex-shrink: 0;
+}
+
+.announcement-unread-btn:hover:not(.active),
+.notification-unread-btn:hover:not(.active) {
+  background-color: var(--announcement-unread-hover-bg);
+  color: var(--announcement-unread-hover-text);
+}
+
+.announcement-unread-btn.active,
+.notification-unread-btn.active {
+  background-color: var(--announcement-unread-bg-active);
+  color: var(--announcement-unread-text-active);
+  border-color: var(--announcement-unread-border-active);
+  font-weight: 600;
+}
+
+.announcement-unread-btn:focus-visible,
+.announcement-unread-btn:focus,
+.notification-unread-btn:focus-visible,
+.notification-unread-btn:focus {
+  outline: 2px solid #65C943;
+  outline-offset: 1px;
+  box-shadow: var(--announcement-unread-focus-ring);
+}
+

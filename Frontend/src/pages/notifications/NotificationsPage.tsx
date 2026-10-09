@@ -4,6 +4,7 @@ import {
   Bell,
   CheckCheck,
   CheckCircle,
+  CheckCircle2,
   Clock,
   Megaphone,
   CheckSquare,
@@ -11,7 +12,8 @@ import {
   Info,
   Trash2,
   ExternalLink,
-  Filter
+  Filter,
+  MessageSquare
 } from 'lucide-react';
 import { useNotifications } from '../../context/NotificationContext';
 import { AppNotification } from '../../services/notificationService';
@@ -45,6 +47,14 @@ export const NotificationsPage: React.FC = () => {
       return (
         notif.relatedEntityType === 'ANNOUNCEMENT' ||
         notif.type.startsWith('ANNOUNCEMENT_')
+      );
+    }
+    if (filterType === 'MESSAGES') {
+      return (
+        notif.relatedEntityType === 'CONVERSATION' ||
+        notif.relatedEntityType === 'MESSAGE' ||
+        notif.type === 'DIRECT_MESSAGE' ||
+        notif.type === 'MESSAGE_RECEIVED'
       );
     }
     if (filterType === 'SYSTEM') {
@@ -94,17 +104,22 @@ export const NotificationsPage: React.FC = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'TASK_ASSIGNED':
+      case 'TASK_REASSIGNED':
       case 'TASK_STARTED':
       case 'TASK_COMPLETED':
       case 'TASK_STATUS_CHANGED':
         return <CheckSquare size={17} color="var(--color-primary-deep)" />;
       case 'TASK_OVERDUE':
       case 'TASK_DEADLINE_APPROACHING':
+      case 'TASK_DEADLINE_CHANGED':
         return <AlertTriangle size={17} color="#D97706" />;
       case 'ANNOUNCEMENT_IMPORTANT':
         return <Megaphone size={17} color="#C62828" />;
       case 'ANNOUNCEMENT_PUBLISHED':
         return <Megaphone size={17} color="var(--color-primary-deep)" />;
+      case 'DIRECT_MESSAGE':
+      case 'MESSAGE_RECEIVED':
+        return <MessageSquare size={17} color="var(--color-primary-deep)" />;
       default:
         return <Info size={17} color="var(--color-text-secondary)" />;
     }
@@ -115,11 +130,22 @@ export const NotificationsPage: React.FC = () => {
       markAsRead(notif._id);
     }
 
+    if (notif.link) {
+      navigate(notif.link);
+      return;
+    }
+
     if (notif.relatedEntityType === 'TASK' || notif.taskId) {
       const targetId = notif.relatedEntityId || notif.taskId;
       if (targetId) navigate(`/tasks/${targetId}`);
     } else if (notif.relatedEntityType === 'ANNOUNCEMENT') {
       if (notif.relatedEntityId) navigate(`/announcements/${notif.relatedEntityId}`);
+    } else if (notif.relatedEntityType === 'CONVERSATION' || notif.relatedEntityType === 'MESSAGE') {
+      if (notif.relatedEntityId) {
+        navigate(`/chat?conversationId=${notif.relatedEntityId}`);
+      } else {
+        navigate('/chat');
+      }
     }
   };
 
@@ -140,7 +166,7 @@ export const NotificationsPage: React.FC = () => {
           padding: '1rem 1.25rem',
           borderRadius: '10px',
           border: '1px solid var(--border-color)',
-          background: notif.isRead ? '#FFFFFF' : 'var(--color-primary-subtle)',
+          background: notif.isRead ? 'var(--bg-surface)' : 'var(--color-primary-subtle)',
           cursor: notif.relatedEntityId || notif.taskId ? 'pointer' : 'default',
           transition: 'all 0.15s ease',
           boxShadow: 'var(--shadow-xs)'
@@ -158,7 +184,7 @@ export const NotificationsPage: React.FC = () => {
             width: '36px',
             height: '36px',
             borderRadius: '50%',
-            background: notif.isRead ? 'var(--color-bg-subtle)' : '#FFFFFF',
+            background: notif.isRead ? 'var(--color-bg-subtle)' : 'var(--bg-surface)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -312,22 +338,28 @@ export const NotificationsPage: React.FC = () => {
           </p>
         </div>
 
-        {unreadCount > 0 && (
-          <button
-            onClick={markAllAsRead}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.825rem', padding: '7px 14px' }}
-          >
-            <CheckCheck size={15} />
-            <span>Mark all as read</span>
-          </button>
-        )}
+        <button
+          onClick={markAllAsRead}
+          disabled={unreadCount === 0}
+          className="announcement-detail-btn announcement-detail-back-btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            fontSize: '0.825rem',
+            opacity: unreadCount === 0 ? 0.6 : 1,
+            cursor: unreadCount === 0 ? 'not-allowed' : 'pointer'
+          }}
+        >
+          <CheckCheck size={15} />
+          <span>Mark all as read</span>
+        </button>
       </div>
 
       {/* Filter Tabs */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: '10px',
           border: '1px solid var(--border-color)',
           padding: '0.6rem 0.8rem',
@@ -344,6 +376,7 @@ export const NotificationsPage: React.FC = () => {
             { id: 'ALL', label: 'All Alerts' },
             { id: 'TASKS', label: 'Tasks' },
             { id: 'ANNOUNCEMENTS', label: 'Announcements' },
+            { id: 'MESSAGES', label: 'Messages' },
             { id: 'SYSTEM', label: 'System' }
           ].map(tab => {
             const isActive = filterType === tab.id;
@@ -368,22 +401,14 @@ export const NotificationsPage: React.FC = () => {
           })}
         </div>
 
+        {/* Unread Only Filter Button */}
         <button
+          type="button"
           onClick={() => setUnreadOnly(!unreadOnly)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '5px',
-            padding: '4px 10px',
-            borderRadius: '6px',
-            fontSize: '0.775rem',
-            fontWeight: unreadOnly ? 600 : 500,
-            border: unreadOnly ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-            background: unreadOnly ? 'var(--color-primary-subtle)' : '#FFFFFF',
-            color: unreadOnly ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-            cursor: 'pointer'
-          }}
+          className={`notification-unread-btn ${unreadOnly ? 'active' : ''}`}
+          aria-pressed={unreadOnly}
         >
+          <CheckCircle2 size={14} />
           <span>Unread Only</span>
         </button>
       </div>
@@ -461,7 +486,7 @@ export const NotificationsPage: React.FC = () => {
         /* Empty State */
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: '12px',
             border: '1px solid var(--border-color)',
             padding: '3.5rem 1.5rem',

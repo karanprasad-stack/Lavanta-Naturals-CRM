@@ -25,6 +25,7 @@ export interface FounderDashboardData extends Partial<FounderOverviewResponse> {
 export interface HRDashboardData {
   role: 'HR';
   user: User;
+  unreadNotificationsCount?: number;
   peopleStats: {
     totalEmployees: number;
     totalInterns: number;
@@ -47,6 +48,18 @@ export interface HRDashboardData {
     tasksCompleted: number;
     overdueTasks: number;
   };
+  hrTasks?: Array<{
+    id: string;
+    title: string;
+    priority: string;
+    status: string;
+    deadline: string;
+    assignedTo?: {
+      id: string;
+      name: string;
+      profilePhoto: string;
+    } | null;
+  }>;
   recentJoiners: Array<{
     id: string;
     name: string;
@@ -57,12 +70,22 @@ export interface HRDashboardData {
     profilePhoto: string;
     status: string;
   }>;
+  recentActivities?: Array<{
+    id: string;
+    actorName: string;
+    actorPhoto?: string;
+    message: string;
+    type: string;
+    time: string;
+  }>;
+  announcements?: any[];
   quickActions: string[];
 }
 
 export interface ManagerDashboardData {
   role: 'MANAGER';
   user: User;
+  unreadNotificationsCount?: number;
   teamStats: {
     teamMembers: number;
     employees: number;
@@ -75,6 +98,40 @@ export interface ManagerDashboardData {
     completed: number;
     overdue: number;
   };
+  inProgressTasks?: Array<{
+    id: string;
+    title: string;
+    priority: string;
+    deadline: string;
+    assignedTo?: {
+      id: string;
+      name: string;
+      designation?: string;
+      profilePhoto: string;
+    } | null;
+  }>;
+  overdueTasks?: Array<{
+    id: string;
+    title: string;
+    priority: string;
+    deadline: string;
+    assignedTo?: {
+      id: string;
+      name: string;
+      designation?: string;
+      profilePhoto: string;
+    } | null;
+  }>;
+  teamWorkload?: Array<{
+    user: {
+      id: string;
+      name: string;
+      role: string;
+      designation: string;
+      profilePhoto: string;
+    };
+    taskCount: number;
+  }>;
   teamMembers: Array<{
     id: string;
     name: string;
@@ -85,6 +142,15 @@ export interface ManagerDashboardData {
     profilePhoto: string;
     status: string;
   }>;
+  recentActivities?: Array<{
+    id: string;
+    actorName: string;
+    actorPhoto?: string;
+    message: string;
+    type: string;
+    time: string;
+  }>;
+  announcements?: any[];
   quickActions: string[];
   salesOverview?: {
     totalRevenue: number;
@@ -107,16 +173,35 @@ export interface ManagerDashboardData {
 export interface EmployeeDashboardData {
   role: 'EMPLOYEE';
   user: User;
+  unreadNotificationsCount?: number;
   myWork: {
     myTasks: number;
     inProgress: number;
     completed: number;
     overdue: number;
   };
+  activeTasks?: Array<{
+    id: string;
+    title: string;
+    priority: string;
+    status: string;
+    assignedBy: string;
+    deadline: string;
+  }>;
   todayWork: Array<{
     id: string;
     title: string;
     deadline: string;
+  }>;
+  completedTasks?: Array<{
+    id: string;
+    title: string;
+    completedAt: string;
+  }>;
+  recentActivities?: Array<{
+    id: string;
+    message: string;
+    time: string;
   }>;
   announcement?: {
     id: string;
@@ -128,6 +213,7 @@ export interface EmployeeDashboardData {
     priority?: string;
     targetAudience?: string;
   };
+  announcements?: any[];
   recentChat: Array<{
     id: string;
     sender: string;
@@ -139,12 +225,21 @@ export interface EmployeeDashboardData {
 export interface InternDashboardData {
   role: 'INTERN';
   user: User;
+  unreadNotificationsCount?: number;
   myTasks: {
     todo: number;
     inProgress: number;
     completed: number;
     overdue: number;
   };
+  assignedTasks?: Array<{
+    id: string;
+    title: string;
+    priority: string;
+    status: string;
+    assignedBy: string;
+    deadline: string;
+  }>;
   importantTasks: Array<{
     id: string;
     title: string;
@@ -152,13 +247,18 @@ export interface InternDashboardData {
     deadline: string;
     urgency: string;
   }>;
-  announcements: Array<{
+  completedTasks?: Array<{
+    id: string;
+    title: string;
+    completedAt: string;
+  }>;
+  announcements?: Array<{
     id: string;
     title: string;
     description: string;
     date: string;
   }>;
-  upcoming: Array<{
+  upcoming?: Array<{
     id: string;
     title: string;
     date: string;

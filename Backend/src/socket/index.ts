@@ -5,6 +5,7 @@ import { verifyToken } from '../utils/jwt.js';
 import { UserModel, IUser } from '../models/User.js';
 import { ConversationModel, IConversation } from '../models/Conversation.js';
 import { MessageModel, IMessage } from '../models/Message.js';
+import { notificationDispatcher } from '../services/notificationDispatcher.js';
 import { config } from '../config/env.js';
 
 export interface AuthenticatedSocket extends Socket {
@@ -219,6 +220,30 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
             unreadCounts: conversation.unreadCounts
           });
         });
+
+        // 3. Dispatch persistent notifications for other participants
+        for (const p of conversation.participants) {
+          const pIdStr = p.toString();
+          if (pIdStr === userIdStr) continue;
+
+          const isDirect = conversation.type === 'DIRECT';
+          const notifType = isDirect ? 'DIRECT_MESSAGE' : 'MESSAGE_RECEIVED';
+          const notifTitle = isDirect
+            ? `New message from ${user.name}`
+            : `${conversation.name || 'Team Chat'}: ${user.name}`;
+
+          await notificationDispatcher.dispatch({
+            recipientId: p,
+            senderId: user._id,
+            type: notifType,
+            title: notifTitle,
+            message: trimmedContent.length > 80 ? trimmedContent.substring(0, 80) + '...' : trimmedContent,
+            relatedEntityType: 'CONVERSATION',
+            relatedEntityId: conversation._id,
+            link: `/chat?conversationId=${conversation._id}`,
+            idempotencyKey: `msg_${savedMessage._id}_${pIdStr}`
+          });
+        }
       } catch (err) {
         console.error('[Socket send_message] Error:', err);
         socket.emit('error_message', { message: 'Failed to deliver message' });

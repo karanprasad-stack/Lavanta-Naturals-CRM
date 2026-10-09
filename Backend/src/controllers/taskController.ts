@@ -5,6 +5,7 @@ import { TaskActivityModel, TaskActivityType } from '../models/TaskActivity.js';
 import { NotificationModel } from '../models/Notification.js';
 import { UserModel, IUser, UserRole } from '../models/User.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { notificationDispatcher } from '../services/notificationDispatcher.js';
 
 export const taskController = {
   /**
@@ -353,7 +354,7 @@ export const taskController = {
       ]);
 
       // Create real Notification for assignee
-      await NotificationModel.create({
+      await notificationDispatcher.dispatch({
         recipientId: assigneeUser._id,
         senderId: user._id,
         type: 'TASK_ASSIGNED',
@@ -361,8 +362,8 @@ export const taskController = {
         message: `${user.name} assigned you a new task: "${savedTask.title}". Deadline: ${deadlineDate.toLocaleDateString()}`,
         relatedEntityType: 'TASK',
         relatedEntityId: savedTask._id,
-        isRead: false,
-        createdAt: new Date()
+        link: `/tasks/${savedTask._id}`,
+        idempotencyKey: `task_assigned_${savedTask._id}_${assigneeUser._id}`
       });
 
       const populatedTask = await TaskModel.findById(savedTask._id)
@@ -454,6 +455,19 @@ export const taskController = {
             type: 'DEADLINE_CHANGED',
             message: `${user.name} updated deadline to ${d.toLocaleDateString()}.`
           });
+          // Notify assignee of deadline change
+          if (task.assignedTo && task.assignedTo.toString() !== user._id.toString()) {
+            await notificationDispatcher.dispatch({
+              recipientId: task.assignedTo,
+              senderId: user._id,
+              type: 'TASK_DEADLINE_CHANGED',
+              title: 'Task Deadline Updated',
+              message: `Deadline for "${task.title}" updated to ${d.toLocaleDateString()} by ${user.name}.`,
+              relatedEntityType: 'TASK',
+              relatedEntityId: task._id,
+              link: `/tasks/${task._id}`
+            });
+          }
         }
       }
 
@@ -467,13 +481,16 @@ export const taskController = {
             message: `${user.name} reassigned task to ${newAssignee.name}.`
           });
           // Notify new assignee
-          await NotificationModel.create({
-            recipient: newAssignee._id,
-            sender: user._id,
-            type: 'TASK_ASSIGNED',
+          await notificationDispatcher.dispatch({
+            recipientId: newAssignee._id,
+            senderId: user._id,
+            type: 'TASK_REASSIGNED',
             title: 'Task Reassigned to You',
-            message: `"${task.title}" was assigned to you by ${user.name}.`,
-            taskId: task._id
+            message: `"${task.title}" was reassigned to you by ${user.name}.`,
+            relatedEntityType: 'TASK',
+            relatedEntityId: task._id,
+            link: `/tasks/${task._id}`,
+            idempotencyKey: `task_reassigned_${task._id}_${newAssignee._id}`
           });
         }
       }
@@ -538,13 +555,15 @@ export const taskController = {
         message: `${user.name} cancelled this task.`
       });
 
-      await NotificationModel.create({
-        recipient: task.assignedTo,
-        sender: user._id,
+      await notificationDispatcher.dispatch({
+        recipientId: task.assignedTo,
+        senderId: user._id,
         type: 'TASK_STATUS_CHANGED',
         title: 'Task Cancelled',
         message: `"${task.title}" was cancelled by ${user.name}.`,
-        taskId: task._id
+        relatedEntityType: 'TASK',
+        relatedEntityId: task._id,
+        link: `/tasks/${task._id}`
       });
 
       res.json({ success: true, message: 'Task cancelled successfully', task });
@@ -611,7 +630,7 @@ export const taskController = {
 
       // Notify assignor if not self
       if (task.assignedBy.toString() !== user._id.toString()) {
-        await NotificationModel.create({
+        await notificationDispatcher.dispatch({
           recipientId: task.assignedBy,
           senderId: user._id,
           type: 'TASK_STARTED',
@@ -619,8 +638,7 @@ export const taskController = {
           message: `${user.name} started work on "${task.title}".`,
           relatedEntityType: 'TASK',
           relatedEntityId: task._id,
-          isRead: false,
-          createdAt: new Date()
+          link: `/tasks/${task._id}`
         });
       }
 
@@ -718,7 +736,7 @@ export const taskController = {
 
       // Notify assignor
       if (task.assignedBy.toString() !== user._id.toString()) {
-        await NotificationModel.create({
+        await notificationDispatcher.dispatch({
           recipientId: task.assignedBy,
           senderId: user._id,
           type: 'TASK_COMPLETED',
@@ -726,8 +744,7 @@ export const taskController = {
           message: `${user.name} completed: "${task.title}".`,
           relatedEntityType: 'TASK',
           relatedEntityId: task._id,
-          isRead: false,
-          createdAt: new Date()
+          link: `/tasks/${task._id}`
         });
       }
 

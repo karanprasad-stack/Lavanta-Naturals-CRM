@@ -5,6 +5,7 @@ import { MessageModel } from '../models/Message.js';
 import { UserModel, IUser, UserRole } from '../models/User.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { io, getOnlineUsers } from '../socket/index.js';
+import { notificationDispatcher } from '../services/notificationDispatcher.js';
 
 export const chatController = {
   /**
@@ -435,6 +436,30 @@ export const chatController = {
             lastMessageAt: conversation.lastMessageAt,
             unreadCounts: conversation.unreadCounts
           });
+        });
+      }
+
+      // Dispatch persistent notifications for other participants
+      for (const p of conversation.participants) {
+        const pIdStr = p.toString();
+        if (pIdStr === user._id.toString()) continue;
+
+        const isDirect = conversation.type === 'DIRECT';
+        const notifType = isDirect ? 'DIRECT_MESSAGE' : 'MESSAGE_RECEIVED';
+        const notifTitle = isDirect
+          ? `New message from ${user.name}`
+          : `${conversation.name || 'Team Chat'}: ${user.name}`;
+
+        await notificationDispatcher.dispatch({
+          recipientId: p,
+          senderId: user._id,
+          type: notifType,
+          title: notifTitle,
+          message: trimmed.length > 80 ? trimmed.substring(0, 80) + '...' : trimmed,
+          relatedEntityType: 'CONVERSATION',
+          relatedEntityId: conversation._id,
+          link: `/chat?conversationId=${conversation._id}`,
+          idempotencyKey: `msg_${savedMessage._id}_${pIdStr}`
         });
       }
 

@@ -82,7 +82,7 @@ export const AnnouncementCard: React.FC<AnnouncementCardProps> = ({
       onClick={handleCardClick}
       className="announcement-card"
       style={{
-        background: '#FFFFFF',
+        background: 'var(--bg-surface)',
         border: '1px solid var(--border-color)',
         borderRadius: '12px',
         overflow: 'hidden',

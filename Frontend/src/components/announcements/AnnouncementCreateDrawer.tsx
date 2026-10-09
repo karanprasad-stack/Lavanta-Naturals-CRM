@@ -226,7 +226,7 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
           width: '100%',
           maxWidth: '580px',
           height: '100%',
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           boxShadow: 'var(--shadow-xl)',
           display: 'flex',
           flexDirection: 'column',
@@ -393,28 +393,20 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
               padding: '1rem',
               borderRadius: '10px',
               border: '1px solid var(--border-color)',
-              background: 'var(--color-bg-subtle)'
+              background: 'var(--bg-subtle)'
             }}
           >
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '8px' }}>
               Target Audience
             </label>
 
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }} role="group" aria-label="Target Audience">
               {userRole !== 'MANAGER' && (
                 <button
                   type="button"
                   onClick={() => setTargetType('EVERYONE')}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.775rem',
-                    fontWeight: targetType === 'EVERYONE' ? 600 : 500,
-                    border: targetType === 'EVERYONE' ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    background: targetType === 'EVERYONE' ? 'var(--color-primary-subtle)' : '#FFFFFF',
-                    color: targetType === 'EVERYONE' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-                    cursor: 'pointer'
-                  }}
+                  className={`announcement-audience-btn ${targetType === 'EVERYONE' ? 'selected' : ''}`}
+                  aria-pressed={targetType === 'EVERYONE'}
                 >
                   Everyone
                 </button>
@@ -423,16 +415,8 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
               <button
                 type="button"
                 onClick={() => setTargetType('DEPARTMENT')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.775rem',
-                  fontWeight: targetType === 'DEPARTMENT' ? 600 : 500,
-                  border: targetType === 'DEPARTMENT' ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                  background: targetType === 'DEPARTMENT' ? 'var(--color-primary-subtle)' : '#FFFFFF',
-                  color: targetType === 'DEPARTMENT' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-                  cursor: 'pointer'
-                }}
+                className={`announcement-audience-btn ${targetType === 'DEPARTMENT' ? 'selected' : ''}`}
+                aria-pressed={targetType === 'DEPARTMENT'}
               >
                 Department
               </button>
@@ -441,16 +425,8 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                 <button
                   type="button"
                   onClick={() => setTargetType('ROLE')}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.775rem',
-                    fontWeight: targetType === 'ROLE' ? 600 : 500,
-                    border: targetType === 'ROLE' ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    background: targetType === 'ROLE' ? 'var(--color-primary-subtle)' : '#FFFFFF',
-                    color: targetType === 'ROLE' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-                    cursor: 'pointer'
-                  }}
+                  className={`announcement-audience-btn ${targetType === 'ROLE' ? 'selected' : ''}`}
+                  aria-pressed={targetType === 'ROLE'}
                 >
                   Specific Role
                 </button>
@@ -459,16 +435,8 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
               <button
                 type="button"
                 onClick={() => setTargetType('USERS')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.775rem',
-                  fontWeight: targetType === 'USERS' ? 600 : 500,
-                  border: targetType === 'USERS' ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                  background: targetType === 'USERS' ? 'var(--color-primary-subtle)' : '#FFFFFF',
-                  color: targetType === 'USERS' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-                  cursor: 'pointer'
-                }}
+                className={`announcement-audience-btn ${targetType === 'USERS' ? 'selected' : ''}`}
+                aria-pressed={targetType === 'USERS'}
               >
                 Specific Users
               </button>
@@ -484,22 +452,15 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                   {departmentsList.map(dept => {
                     const isSelected = targetDepartments.includes(dept);
                     const isManagerDept = userRole === 'MANAGER' && dept.toLowerCase() === (currentUser?.department || '').toLowerCase();
+                    const isDisabled = userRole === 'MANAGER' && !isManagerDept;
                     return (
                       <button
                         type="button"
                         key={dept}
                         onClick={() => handleDeptToggle(dept)}
-                        disabled={userRole === 'MANAGER' && !isManagerDept}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                          background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
-                          color: isSelected ? '#FFFFFF' : 'var(--color-text-primary)',
-                          cursor: userRole === 'MANAGER' && !isManagerDept ? 'not-allowed' : 'pointer',
-                          opacity: userRole === 'MANAGER' && !isManagerDept ? 0.4 : 1
-                        }}
+                        disabled={isDisabled}
+                        className={`announcement-dept-btn ${isSelected ? 'selected' : ''}`}
+                        aria-pressed={isSelected}
                       >
                         {dept}
                       </button>
@@ -523,15 +484,8 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                         type="button"
                         key={r}
                         onClick={() => handleRoleToggle(r)}
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '6px',
-                          fontSize: '0.75rem',
-                          border: isSelected ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                          background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
-                          color: isSelected ? '#FFFFFF' : 'var(--color-text-primary)',
-                          cursor: 'pointer'
-                        }}
+                        className={`announcement-dept-btn ${isSelected ? 'selected' : ''}`}
+                        aria-pressed={isSelected}
                       >
                         {r}
                       </button>
@@ -547,7 +501,7 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Select Users:
                 </span>
-                <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', background: '#FFFFFF', padding: '6px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ maxHeight: '140px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '4px', background: 'var(--bg-input)', padding: '6px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   {allUsers.map(u => {
                     const isSelected = targetUsers.includes(u.id);
                     return (
@@ -561,7 +515,8 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                           borderRadius: '4px',
                           fontSize: '0.775rem',
                           cursor: 'pointer',
-                          background: isSelected ? 'var(--color-primary-subtle)' : 'transparent'
+                          background: isSelected ? 'var(--color-soft-green)' : 'transparent',
+                          color: 'var(--color-text-primary)'
                         }}
                       >
                         <input
@@ -623,8 +578,10 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                     style={{
                       fontSize: '0.75rem',
                       padding: '5px 10px',
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      background: 'var(--bg-surface)',
+                      color: 'var(--color-text-primary)',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: 'var(--shadow-sm)'
                     }}
                   >
                     <RefreshCw size={13} />
@@ -637,9 +594,10 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                     style={{
                       fontSize: '0.75rem',
                       padding: '5px 10px',
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      color: '#C62828',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                      background: 'var(--bg-surface)',
+                      color: 'var(--color-danger, #EF4444)',
+                      border: '1px solid var(--border-color)',
+                      boxShadow: 'var(--shadow-sm)'
                     }}
                   >
                     <Trash2 size={13} />
@@ -653,14 +611,14 @@ export const AnnouncementCreateDrawer: React.FC<AnnouncementCreateDrawerProps> =
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                  border: isDragging ? '2px dashed var(--color-primary)' : '2px dashed var(--border-color)',
-                  borderRadius: '10px',
-                  padding: '1.75rem 1rem',
-                  textAlign: 'center',
-                  cursor: 'pointer',
-                  background: isDragging ? 'var(--color-primary-subtle)' : 'var(--color-bg-subtle)',
-                  transition: 'background 0.2s, border-color 0.2s'
+                className={`announcement-upload-area ${isDragging ? 'dragging' : ''}`}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
                 }}
               >
                 <ImageIcon size={28} color="var(--color-primary)" style={{ margin: '0 auto 8px auto', display: 'block' }} />

@@ -160,6 +160,88 @@
   --chat-modal-bg: #FFFFFF;
   --chat-modal-header-bg: #FAFBF8;
   --chat-modal-footer-bg: #FAFBF8;
+
+  /* Expenses Module - Filter Buttons (Light Theme) */
+  --expense-filter-active-bg: #65C943;
+  --expense-filter-active-text: #08120A;
+  --expense-filter-active-border: #65C943;
+  --expense-filter-inactive-bg: #FFFFFF;
+  --expense-filter-inactive-text: #475569;
+  --expense-filter-inactive-border: #DDE5DA;
+  --expense-filter-hover-bg: #F1F5EF;
+  --expense-filter-hover-text: #1E293B;
+  --expense-filter-hover-border: #CBD5E1;
+  --expense-filter-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Target Audience Buttons (Light Theme) */
+  --announcement-audience-bg-inactive: #FFFFFF;
+  --announcement-audience-text-inactive: #475569;
+  --announcement-audience-border-inactive: #DDE5DA;
+  --announcement-audience-bg-selected: #EAF7E6;
+  --announcement-audience-text-selected: #2E7D1A;
+  --announcement-audience-border-selected: #58C83A;
+  --announcement-audience-bg-hover: #F1F5EF;
+  --announcement-audience-text-hover: #1E293B;
+  --announcement-audience-border-hover: #CBD5E1;
+  --announcement-audience-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Department Selection (Light Theme) */
+  --announcement-dept-bg-inactive: #FFFFFF;
+  --announcement-dept-text-inactive: #475569;
+  --announcement-dept-border-inactive: #DDE5DA;
+  --announcement-dept-bg-selected: #EAF7E6;
+  --announcement-dept-text-selected: #2E7D1A;
+  --announcement-dept-border-selected: #58C83A;
+  --announcement-dept-bg-hover: #F1F5EF;
+  --announcement-dept-text-hover: #1E293B;
+  --announcement-dept-border-hover: #CBD5E1;
+  --announcement-dept-bg-disabled: #F1F5F9;
+  --announcement-dept-text-disabled: #94A3B8;
+  --announcement-dept-border-disabled: #E2E8F0;
+  --announcement-dept-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Image Upload Area (Light Theme) */
+  --announcement-upload-bg: #FAFBF8;
+  --announcement-upload-border: #DDE5DA;
+  --announcement-upload-hover-bg: #F1F5EF;
+  --announcement-upload-drag-bg: #EAF7E6;
+  --announcement-upload-drag-border: #58C83A;
+
+  /* Announcement Detail - Header Action Buttons (Light Theme) */
+  --announcement-btn-back-bg: #FFFFFF;
+  --announcement-btn-back-text: #1E293B;
+  --announcement-btn-back-border: #CBD5E1;
+  --announcement-btn-back-hover-bg: #F8FAFC;
+
+  --announcement-btn-calendar-bg: #EAF7E6;
+  --announcement-btn-calendar-text: #2E7D1A;
+  --announcement-btn-calendar-border: #86EFAC;
+  --announcement-btn-calendar-hover-bg: #DCFCE7;
+
+  --announcement-btn-receipts-bg: #FFFFFF;
+  --announcement-btn-receipts-text: #1E293B;
+  --announcement-btn-receipts-border: #CBD5E1;
+  --announcement-btn-receipts-hover-bg: #F8FAFC;
+
+  --announcement-btn-delete-bg: #FEF2F2;
+  --announcement-btn-delete-icon: #DC2626;
+  --announcement-btn-delete-border: #FECACA;
+  --announcement-btn-delete-hover-bg: #FEE2E2;
+
+  --announcement-btn-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #94A3B8;
+  --announcement-btn-cal-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #58C83A;
+  --announcement-btn-del-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #F87171;
+
+  /* Announcement List - Unread Only Filter (Light Theme) */
+  --announcement-unread-bg-inactive: #FFFFFF;
+  --announcement-unread-text-inactive: #475569;
+  --announcement-unread-border-inactive: #DDE5DA;
+  --announcement-unread-bg-active: #E8F7E2;
+  --announcement-unread-text-active: #287D20;
+  --announcement-unread-border-active: #65C943;
+  --announcement-unread-hover-bg: #F1F5EF;
+  --announcement-unread-hover-text: #1E293B;
+  --announcement-unread-focus-ring: 0 0 0 2px #FFFFFF, 0 0 0 4px #65C943;
 }
 
 /* ==========================================================================
@@ -313,4 +395,86 @@
   --chat-modal-bg: #101A29;
   --chat-modal-header-bg: #0D1624;
   --chat-modal-footer-bg: #0D1624;
+
+  /* Expenses Module - Filter Buttons (Dark Theme) */
+  --expense-filter-active-bg: #65C943;
+  --expense-filter-active-text: #08120A;
+  --expense-filter-active-border: transparent;
+  --expense-filter-inactive-bg: #111827;
+  --expense-filter-inactive-text: #A5B4C7;
+  --expense-filter-inactive-border: #293548;
+  --expense-filter-hover-bg: #1C293A;
+  --expense-filter-hover-text: #F1F5F9;
+  --expense-filter-hover-border: #40516A;
+  --expense-filter-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Target Audience Buttons (Dark Theme) */
+  --announcement-audience-bg-inactive: #172131;
+  --announcement-audience-text-inactive: #A5B4C7;
+  --announcement-audience-border-inactive: #344256;
+  --announcement-audience-bg-selected: #173021;
+  --announcement-audience-text-selected: #79DF59;
+  --announcement-audience-border-selected: #65C943;
+  --announcement-audience-bg-hover: #1C293A;
+  --announcement-audience-text-hover: #F1F5F9;
+  --announcement-audience-border-hover: #40516A;
+  --announcement-audience-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Department Selection (Dark Theme) */
+  --announcement-dept-bg-inactive: #172131;
+  --announcement-dept-text-inactive: #C0CCDA;
+  --announcement-dept-border-inactive: #344256;
+  --announcement-dept-bg-selected: #173021;
+  --announcement-dept-text-selected: #79DF59;
+  --announcement-dept-border-selected: #65C943;
+  --announcement-dept-bg-hover: #1C293A;
+  --announcement-dept-text-hover: #F1F5F9;
+  --announcement-dept-border-hover: #40516A;
+  --announcement-dept-bg-disabled: #111827;
+  --announcement-dept-text-disabled: #718096;
+  --announcement-dept-border-disabled: #293548;
+  --announcement-dept-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #65C943;
+
+  /* Announcement Modal - Image Upload Area (Dark Theme) */
+  --announcement-upload-bg: #0D1624;
+  --announcement-upload-border: #263548;
+  --announcement-upload-hover-bg: #142032;
+  --announcement-upload-drag-bg: #173021;
+  --announcement-upload-drag-border: #65C943;
+
+  /* Announcement Detail - Header Action Buttons (Dark Theme) */
+  --announcement-btn-back-bg: #172131;
+  --announcement-btn-back-text: #E2E8F0;
+  --announcement-btn-back-border: #344256;
+  --announcement-btn-back-hover-bg: #243247;
+
+  --announcement-btn-calendar-bg: #173021;
+  --announcement-btn-calendar-text: #79DF59;
+  --announcement-btn-calendar-border: #377D36;
+  --announcement-btn-calendar-hover-bg: #21432B;
+
+  --announcement-btn-receipts-bg: #172131;
+  --announcement-btn-receipts-text: #E2E8F0;
+  --announcement-btn-receipts-border: #344256;
+  --announcement-btn-receipts-hover-bg: #243247;
+
+  --announcement-btn-delete-bg: #30191E;
+  --announcement-btn-delete-icon: #FB7185;
+  --announcement-btn-delete-border: #74313D;
+  --announcement-btn-delete-hover-bg: #48212A;
+
+  --announcement-btn-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #475569;
+  --announcement-btn-cal-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #377D36;
+  --announcement-btn-del-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #9F1239;
+
+  /* Announcement List - Unread Only Filter (Dark Theme) */
+  --announcement-unread-bg-inactive: #172131;
+  --announcement-unread-text-inactive: #A5B4C7;
+  --announcement-unread-border-inactive: #344256;
+  --announcement-unread-bg-active: #173021;
+  --announcement-unread-text-active: #79DF59;
+  --announcement-unread-border-active: #377D36;
+  --announcement-unread-hover-bg: #243247;
+  --announcement-unread-hover-text: #F1F5F9;
+  --announcement-unread-focus-ring: 0 0 0 2px #0B1120, 0 0 0 4px #65C943;
 }

@@ -401,7 +401,7 @@ export const SalesDashboardPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Award size={18} color="var(--color-primary)" />
             <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-              Top Selling Ayurvedic Formulations
+              Top Selling Products
             </h3>
           </div>
           <span style={{ fontSize: '0.8rem', color: '#6B7280' }}>Ranked by Confirmed Revenue</span>

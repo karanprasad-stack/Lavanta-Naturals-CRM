@@ -24,14 +24,16 @@ export const socketService = {
       socket.disconnect();
     }
 
-    // Connect to backend via origin proxy (/socket.io)
-    const socketUrl = window.location.origin;
+    // Connect directly to backend in development to avoid proxy drops, or use origin in production
+    const socketUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 
     socket = io(socketUrl, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 10,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000
     });

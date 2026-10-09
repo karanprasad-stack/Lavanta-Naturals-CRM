@@ -11,6 +11,7 @@ import { AnnouncementReadModel } from '../models/AnnouncementRead.js';
 import { NotificationModel } from '../models/Notification.js';
 import { UserModel, IUser, UserRole } from '../models/User.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { notificationDispatcher } from '../services/notificationDispatcher.js';
 
 export const announcementController = {
   /**
@@ -400,38 +401,42 @@ export const announcementController = {
         targetUsers: Array.isArray(targetUsers) ? targetUsers : [],
         posterImage: posterImage || '',
         attachments: Array.isArray(attachments) ? attachments : [],
-        publishedAt: new Date(),
+        publishedAt: (req.body.status || 'PUBLISHED').toUpperCase() === 'PUBLISHED' ? new Date() : null,
         expiresAt: expiryDate,
-        status: 'PUBLISHED'
+        status: (req.body.status || 'PUBLISHED').toUpperCase() === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT'
       });
 
       const savedAnnouncement = await announcement.save();
 
-      // Dispatch Notifications to all targeted recipients
-      const recipients = await announcementController.getTargetRecipients(
-        savedAnnouncement,
-        user._id
-      );
+      // Dispatch Notifications to all targeted recipients only if PUBLISHED
+      let recipientsCount = 0;
+      if (savedAnnouncement.status === 'PUBLISHED') {
+        const recipients = await announcementController.getTargetRecipients(
+          savedAnnouncement,
+          user._id
+        );
+        recipientsCount = recipients.length;
 
-      const notifType =
-        annPriority === 'URGENT' ? 'ANNOUNCEMENT_IMPORTANT' : 'ANNOUNCEMENT_PUBLISHED';
-      const notifTitle =
-        annPriority === 'URGENT' ? 'IMPORTANT ANNOUNCEMENT' : 'NEW ANNOUNCEMENT';
+        const notifType =
+          annPriority === 'URGENT' ? 'ANNOUNCEMENT_IMPORTANT' : 'ANNOUNCEMENT_PUBLISHED';
+        const notifTitle =
+          annPriority === 'URGENT' ? 'IMPORTANT ANNOUNCEMENT' : 'NEW ANNOUNCEMENT';
 
-      if (recipients.length > 0) {
-        const notificationsToCreate = recipients.map(recipient => ({
-          recipientId: recipient._id,
-          senderId: user._id,
-          type: notifType,
-          title: notifTitle,
-          message: `${user.name} published: "${savedAnnouncement.title}"`,
-          relatedEntityType: 'ANNOUNCEMENT',
-          relatedEntityId: savedAnnouncement._id,
-          isRead: false,
-          createdAt: new Date()
-        }));
+        if (recipients.length > 0) {
+          const notificationsToCreate = recipients.map(recipient => ({
+            recipientId: recipient._id,
+            senderId: user._id,
+            type: notifType as any,
+            title: notifTitle,
+            message: `${user.name} published: "${savedAnnouncement.title}"`,
+            relatedEntityType: 'ANNOUNCEMENT' as any,
+            relatedEntityId: savedAnnouncement._id,
+            link: `/announcements/${savedAnnouncement._id}`,
+            idempotencyKey: `announcement_pub_${savedAnnouncement._id}_${recipient._id}`
+          }));
 
-        await NotificationModel.insertMany(notificationsToCreate);
+          await notificationDispatcher.dispatchBatch(notificationsToCreate);
+        }
       }
 
       const populated = await AnnouncementModel.findById(savedAnnouncement._id)
@@ -439,9 +444,11 @@ export const announcementController = {
 
       res.status(201).json({
         success: true,
-        message: 'Announcement published successfully.',
+        message: savedAnnouncement.status === 'PUBLISHED'
+          ? 'Announcement published successfully.'
+          : 'Announcement saved as draft.',
         announcement: populated,
-        recipientsCount: recipients.length
+        recipientsCount
       });
     } catch (error) {
       console.error('[announcementController.createAnnouncement] Error:', error);
@@ -500,9 +507,41 @@ export const announcementController = {
       if (expiresAt !== undefined) {
         announcement.expiresAt = expiresAt ? new Date(expiresAt) : null;
       }
+      const wasDraft = announcement.status === 'DRAFT';
       if (status) announcement.status = status;
+      if (wasDraft && announcement.status === 'PUBLISHED' && !announcement.publishedAt) {
+        announcement.publishedAt = new Date();
+      }
 
       await announcement.save();
+
+      // If transitioning from DRAFT to PUBLISHED, dispatch notifications
+      if (wasDraft && announcement.status === 'PUBLISHED') {
+        const recipients = await announcementController.getTargetRecipients(
+          announcement,
+          user._id
+        );
+        const notifType =
+          announcement.priority === 'URGENT' ? 'ANNOUNCEMENT_IMPORTANT' : 'ANNOUNCEMENT_PUBLISHED';
+        const notifTitle =
+          announcement.priority === 'URGENT' ? 'IMPORTANT ANNOUNCEMENT' : 'NEW ANNOUNCEMENT';
+
+        if (recipients.length > 0) {
+          const notificationsToCreate = recipients.map(recipient => ({
+            recipientId: recipient._id,
+            senderId: user._id,
+            type: notifType as any,
+            title: notifTitle,
+            message: `${user.name} published: "${announcement.title}"`,
+            relatedEntityType: 'ANNOUNCEMENT' as any,
+            relatedEntityId: announcement._id,
+            link: `/announcements/${announcement._id}`,
+            idempotencyKey: `announcement_pub_${announcement._id}_${recipient._id}`
+          }));
+
+          await notificationDispatcher.dispatchBatch(notificationsToCreate);
+        }
+      }
 
       const populated = await AnnouncementModel.findById(announcement._id)
         .populate('createdBy', 'name role department designation profilePhoto email');

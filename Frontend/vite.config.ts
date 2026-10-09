@@ -8,13 +8,19 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         ws: true,
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err: any) => {
+            if (err.code === 'ECONNABORTED' || err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED') return;
+            console.error('[vite] ws proxy error:', err.message || err);
+          });
+        },
       },
     },
   },

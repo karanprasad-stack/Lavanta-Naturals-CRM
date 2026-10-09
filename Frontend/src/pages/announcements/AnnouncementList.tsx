@@ -119,7 +119,7 @@ export const AnnouncementList: React.FC = () => {
       {/* Filter and Search Bar */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: '12px',
           border: '1px solid var(--border-color)',
           padding: '0.75rem 1rem',
@@ -168,22 +168,12 @@ export const AnnouncementList: React.FC = () => {
 
             {/* Unread Only Pill Button */}
             <button
+              type="button"
               onClick={() => setUnreadOnly(!unreadOnly)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                padding: '6px 12px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                fontWeight: unreadOnly ? 600 : 500,
-                border: unreadOnly ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                background: unreadOnly ? 'var(--color-primary-subtle)' : '#FFFFFF',
-                color: unreadOnly ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
-                cursor: 'pointer'
-              }}
+              className={`announcement-unread-btn ${unreadOnly ? 'active' : ''}`}
+              aria-pressed={unreadOnly}
             >
-              <CheckCircle2 size={14} color={unreadOnly ? 'var(--color-primary)' : 'var(--color-text-secondary)'} />
+              <CheckCircle2 size={14} />
               <span>Unread Only</span>
             </button>
           </div>
@@ -246,7 +236,7 @@ export const AnnouncementList: React.FC = () => {
         /* Empty State */
         <div
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface)',
             borderRadius: '14px',
             border: '1px solid var(--border-color)',
             padding: '4rem 2rem',

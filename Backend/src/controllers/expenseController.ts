@@ -332,10 +332,13 @@ export const getExpenseById = async (
       return;
     }
 
-    // Role check
-    const isOwner = expense.submittedBy._id.toString() === user._id.toString();
+    // Role check - safely resolve submitter ID (handles unpopulated or deleted user references)
+    const submittedById = (expense.submittedBy as any)?._id?.toString?.()
+      || (expense.submittedBy as any)?.toString?.()
+      || '';
+    const isOwner = Boolean(submittedById && submittedById === user._id.toString());
     const isManagerSameDept =
-      user.role === 'MANAGER' && expense.department === user.department;
+      user.role === 'MANAGER' && Boolean(user.department) && expense.department === user.department;
     const isPrivileged = user.role === 'FOUNDER' || user.role === 'HR';
 
     if (!isOwner && !isManagerSameDept && !isPrivileged) {
@@ -346,11 +349,16 @@ export const getExpenseById = async (
       return;
     }
 
-    const activities = await ExpenseActivityModel.find({ expenseId: expense._id })
-      .populate('userId', 'name email role')
-      .sort({ createdAt: -1 })
-      .limit(30)
-      .lean();
+    let activities: any[] = [];
+    try {
+      activities = await ExpenseActivityModel.find({ expenseId: expense._id })
+        .populate('userId', 'name email role')
+        .sort({ createdAt: -1 })
+        .limit(30)
+        .lean();
+    } catch (actErr) {
+      console.warn('[ExpenseController] Warning fetching activities:', actErr);
+    }
 
     res.status(200).json({
       success: true,
@@ -360,6 +368,7 @@ export const getExpenseById = async (
       }
     });
   } catch (error: any) {
+    console.error('[ExpenseController] getExpenseById error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch expense'
@@ -385,7 +394,8 @@ export const submitExpense = async (
       return;
     }
 
-    if (expense.submittedBy.toString() !== user._id.toString() && user.role !== 'FOUNDER') {
+    const submittedById = (expense.submittedBy as any)?._id?.toString?.() || (expense.submittedBy as any)?.toString?.() || '';
+    if (submittedById !== user._id.toString() && user.role !== 'FOUNDER') {
       res.status(403).json({ success: false, message: 'Only the submitter can submit this expense' });
       return;
     }
@@ -503,19 +513,22 @@ export const approveExpense = async (
 
     // Notify submitter
     try {
-      await NotificationModel.create({
-        recipient: expense.submittedBy,
-        type: 'EXPENSE_APPROVED',
-        title: 'Expense Approved',
-        message: `Your expense "${expense.title}" for ₹${expense.amount.toLocaleString()} has been approved by ${user.name}`,
-        entityType: 'EXPENSE',
-        entityId: expense._id,
-        actionUrl: `/expenses/${expense._id}`,
-        metadata: {
-          approvedBy: user.name,
-          amount: expense.amount
-        }
-      });
+      const recipientId = (expense.submittedBy as any)?._id || expense.submittedBy;
+      if (recipientId) {
+        await NotificationModel.create({
+          recipient: recipientId,
+          type: 'EXPENSE_APPROVED',
+          title: 'Expense Approved',
+          message: `Your expense "${expense.title}" for ₹${expense.amount.toLocaleString()} has been approved by ${user.name}`,
+          entityType: 'EXPENSE',
+          entityId: expense._id,
+          actionUrl: `/expenses/${expense._id}`,
+          metadata: {
+            approvedBy: user.name,
+            amount: expense.amount
+          }
+        });
+      }
     } catch (err) {
       console.error('Failed to notify submitter of approval:', err);
     }
@@ -595,19 +608,22 @@ export const rejectExpense = async (
 
     // Notify submitter
     try {
-      await NotificationModel.create({
-        recipient: expense.submittedBy,
-        type: 'EXPENSE_REJECTED',
-        title: 'Expense Rejected',
-        message: `Your expense "${expense.title}" was rejected: ${rejectionReason.trim()}`,
-        entityType: 'EXPENSE',
-        entityId: expense._id,
-        actionUrl: `/expenses/${expense._id}`,
-        metadata: {
-          rejectedBy: user.name,
-          reason: rejectionReason.trim()
-        }
-      });
+      const recipientId = (expense.submittedBy as any)?._id || expense.submittedBy;
+      if (recipientId) {
+        await NotificationModel.create({
+          recipient: recipientId,
+          type: 'EXPENSE_REJECTED',
+          title: 'Expense Rejected',
+          message: `Your expense "${expense.title}" was rejected: ${rejectionReason.trim()}`,
+          entityType: 'EXPENSE',
+          entityId: expense._id,
+          actionUrl: `/expenses/${expense._id}`,
+          metadata: {
+            rejectedBy: user.name,
+            reason: rejectionReason.trim()
+          }
+        });
+      }
     } catch (err) {
       console.error('Failed to notify submitter of rejection:', err);
     }
@@ -694,7 +710,8 @@ export const cancelExpense = async (
       return;
     }
 
-    if (expense.submittedBy.toString() !== user._id.toString() && user.role !== 'FOUNDER') {
+    const submittedById = (expense.submittedBy as any)?._id?.toString?.() || (expense.submittedBy as any)?.toString?.() || '';
+    if (submittedById !== user._id.toString() && user.role !== 'FOUNDER') {
       res.status(403).json({ success: false, message: 'Not authorized to cancel this expense' });
       return;
     }
@@ -829,8 +846,9 @@ export const getExpenseReceipt = async (
     }
 
     // RBAC check
-    const isOwner = expense.submittedBy.toString() === user._id.toString();
-    const isManagerSameDept = user.role === 'MANAGER' && expense.department === user.department;
+    const submittedById = (expense.submittedBy as any)?._id?.toString?.() || (expense.submittedBy as any)?.toString?.() || '';
+    const isOwner = Boolean(submittedById && submittedById === user._id.toString());
+    const isManagerSameDept = user.role === 'MANAGER' && Boolean(user.department) && expense.department === user.department;
     const isPrivileged = user.role === 'FOUNDER' || user.role === 'HR';
 
     if (!isOwner && !isManagerSameDept && !isPrivileged) {

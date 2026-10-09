@@ -125,7 +125,7 @@ export const AnnouncementDetail: React.FC = () => {
           <h3 style={{ margin: '0 0 4px 0', fontSize: '1rem' }}>Announcement Unavailable</h3>
           <p style={{ margin: 0, fontSize: '0.85rem' }}>{error || 'Announcement not found.'}</p>
         </div>
-        <button onClick={() => navigate('/announcements')} className="btn btn-secondary">
+        <button onClick={() => navigate('/announcements')} className="announcement-detail-btn announcement-detail-back-btn">
           <ArrowLeft size={16} />
           <span>Back to Announcements</span>
         </button>
@@ -176,33 +176,25 @@ export const AnnouncementDetail: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '850px', margin: '0 auto' }}>
       {/* Top Navigation Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="announcement-detail-header">
         <button
           onClick={() => navigate('/announcements')}
-          className="btn btn-secondary"
-          style={{ padding: '6px 12px', fontSize: '0.825rem', gap: '6px' }}
+          className="announcement-detail-btn announcement-detail-back-btn"
+          aria-label="Back to Announcements"
         >
-          <ArrowLeft size={14} />
+          <ArrowLeft size={15} />
           <span>Back to Announcements</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="announcement-detail-actions">
           {/* Add to Calendar Button */}
           <button
             onClick={handleAddToCalendar}
             disabled={isAddingToCalendar}
-            className="btn btn-secondary"
-            style={{
-              padding: '6px 14px',
-              fontSize: '0.825rem',
-              gap: '6px',
-              color: isAddedToCalendar ? '#22C55E' : 'var(--color-primary-deep)',
-              borderColor: isAddedToCalendar ? '#86EFAC' : 'var(--color-primary-border)',
-              backgroundColor: isAddedToCalendar ? '#F0FDF4' : '#FFFFFF',
-              cursor: isAddingToCalendar ? 'wait' : 'pointer'
-            }}
+            className="announcement-detail-btn announcement-detail-cal-btn"
+            aria-label={isAddedToCalendar ? 'View in Calendar' : 'Add to Calendar'}
           >
-            <Calendar size={14} />
+            <Calendar size={15} />
             <span>
               {isAddingToCalendar
                 ? 'Adding...'
@@ -216,16 +208,10 @@ export const AnnouncementDetail: React.FC = () => {
           {canSeeReceipts && (
             <button
               onClick={() => setIsReceiptsOpen(true)}
-              className="btn btn-secondary"
-              style={{
-                padding: '6px 14px',
-                fontSize: '0.825rem',
-                gap: '6px',
-                color: 'var(--color-primary-deep)',
-                borderColor: 'var(--color-primary-border)'
-              }}
+              className="announcement-detail-btn announcement-detail-receipts-btn"
+              aria-label="Read Receipts"
             >
-              <Eye size={14} />
+              <Eye size={15} />
               <span>Read Receipts</span>
             </button>
           )}
@@ -234,11 +220,11 @@ export const AnnouncementDetail: React.FC = () => {
           {(isPrivileged || isAuthor) && (
             <button
               onClick={handleDelete}
-              className="btn btn-secondary"
-              style={{ padding: '6px 10px', color: '#C62828', fontSize: '0.825rem' }}
-              title="Archive announcement"
+              className="announcement-detail-btn announcement-detail-delete-btn"
+              title="Delete Announcement"
+              aria-label="Delete Announcement"
             >
-              <Trash2 size={14} />
+              <Trash2 size={16} />
             </button>
           )}
         </div>
@@ -247,7 +233,7 @@ export const AnnouncementDetail: React.FC = () => {
       {/* Main Announcement Document Card */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: '14px',
           border: '1px solid var(--border-color)',
           boxShadow: 'var(--shadow-sm)',
@@ -512,8 +498,8 @@ export const AnnouncementDetail: React.FC = () => {
                       href={file.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.75rem', gap: '4px' }}
+                      className="announcement-detail-btn announcement-detail-back-btn"
+                      style={{ height: '30px', padding: '0 10px', fontSize: '0.75rem', gap: '4px' }}
                     >
                       <Download size={13} />
                       <span>Download</span>

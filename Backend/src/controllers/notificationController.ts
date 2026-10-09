@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { Types } from 'mongoose';
 import { NotificationModel } from '../models/Notification.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { notificationDispatcher } from '../services/notificationDispatcher.js';
 
 export const notificationController = {
   /**
@@ -73,6 +74,7 @@ export const notificationController = {
           relatedEntityType: obj.relatedEntityType || (obj.taskId ? 'TASK' : 'SYSTEM'),
           relatedEntityId: obj.relatedEntityId || obj.taskId || null,
           taskId: obj.taskId || obj.relatedEntityId || null,
+          link: obj.link || null,
           isRead: obj.isRead ?? obj.read ?? false,
           read: obj.isRead ?? obj.read ?? false,
           readAt: obj.readAt || null,
@@ -159,6 +161,9 @@ export const notificationController = {
         return;
       }
 
+      // Notify real-time unread count update
+      await notificationDispatcher.notifyUnreadCount(user._id);
+
       res.json({
         success: true,
         message: 'Notification marked as read',
@@ -208,6 +213,8 @@ export const notificationController = {
         return;
       }
 
+      await notificationDispatcher.notifyUnreadCount(user._id);
+
       res.json({
         success: true,
         message: 'Notification marked as unread',
@@ -245,6 +252,8 @@ export const notificationController = {
         }
       );
 
+      await notificationDispatcher.notifyUnreadCount(user._id);
+
       res.json({ success: true, message: 'All notifications marked as read' });
     } catch (error) {
       console.error('[notificationController.markAllAsRead] Error:', error);
@@ -274,6 +283,8 @@ export const notificationController = {
         res.status(404).json({ success: false, message: 'Notification not found or access denied' });
         return;
       }
+
+      await notificationDispatcher.notifyUnreadCount(user._id);
 
       res.json({ success: true, message: 'Notification deleted successfully' });
     } catch (error) {
