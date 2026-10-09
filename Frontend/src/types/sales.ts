@@ -21,8 +21,10 @@ export type PaymentStatus =
   | 'REFUNDED';
 
 export type OrderSource =
-  | 'WEBSITE'
   | 'MANUAL'
+  | 'CSV_IMPORT'
+  | 'API'
+  | 'WEBSITE'
   | 'PHONE'
   | 'SOCIAL'
   | 'OTHER';
@@ -194,4 +196,57 @@ export interface CreateOrderInput {
   orderStatus?: 'PENDING' | 'CONFIRMED';
   source?: OrderSource;
   notes?: string;
+}
+
+export interface ImportPreviewRow {
+  row: number;
+  status: 'VALID' | 'DUPLICATE' | 'INVALID';
+  externalOrderId: string;
+  salesChannel: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  tax: number;
+  shipping: number;
+  marketplaceFee: number;
+  total: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  orderDate?: string;
+  orderStatus?: string;
+  paymentStatus?: string;
+  errors?: string[];
+  duplicateReason?: string;
+}
+
+export interface ImportPreviewResponse {
+  salesChannel: string;
+  totalRows: number;
+  validCount: number;
+  duplicateCount: number;
+  invalidCount: number;
+  previewRows: ImportPreviewRow[];
+  duplicates: { row: number; externalOrderId: string; reason: string }[];
+  errors: { row: number; externalOrderId: string; errors: string[] }[];
+}
+
+export interface ImportOrdersResponse {
+  salesChannel: string;
+  totalProcessed: number;
+  importedCount: number;
+  skippedDuplicatesCount: number;
+  failedCount: number;
+  importedOrders: {
+    _id: string;
+    orderNumber: string;
+    externalOrderId: string;
+    total: number;
+    orderStatus: string;
+    paymentStatus: string;
+  }[];
+  skippedDuplicates: { row?: number; externalOrderId: string; reason: string }[];
+  failedRows: { row?: number; externalOrderId: string; error: string }[];
 }

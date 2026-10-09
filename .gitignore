@@ -45,4 +45,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
-
+# Test artifacts
+playwright-report/
+test-results/

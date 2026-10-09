@@ -19,8 +19,10 @@ export type PaymentStatus =
   | 'REFUNDED';
 
 export type OrderSource =
-  | 'WEBSITE'
   | 'MANUAL'
+  | 'CSV_IMPORT'
+  | 'API'
+  | 'WEBSITE'
   | 'PHONE'
   | 'SOCIAL'
   | 'OTHER';
@@ -209,7 +211,7 @@ const OrderSchema = new Schema(
     },
     source: {
       type: String,
-      enum: ['WEBSITE', 'MANUAL', 'PHONE', 'SOCIAL', 'OTHER'],
+      enum: ['MANUAL', 'CSV_IMPORT', 'API', 'WEBSITE', 'PHONE', 'SOCIAL', 'OTHER'],
       default: 'MANUAL'
     },
     notes: {

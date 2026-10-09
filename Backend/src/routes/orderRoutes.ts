@@ -7,7 +7,9 @@ import {
   confirmOrder,
   cancelOrder,
   updateOrderStatus,
-  updatePaymentStatus
+  updatePaymentStatus,
+  previewOrderImport,
+  importOrders
 } from '../controllers/orderController.js';
 
 const router = Router();
@@ -17,6 +19,11 @@ router.use(authenticate);
 // Orders listing and read: FOUNDER, MANAGER, HR, EMPLOYEE
 router.get('/orders', authorize('FOUNDER', 'MANAGER', 'HR', 'EMPLOYEE'), getOrders);
 router.post('/orders', authorize('FOUNDER', 'MANAGER', 'HR', 'EMPLOYEE'), createOrder);
+
+// Multi-Channel CSV Import endpoints: strictly FOUNDER and MANAGER
+router.post('/orders/import/preview', authorize('FOUNDER', 'MANAGER'), previewOrderImport);
+router.post('/orders/import', authorize('FOUNDER', 'MANAGER'), importOrders);
+
 router.get('/orders/:id', authorize('FOUNDER', 'MANAGER', 'HR', 'EMPLOYEE'), getOrderById);
 
 // Order lifecycle actions: strictly FOUNDER and MANAGER

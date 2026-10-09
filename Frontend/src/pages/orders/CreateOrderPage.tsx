@@ -249,10 +249,10 @@ export const CreateOrderPage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-          Create New Sales Order
+          Create Manual Order
         </h1>
         <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-          Consolidate multi-channel sales, marketplace transactions, and client orders into the unified register
+          Manual entry for offline, wholesale, distributor, phone, or exceptional transactions. External platform orders should enter via Import Orders.
         </p>
       </div>
 

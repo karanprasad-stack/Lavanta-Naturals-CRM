@@ -55,42 +55,41 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
   return (
     <header className="top-header">
       {/* Left: Mobile Menu & Page Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', minWidth: 0, flexShrink: 1 }}>
         <button
           onClick={onOpenMobileSidebar}
-          style={{
-            display: window.innerWidth <= 768 ? 'flex' : 'none',
-            padding: '6px',
-            color: 'var(--color-primary)'
-          }}
+          className="header-mobile-menu-btn"
+          aria-label="Toggle navigation menu"
         >
           <Menu size={20} />
         </button>
 
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.725rem', color: 'var(--color-text-secondary)', marginBottom: '1px' }}>
-            <Link to="/dashboard" style={{ color: 'var(--color-text-secondary)' }}>Lavanta HQ</Link>
-            <span>/</span>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+          <div className="header-breadcrumbs" style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.725rem', color: 'var(--color-text-secondary)', marginBottom: '1px' }}>
+            <Link to="/dashboard" style={{ color: 'var(--color-text-secondary)', textDecoration: 'none' }}>Lavanta HQ</Link>
+            <span style={{ opacity: 0.5 }}>/</span>
             <span style={{ textTransform: 'capitalize', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
               {currentSection}
             </span>
           </div>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--color-text-primary)', margin: 0 }}>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {pageTitle}
           </h2>
         </div>
       </div>
 
-      {/* Right: Quick Create, Search, Role Pill, Chat, Calendar, Notifications, Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {/* Right: Quick Create, Search, Role Pill, Utilities (Chat, Calendar, Theme, Notifications), Profile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'nowrap', flexShrink: 0 }}>
         {/* Quick Create '+' Button */}
         <button
           onClick={() => setIsQuickCreateOpen(true)}
+          className="header-create-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            padding: '0.4rem 0.75rem',
+            padding: '0 0.85rem',
+            height: '36px',
             borderRadius: 'var(--radius-sm)',
             border: 'none',
             background: 'var(--color-primary)',
@@ -99,7 +98,8 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
             fontWeight: 600,
             cursor: 'pointer',
             boxShadow: '0 2px 6px rgba(105, 196, 63, 0.25)',
-            transition: 'background 0.15s ease'
+            transition: 'background 0.15s ease',
+            flexShrink: 0
           }}
           title="Quick Create (Tasks, Orders, Expenses, Products...)"
         >
@@ -109,146 +109,88 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
 
         {/* Search */}
         <button
+          id="header-global-search-btn"
           onClick={openCommandPalette}
           className="header-search-btn"
           title="Search anything (Cmd+K)"
+          aria-label="Search tasks, announcements, team..."
         >
-          <Search size={15} color="var(--color-text-secondary)" />
+          <Search size={15} color="var(--color-text-secondary)" style={{ flexShrink: 0 }} />
           <span>Search tasks, announcements, team...</span>
           <span className="header-shortcut-key">⌘K</span>
         </button>
 
-        {/* Authenticated Role Indicator (Static) */}
+        {/* Authenticated Role Indicator */}
         <div
+          className="header-role-badge"
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            padding: '0.35rem 0.75rem',
+            padding: '0 0.75rem',
+            height: '32px',
             borderRadius: 'var(--radius-full)',
             background: 'var(--color-soft-green)',
             color: 'var(--color-primary-deep)',
             border: '1px solid rgba(105, 196, 63, 0.3)',
-            fontSize: '0.8rem',
+            fontSize: '0.775rem',
             fontWeight: 600,
-            userSelect: 'none'
+            userSelect: 'none',
+            flexShrink: 0
           }}
           title={`Authenticated Role: ${formatRole(currentUser?.role || activeRole)}`}
         >
-          <Shield size={14} />
+          <Shield size={13} />
           <span>
             {formatRole(currentUser?.role || activeRole)}
           </span>
         </div>
 
-        {/* Chat shortcut */}
-        <button
-          onClick={() => navigate('/chat')}
+        {/* Subtle Divider */}
+        <div
+          className="header-role-divider"
           style={{
-            padding: '0.45rem',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-subtle)',
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            display: 'flex',
-            position: 'relative'
+            width: '1px',
+            height: '22px',
+            backgroundColor: 'var(--border-color)',
+            margin: '0 0.15rem',
+            flexShrink: 0
           }}
-          title="Open Company Chat"
-        >
-          <MessageSquare size={17} />
-          {totalUnreadCount > 0 && (
-            <span
-              style={{
-                position: 'absolute',
-                top: '-3px',
-                right: '-3px',
-                minWidth: '16px',
-                height: '16px',
-                padding: '0 3px',
-                borderRadius: '8px',
-                background: 'var(--color-primary)',
-                color: '#FFFFFF',
-                fontSize: '0.625rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '2px solid #FFFFFF'
-              }}
-            >
-              {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-            </span>
-          )}
-        </button>
+        />
 
-        {/* Calendar shortcut */}
-        <button
-          onClick={() => navigate('/calendar')}
-          style={{
-            padding: '0.45rem',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-surface)',
-            color: 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            display: 'flex'
-          }}
-          title="Open Calendar"
-        >
-          <Calendar size={17} />
-        </button>
-
-        {/* Theme Toggle (Dark / Light) */}
-        <button
-          onClick={toggleTheme}
-          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          style={{
-            padding: '0.45rem',
-            borderRadius: 'var(--radius-sm)',
-            border: '1px solid var(--border-color)',
-            background: 'var(--bg-surface)',
-            color: isDark ? '#FBBF24' : 'var(--color-text-secondary)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease'
-          }}
-          title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {isDark ? <Sun size={17} /> : <Moon size={17} />}
-        </button>
-
-        {/* Notifications Popover */}
-        <div style={{ position: 'relative' }}>
+        {/* Utilities Group: Chat, Calendar, Theme, Notifications */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+          {/* Chat shortcut */}
           <button
-            onClick={() => {
-              setIsNotifOpen(!isNotifOpen);
-              setIsProfileMenuOpen(false);
-            }}
+            onClick={() => navigate('/chat')}
+            className="header-nav-utility"
             style={{
-              padding: '0.45rem',
+              width: '36px',
+              height: '36px',
               borderRadius: 'var(--radius-sm)',
               border: '1px solid var(--border-color)',
               background: 'var(--bg-subtle)',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer',
               display: 'flex',
-              position: 'relative'
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              transition: 'all 0.15s ease'
             }}
-            title="Notifications"
+            title="Open Company Chat"
           >
-            <Bell size={17} />
-            {unreadCount > 0 && (
+            <MessageSquare size={17} />
+            {totalUnreadCount > 0 && (
               <span
                 style={{
                   position: 'absolute',
                   top: '-3px',
                   right: '-3px',
-                  width: '16px',
+                  minWidth: '16px',
                   height: '16px',
-                  borderRadius: '50%',
+                  padding: '0 3px',
+                  borderRadius: '8px',
                   background: 'var(--color-primary)',
                   color: '#FFFFFF',
                   fontSize: '0.625rem',
@@ -259,10 +201,102 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                   border: '2px solid #FFFFFF'
                 }}
               >
-                {unreadCount}
+                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
               </span>
             )}
           </button>
+
+          {/* Calendar shortcut */}
+          <button
+            onClick={() => navigate('/calendar')}
+            className="header-nav-utility"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-surface)',
+              color: 'var(--color-text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
+            }}
+            title="Open Calendar"
+          >
+            <Calendar size={17} />
+          </button>
+
+          {/* Theme Toggle (Dark / Light) */}
+          <button
+            onClick={toggleTheme}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border-color)',
+              background: 'var(--bg-surface)',
+              color: isDark ? '#FBBF24' : 'var(--color-text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s ease'
+            }}
+            title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {isDark ? <Sun size={17} /> : <Moon size={17} />}
+          </button>
+
+          {/* Notifications Popover */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => {
+                setIsNotifOpen(!isNotifOpen);
+                setIsProfileMenuOpen(false);
+              }}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-subtle)',
+                color: 'var(--color-text-secondary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                transition: 'all 0.15s ease'
+              }}
+              title="Notifications"
+            >
+              <Bell size={17} />
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-3px',
+                    right: '-3px',
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    background: 'var(--color-primary)',
+                    color: '#FFFFFF',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid #FFFFFF'
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
 
           {isNotifOpen && (
             <div
@@ -387,6 +421,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
             </div>
           )}
         </div>
+      </div>
 
         {/* Profile Avatar & Dropdown */}
         <div style={{ position: 'relative' }}>
@@ -395,12 +430,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
               setIsProfileMenuOpen(!isProfileMenuOpen);
               setIsNotifOpen(false);
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', background: 'transparent', border: 'none', padding: 0 }}
+            title={currentUser?.name || 'User Profile'}
+            aria-label="User profile menu"
           >
             <img
               src={currentUser?.profilePhoto || currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
               alt={currentUser?.name || 'User'}
-              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+              style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid var(--border-color)' }}
             />
           </button>
 

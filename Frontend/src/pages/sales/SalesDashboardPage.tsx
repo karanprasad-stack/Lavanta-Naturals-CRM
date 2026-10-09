@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Plus,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  UploadCloud
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -30,6 +31,7 @@ import { SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
+import { OrderImportModal } from '../../components/orders/OrderImportModal';
 import { useToast } from '../../context/ToastContext';
 
 export const SalesDashboardPage: React.FC = () => {
@@ -42,14 +44,15 @@ export const SalesDashboardPage: React.FC = () => {
   const [channelData, setChannelData] = useState<SalesByChannelResponse | null>(null);
   const [timeRange, setTimeRange] = useState<string>('30d');
   const [loading, setLoading] = useState(true);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const loadData = async () => {
     try {
       setLoading(true);
       const [sumData, trendData, topProdData, chData] = await Promise.all([
-        salesService.getSalesSummary(),
+        salesService.getSalesSummary(timeRange),
         salesService.getSalesTrends(timeRange),
-        salesService.getTopProducts(5),
+        salesService.getTopProducts(5, undefined, timeRange),
         salesService.getSalesByChannel(timeRange)
       ]);
       setSummary(sumData);
@@ -112,14 +115,14 @@ export const SalesDashboardPage: React.FC = () => {
             icon={<ShoppingBag size={16} />}
             onClick={() => navigate('/orders')}
           >
-            View Orders Table
+            View Orders
           </Button>
           <Button
             variant="primary"
-            icon={<Plus size={16} />}
-            onClick={() => navigate('/orders/new')}
+            icon={<UploadCloud size={16} />}
+            onClick={() => setIsImportModalOpen(true)}
           >
-            Create Order
+            Import Orders
           </Button>
         </div>
       </div>
@@ -231,7 +234,8 @@ export const SalesDashboardPage: React.FC = () => {
               { key: 'month', label: 'This Month' },
               { key: 'last_month', label: 'Last Month' },
               { key: '30d', label: '30 Days' },
-              { key: '90d', label: '90 Days' }
+              { key: '90d', label: '90 Days' },
+              { key: 'all', label: 'All Time' }
             ].map((r) => (
               <button
                 key={r.key}
@@ -448,6 +452,12 @@ export const SalesDashboardPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      <OrderImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 };

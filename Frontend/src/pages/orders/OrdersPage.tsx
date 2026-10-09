@@ -13,14 +13,18 @@ import {
   Truck,
   Package,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  UploadCloud,
+  Calendar,
+  X
 } from 'lucide-react';
 import { orderService } from '../../services/orderService';
-import { Order, OrderStatus, PaymentStatus } from '../../types/sales';
-import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannel } from '../../data/salesChannels';
+import { Order, OrderStatus, PaymentStatus, OrderSource } from '../../types/sales';
+import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannel, getChannelMeta } from '../../data/salesChannels';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Loading } from '../../components/ui/Loading';
+import { OrderImportModal } from '../../components/orders/OrderImportModal';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -44,10 +48,15 @@ export const OrdersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(getInitialStatus());
   const [channelFilter, setChannelFilter] = useState<string>('ALL');
-  const [paymentFilter, setPaymentFilter] = useState('ALL');
+  const [paymentFilter, setPaymentFilter] = useState<string>('ALL');
+  const [sourceFilter, setSourceFilter] = useState<string>('ALL');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Sync state if URL search parameters change externally
   useEffect(() => {
@@ -67,7 +76,10 @@ export const OrdersPage: React.FC = () => {
         search: search.trim() || undefined,
         orderStatus: statusFilter,
         salesChannel: channelFilter !== 'ALL' ? (channelFilter as SalesChannel) : undefined,
-        paymentStatus: paymentFilter,
+        paymentStatus: paymentFilter !== 'ALL' ? paymentFilter : undefined,
+        source: sourceFilter !== 'ALL' ? sourceFilter : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
         page,
         limit: 15
       });
@@ -96,12 +108,24 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     loadOrders();
-  }, [statusFilter, channelFilter, paymentFilter, page]);
+  }, [statusFilter, channelFilter, paymentFilter, sourceFilter, startDate, endDate, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     loadOrders();
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setStatusFilter('ALL');
+    setChannelFilter('ALL');
+    setPaymentFilter('ALL');
+    setSourceFilter('ALL');
+    setStartDate('');
+    setEndDate('');
+    setPage(1);
+    setSearchParams(new URLSearchParams(), { replace: true });
   };
 
   const handleQuickConfirm = async (orderId: string, orderNumber: string) => {
@@ -161,6 +185,63 @@ export const OrdersPage: React.FC = () => {
     }
   };
 
+  const getSourceBadge = (source?: OrderSource | string) => {
+    switch (source) {
+      case 'CSV_IMPORT':
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 7px',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            backgroundColor: 'rgba(59, 130, 246, 0.12)',
+            color: '#3B82F6',
+            border: '1px solid rgba(59, 130, 246, 0.25)'
+          }}>
+            CSV Import
+          </span>
+        );
+      case 'API':
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 7px',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            backgroundColor: 'rgba(139, 92, 246, 0.12)',
+            color: '#8B5CF6',
+            border: '1px solid rgba(139, 92, 246, 0.25)'
+          }}>
+            Direct API
+          </span>
+        );
+      case 'MANUAL':
+      default:
+        return (
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 7px',
+            borderRadius: '4px',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            backgroundColor: 'rgba(107, 114, 128, 0.12)',
+            color: '#9CA3AF',
+            border: '1px solid rgba(107, 114, 128, 0.25)'
+          }}>
+            Manual
+          </span>
+        );
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
       {/* Top Header */}
@@ -171,24 +252,24 @@ export const OrdersPage: React.FC = () => {
               width: '36px',
               height: '36px',
               borderRadius: '8px',
-              backgroundColor: '#E8F5E9',
-              color: '#2E7D32',
+              backgroundColor: 'rgba(105, 196, 63, 0.15)',
+              color: 'var(--color-primary, #69C43F)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
               <ShoppingBag size={20} />
             </div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-              Sales & Orders Management
+            <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.75rem', fontWeight: 600, color: 'var(--color-text-primary, #F3F4F6)' }}>
+              Unified Order Register
             </h1>
           </div>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>
-            Unified multi-channel order register consolidating sales across Website, Amazon, Flipkart, and more
+          <p style={{ color: 'var(--color-text-secondary, #9CA3AF)', fontSize: '0.875rem' }}>
+            Central multi-channel order ledger consolidating sales across Website, Amazon, Flipkart, and Manual transactions
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           {(activeRole === 'FOUNDER' || activeRole === 'MANAGER') && (
             <Button
               variant="outline"
@@ -197,12 +278,21 @@ export const OrdersPage: React.FC = () => {
               Sales Analytics
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            icon={<UploadCloud size={16} />}
+            onClick={() => setIsImportModalOpen(true)}
+          >
+            Import Orders
+          </Button>
+
           <Button
             variant="primary"
             icon={<Plus size={16} />}
             onClick={() => navigate('/orders/new')}
           >
-            Create Order
+            Create Manual Order
           </Button>
         </div>
       </div>
@@ -228,9 +318,9 @@ export const OrdersPage: React.FC = () => {
               fontSize: '0.8rem',
               fontWeight: 600,
               cursor: 'pointer',
-              border: statusFilter === tab.key ? '1px solid var(--color-primary)' : '1px solid #E5E7EB',
-              background: statusFilter === tab.key ? 'var(--color-primary)' : '#FFFFFF',
-              color: statusFilter === tab.key ? '#FFFFFF' : 'var(--color-text-secondary)',
+              border: statusFilter === tab.key ? '1px solid var(--color-primary, #69C43F)' : '1px solid var(--border-color, #1F2D42)',
+              background: statusFilter === tab.key ? 'var(--color-primary, #69C43F)' : 'var(--bg-surface-elevated, #142032)',
+              color: statusFilter === tab.key ? '#FFFFFF' : 'var(--color-text-secondary, #9CA3AF)',
               boxShadow: statusFilter === tab.key ? '0 1px 3px rgba(105, 196, 63, 0.25)' : 'none',
               transition: 'all 0.15s ease'
             }}
@@ -241,28 +331,31 @@ export const OrdersPage: React.FC = () => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="luxury-card" style={{ padding: '1.25rem' }}>
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)' }} />
+      <div className="luxury-card" style={{ padding: '1.25rem', backgroundColor: 'var(--bg-surface, #0E1726)' }}>
+        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.85rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted, #6B7280)' }} />
             <input
               type="text"
-              placeholder="Search by order #, external ID, customer name..."
+              placeholder="Search CRM ID, Ext Order ID, customer, SKU..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
                 width: '100%',
                 padding: '0.55rem 0.75rem 0.55rem 2.25rem',
-                border: '1px solid #E5E7EB',
+                border: '1px solid var(--border-color, #1F2D42)',
                 borderRadius: '8px',
                 fontSize: '0.875rem',
-                backgroundColor: '#FFFFFF'
+                backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                color: 'var(--color-text-primary, #F3F4F6)'
               }}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Channel:</span>
+          {/* Channel Filter */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary, #9CA3AF)' }}>Channel:</span>
             <select
               value={channelFilter}
               onChange={(e) => {
@@ -271,10 +364,11 @@ export const OrdersPage: React.FC = () => {
               }}
               style={{
                 padding: '0.55rem 0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '1px solid var(--border-color, #1F2D42)',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                color: 'var(--color-text-primary, #F3F4F6)',
                 cursor: 'pointer'
               }}
             >
@@ -285,94 +379,141 @@ export const OrdersPage: React.FC = () => {
             </select>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Status:</span>
+          {/* Import Source Filter */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary, #9CA3AF)' }}>Source:</span>
             <select
-              value={statusFilter}
-              onChange={(e) => handleStatusFilterChange(e.target.value)}
-              style={{
-                padding: '0.55rem 0.75rem',
-                border: '1px solid #E5E7EB',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                backgroundColor: '#FFFFFF',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="CONFIRMED">Confirmed</option>
-              <option value="PROCESSING">Processing</option>
-              <option value="SHIPPED">Shipped</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>Payment:</span>
-            <select
-              value={paymentFilter}
+              value={sourceFilter}
               onChange={(e) => {
-                setPaymentFilter(e.target.value);
+                setSourceFilter(e.target.value);
                 setPage(1);
               }}
               style={{
                 padding: '0.55rem 0.75rem',
-                border: '1px solid #E5E7EB',
+                border: '1px solid var(--border-color, #1F2D42)',
                 borderRadius: '8px',
                 fontSize: '0.85rem',
-                backgroundColor: '#FFFFFF',
+                backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                color: 'var(--color-text-primary, #F3F4F6)',
                 cursor: 'pointer'
               }}
             >
-              <option value="ALL">All Payments</option>
-              <option value="PAID">Paid</option>
-              <option value="PENDING">Pending</option>
-              <option value="REFUNDED">Refunded</option>
+              <option value="ALL">All Sources</option>
+              <option value="MANUAL">Manual Entry</option>
+              <option value="CSV_IMPORT">CSV Import</option>
+              <option value="API">Direct API</option>
             </select>
+          </div>
+
+          {/* Date Range Start */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary, #9CA3AF)' }}>From:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: '0.5rem 0.65rem',
+                border: '1px solid var(--border-color, #1F2D42)',
+                borderRadius: '8px',
+                fontSize: '0.825rem',
+                backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                color: 'var(--color-text-primary, #F3F4F6)',
+                cursor: 'pointer'
+              }}
+            />
+          </div>
+
+          {/* Date Range End */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-secondary, #9CA3AF)' }}>To:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                setPage(1);
+              }}
+              style={{
+                padding: '0.5rem 0.65rem',
+                border: '1px solid var(--border-color, #1F2D42)',
+                borderRadius: '8px',
+                fontSize: '0.825rem',
+                backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                color: 'var(--color-text-primary, #F3F4F6)',
+                cursor: 'pointer'
+              }}
+            />
           </div>
 
           <Button type="submit" variant="secondary" size="sm">
             Search
           </Button>
+
+          {(search || channelFilter !== 'ALL' || statusFilter !== 'ALL' || paymentFilter !== 'ALL' || sourceFilter !== 'ALL' || startDate || endDate) && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-text-muted, #6B7280)',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+            >
+              <X size={14} /> Clear
+            </button>
+          )}
         </form>
       </div>
 
       {/* Orders Table */}
-      <div className="luxury-card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="luxury-card" style={{ padding: 0, overflow: 'hidden', backgroundColor: 'var(--bg-surface, #0E1726)' }}>
         {loading ? (
           <div style={{ padding: '3rem 0', display: 'flex', justifyContent: 'center' }}>
             <Loading size="lg" message="Loading sales orders..." />
           </div>
         ) : !Array.isArray(orders) || orders.length === 0 ? (
           <div style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#F3F4F6', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--bg-surface-elevated, #142032)', color: 'var(--color-text-muted, #9CA3AF)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
               <Package size={24} />
             </div>
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '0.25rem' }}>No orders found</h3>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-              {search || statusFilter !== 'ALL' || channelFilter !== 'ALL' || paymentFilter !== 'ALL'
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-text-primary, #F3F4F6)', marginBottom: '0.25rem' }}>No orders found</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary, #9CA3AF)', marginBottom: '1rem' }}>
+              {search || statusFilter !== 'ALL' || channelFilter !== 'ALL' || paymentFilter !== 'ALL' || sourceFilter !== 'ALL' || startDate || endDate
                 ? 'Try adjusting your filters or search keywords.'
                 : 'No sales orders created yet. Consolidate your first multi-channel order.'}
             </p>
-            <Button variant="primary" size="sm" onClick={() => navigate('/orders/new')}>
-              Create Order
-            </Button>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+              <Button variant="outline" size="sm" onClick={() => setIsImportModalOpen(true)}>
+                Import Orders
+              </Button>
+              <Button variant="primary" size="sm" onClick={() => navigate('/orders/new')}>
+                Create Manual Order
+              </Button>
+            </div>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.875rem' }}>
               <thead>
-                <tr style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#6B7280', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '0.85rem 1.25rem' }}>Order #</th>
+                <tr style={{ backgroundColor: 'var(--bg-surface-elevated, #142032)', borderBottom: '1px solid var(--border-color, #1F2D42)', color: 'var(--color-text-secondary, #9CA3AF)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <th style={{ padding: '0.85rem 1.25rem' }}>CRM Order ID</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>External Order ID</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Channel</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Customer</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Date</th>
                   <th style={{ padding: '0.85rem 1rem' }}>Items</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Total Amount</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Order Status</th>
-                  <th style={{ padding: '0.85rem 1rem' }}>Payment</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Amount</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Status</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Date</th>
+                  <th style={{ padding: '0.85rem 1rem' }}>Source</th>
                   <th style={{ padding: '0.85rem 1.25rem', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -381,20 +522,19 @@ export const OrdersPage: React.FC = () => {
                   const customerObj = typeof ord.customerId === 'object' ? ord.customerId : null;
                   const totalUnits = ord.items.reduce((s, i) => s + i.quantity, 0);
                   const channelKey = (ord.salesChannel || 'WEBSITE') as SalesChannel;
-                  const channelCfg = SALES_CHANNEL_CONFIGS[channelKey] || SALES_CHANNEL_CONFIGS.WEBSITE;
+                  const channelCfg = getChannelMeta(channelKey);
 
                   return (
                     <tr
                       key={ord._id}
-                      style={{ borderBottom: '1px solid #F3F4F6', transition: 'background-color 0.15s' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F9FBFA')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      style={{ borderBottom: '1px solid var(--border-color, #1F2D42)', transition: 'background-color 0.15s' }}
                     >
-                      <td style={{ padding: '1rem 1.25rem', fontWeight: 600 }}>
+                      {/* CRM Order ID */}
+                      <td style={{ padding: '0.9rem 1.25rem', fontWeight: 600 }}>
                         <button
                           onClick={() => navigate(`/orders/${ord._id}`)}
                           style={{
-                            color: 'var(--color-primary)',
+                            color: 'var(--color-primary, #69C43F)',
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
@@ -405,13 +545,29 @@ export const OrdersPage: React.FC = () => {
                         >
                           {ord.orderNumber}
                         </button>
-                        {ord.externalOrderId && (
-                          <div style={{ fontSize: '0.725rem', color: '#6B7280', marginTop: '2px', fontFamily: 'monospace' }}>
-                            Ext: {ord.externalOrderId}
-                          </div>
+                      </td>
+
+                      {/* External Order ID */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        {ord.externalOrderId ? (
+                          <span style={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.8rem',
+                            color: 'var(--color-text-primary, #F3F4F6)',
+                            backgroundColor: 'var(--bg-surface-elevated, #142032)',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color, #1F2D42)'
+                          }}>
+                            {ord.externalOrderId}
+                          </span>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted, #6B7280)' }}>—</span>
                         )}
                       </td>
-                      <td style={{ padding: '1rem 1rem' }}>
+
+                      {/* Sales Channel */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -425,42 +581,56 @@ export const OrdersPage: React.FC = () => {
                           border: `1px solid ${channelCfg.color}40`
                         }}>
                           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: channelCfg.color }} />
-                          {channelCfg.name}
+                          {channelCfg.shortName}
                         </span>
                       </td>
-                      <td style={{ padding: '1rem 1rem' }}>
-                        <div style={{ fontWeight: 500, color: '#111827' }}>
-                          {customerObj?.name || 'Walk-in Client'}
+
+                      {/* Customer */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <div style={{ fontWeight: 500, color: 'var(--color-text-primary, #F3F4F6)' }}>
+                          {customerObj?.name || `${channelCfg.shortName} Customer`}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                          {customerObj?.phone || customerObj?.city || 'Retail'}
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #6B7280)' }}>
+                          {customerObj?.phone || customerObj?.city || 'Marketplace'}
                         </div>
                       </td>
-                      <td style={{ padding: '1rem 1rem', color: '#6B7280', fontSize: '0.8rem' }}>
-                        {new Date(ord.createdAt).toLocaleDateString(undefined, {
+
+                      {/* Products / Items */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        <span style={{ fontWeight: 500, color: 'var(--color-text-primary, #F3F4F6)' }}>
+                          {ord.items.length} {ord.items.length === 1 ? 'item' : 'items'}
+                        </span>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted, #6B7280)' }}>
+                          ({totalUnits} units)
+                        </div>
+                      </td>
+
+                      {/* Amount */}
+                      <td style={{ padding: '0.9rem 1rem', fontWeight: 600, color: 'var(--color-primary, #69C43F)' }}>
+                        ₹{ord.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+
+                      {/* Order Status */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        {getStatusBadge(ord.orderStatus)}
+                      </td>
+
+                      {/* Order Date */}
+                      <td style={{ padding: '0.9rem 1rem', color: 'var(--color-text-secondary, #9CA3AF)', fontSize: '0.8rem' }}>
+                        {new Date(ord.orderDate || ord.createdAt).toLocaleDateString(undefined, {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric'
                         })}
                       </td>
-                      <td style={{ padding: '1rem 1rem' }}>
-                        <span style={{ fontWeight: 500, color: '#111827' }}>
-                          {ord.items.length} {ord.items.length === 1 ? 'item' : 'items'}
-                        </span>
-                        <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                          ({totalUnits} units)
-                        </div>
+
+                      {/* Source */}
+                      <td style={{ padding: '0.9rem 1rem' }}>
+                        {getSourceBadge(ord.source)}
                       </td>
-                      <td style={{ padding: '1rem 1rem', fontWeight: 600, color: 'var(--color-primary)' }}>
-                        ₹{ord.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: '1rem 1rem' }}>
-                        {getStatusBadge(ord.orderStatus)}
-                      </td>
-                      <td style={{ padding: '1rem 1rem' }}>
-                        {getPaymentBadge(ord.paymentStatus)}
-                      </td>
-                      <td style={{ padding: '1rem 1.25rem', textAlign: 'right' }}>
+
+                      {/* Actions */}
+                      <td style={{ padding: '0.9rem 1.25rem', textAlign: 'right' }}>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem' }}>
                           <button
                             title="View Order Details"
@@ -468,10 +638,10 @@ export const OrdersPage: React.FC = () => {
                             style={{
                               padding: '6px',
                               borderRadius: '6px',
-                              border: '1px solid #E5E7EB',
-                              background: '#FFFFFF',
+                              border: '1px solid var(--border-color, #1F2D42)',
+                              background: 'var(--bg-surface-elevated, #142032)',
                               cursor: 'pointer',
-                              color: '#374151'
+                              color: 'var(--color-text-secondary, #9CA3AF)'
                             }}
                           >
                             <Eye size={15} />
@@ -484,10 +654,10 @@ export const OrdersPage: React.FC = () => {
                               style={{
                                 padding: '6px',
                                 borderRadius: '6px',
-                                border: '1px solid #BBF7D0',
-                                background: '#F0FDF4',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                background: 'rgba(16, 185, 129, 0.12)',
                                 cursor: 'pointer',
-                                color: '#16A34A'
+                                color: '#10B981'
                               }}
                             >
                               <CheckCircle2 size={15} />
@@ -501,10 +671,10 @@ export const OrdersPage: React.FC = () => {
                               style={{
                                 padding: '6px',
                                 borderRadius: '6px',
-                                border: '1px solid #FECDD3',
-                                background: '#FFF1F2',
+                                border: '1px solid rgba(239, 68, 68, 0.4)',
+                                background: 'rgba(239, 68, 68, 0.12)',
                                 cursor: 'pointer',
-                                color: '#E11D48'
+                                color: '#EF4444'
                               }}
                             >
                               <XCircle size={15} />
@@ -522,8 +692,8 @@ export const OrdersPage: React.FC = () => {
 
         {/* Pagination Bar */}
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1.25rem', borderTop: '1px solid #E5E7EB', backgroundColor: '#FAFAFA' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.85rem 1.25rem', borderTop: '1px solid var(--border-color, #1F2D42)', backgroundColor: 'var(--bg-surface-elevated, #142032)' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary, #9CA3AF)' }}>
               Showing Page {page} of {totalPages} ({totalCount} total orders)
             </span>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -547,6 +717,15 @@ export const OrdersPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* CSV Import Modal */}
+      <OrderImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onSuccess={loadOrders}
+      />
     </div>
   );
 };
+
+export default OrdersPage;

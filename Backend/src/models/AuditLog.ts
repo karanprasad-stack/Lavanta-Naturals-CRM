@@ -20,7 +20,8 @@ export type AuditAction =
   | 'EXPENSE_REJECTED'
   | 'PERMISSION_CHANGED'
   | 'WORKSPACE_CONFIG_UPDATED'
-  | 'EXPORT_GENERATED';
+  | 'EXPORT_GENERATED'
+  | 'ORDERS_IMPORTED';
 
 export interface IAuditLog extends Document {
   userId?: Types.ObjectId;
@@ -63,7 +64,8 @@ const AuditLogSchema: Schema = new Schema(
         'EXPENSE_REJECTED',
         'PERMISSION_CHANGED',
         'WORKSPACE_CONFIG_UPDATED',
-        'EXPORT_GENERATED'
+        'EXPORT_GENERATED',
+        'ORDERS_IMPORTED'
       ]
     },
     entityType: {

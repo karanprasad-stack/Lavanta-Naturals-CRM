@@ -72,18 +72,30 @@ export const getSalesSummary = async (
     startOfWeek.setHours(0, 0, 0, 0);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const range = req.query.range as string;
+    const startDateQuery = req.query.startDate as string;
+    const endDateQuery = req.query.endDate as string;
+
     const validSalesFilter = { orderStatus: { $in: VALID_SALES_STATUSES } };
+
+    let periodMatchFilter: Record<string, any> = { ...validSalesFilter };
+    if (range && range !== 'all') {
+      const { startDate, endDate } = getDateRangeWindow(range, startDateQuery, endDateQuery);
+      periodMatchFilter.createdAt = { $gte: startDate, $lte: endDate };
+    }
 
     const [
       todayAgg,
       weekAgg,
       monthAgg,
       totalAgg,
-      unitsSoldAgg,
+      periodRevenueAgg,
+      periodUnitsSoldAgg,
       totalOrdersCount,
       todayOrdersCount,
       weekOrdersCount,
       monthOrdersCount,
+      periodOrdersCount,
       pendingCount,
       processingCount,
       shippedCount,
@@ -106,18 +118,23 @@ export const getSalesSummary = async (
         { $match: { ...validSalesFilter, createdAt: { $gte: startOfMonth } } },
         { $group: { _id: null, total: { $sum: '$total' } } }
       ]),
-      // Total recognized revenue
+      // Total recognized revenue (all time)
       OrderModel.aggregate([
         { $match: validSalesFilter },
         { $group: { _id: null, total: { $sum: '$total' } } }
       ]),
-      // Total units sold across recognized orders
+      // Period recognized revenue
       OrderModel.aggregate([
-        { $match: validSalesFilter },
+        { $match: periodMatchFilter },
+        { $group: { _id: null, total: { $sum: '$total' } } }
+      ]),
+      // Units sold in selected period
+      OrderModel.aggregate([
+        { $match: periodMatchFilter },
         { $unwind: '$items' },
         { $group: { _id: null, units: { $sum: '$items.quantity' } } }
       ]),
-      // Total count of orders
+      // Total count of orders (all time)
       OrderModel.countDocuments(),
       // Today orders count
       OrderModel.countDocuments({ createdAt: { $gte: startOfToday } }),
@@ -125,15 +142,17 @@ export const getSalesSummary = async (
       OrderModel.countDocuments({ createdAt: { $gte: startOfWeek } }),
       // Month orders count
       OrderModel.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      // Orders count in period
+      OrderModel.countDocuments(periodMatchFilter),
       // Status breakdown
       OrderModel.countDocuments({ orderStatus: 'PENDING' }),
       OrderModel.countDocuments({ orderStatus: 'PROCESSING' }),
       OrderModel.countDocuments({ orderStatus: 'SHIPPED' }),
       OrderModel.countDocuments({ orderStatus: 'DELIVERED' }),
       OrderModel.countDocuments({ orderStatus: 'CANCELLED' }),
-      // Channel Breakdown
+      // Channel Breakdown for selected period
       OrderModel.aggregate([
-        { $match: validSalesFilter },
+        { $match: periodMatchFilter },
         { $unwind: '$items' },
         {
           $group: {
@@ -159,11 +178,14 @@ export const getSalesSummary = async (
     const todayRevenue = todayAgg[0]?.total || 0;
     const weekRevenue = weekAgg[0]?.total || 0;
     const monthRevenue = monthAgg[0]?.total || 0;
-    const totalRevenue = totalAgg[0]?.total || 0;
-    const totalUnitsSold = unitsSoldAgg[0]?.units || 0;
+    const allTimeRevenue = totalAgg[0]?.total || 0;
+    const periodRevenue = periodRevenueAgg[0]?.total || 0;
+    const periodUnitsSold = periodUnitsSoldAgg[0]?.units || 0;
 
-    const recognizedOrdersCount = await OrderModel.countDocuments(validSalesFilter);
-    const averageOrderValue = recognizedOrdersCount > 0 ? totalRevenue / recognizedOrdersCount : 0;
+    // When range filter is specified, display the period values for KPI cards
+    const displayRevenue = (range && range !== 'all') ? periodRevenue : allTimeRevenue;
+    const displayOrders = (range && range !== 'all') ? periodOrdersCount : (await OrderModel.countDocuments(validSalesFilter));
+    const averageOrderValue = displayOrders > 0 ? displayRevenue / displayOrders : 0;
 
     // Format sales by channel
     const channelBreakdown = ['WEBSITE', 'AMAZON', 'FLIPKART'].map((channelCode) => {
@@ -171,7 +193,7 @@ export const getSalesSummary = async (
       const rev = match ? match.revenue : 0;
       const ordersNum = match ? match.orders : 0;
       const unitsNum = match ? match.units : 0;
-      const share = totalRevenue > 0 ? (rev / totalRevenue) * 100 : 0;
+      const share = displayRevenue > 0 ? (rev / displayRevenue) * 100 : 0;
       const meta = SALES_CHANNEL_CONFIGS[channelCode as SalesChannelType];
 
       return {
@@ -194,16 +216,17 @@ export const getSalesSummary = async (
           today: Number(todayRevenue.toFixed(2)),
           thisWeek: Number(weekRevenue.toFixed(2)),
           thisMonth: Number(monthRevenue.toFixed(2)),
-          total: Number(totalRevenue.toFixed(2))
+          total: Number(displayRevenue.toFixed(2)),
+          allTime: Number(allTimeRevenue.toFixed(2))
         },
         orders: {
           today: todayOrdersCount,
           thisWeek: weekOrdersCount,
           thisMonth: monthOrdersCount,
           total: totalOrdersCount,
-          recognized: recognizedOrdersCount
+          recognized: displayOrders
         },
-        unitsSold: totalUnitsSold,
+        unitsSold: periodUnitsSold,
         averageOrderValue: Number(averageOrderValue.toFixed(2)),
         channelBreakdown,
         statusBreakdown: {
@@ -433,10 +456,18 @@ export const getTopProducts = async (
   try {
     const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 5, 1), 50);
     const channel = req.query.channel as string;
+    const range = req.query.range as string;
+    const startDateQuery = req.query.startDate as string;
+    const endDateQuery = req.query.endDate as string;
 
     const matchFilter: Record<string, any> = {
       orderStatus: { $in: VALID_SALES_STATUSES }
     };
+
+    if (range && range !== 'all') {
+      const { startDate, endDate } = getDateRangeWindow(range, startDateQuery, endDateQuery);
+      matchFilter.createdAt = { $gte: startDate, $lte: endDate };
+    }
 
     if (channel && channel !== 'ALL') {
       matchFilter.salesChannel = channel.toUpperCase();

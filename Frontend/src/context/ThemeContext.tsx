@@ -36,17 +36,45 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  // Listen to system preference changes if user hasn't explicitly set a preference
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleSystemChange = (e: MediaQueryListEvent) => {
+      const explicitPref = localStorage.getItem('lavanta_crm_theme');
+      if (!explicitPref) {
+        setThemeState(e.matches ? 'dark' : 'light');
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemChange);
+  }, []);
+
   useEffect(() => {
     applyTheme(theme);
-    localStorage.setItem('lavanta_crm_theme', theme);
   }, [theme]);
 
   const setTheme = (newTheme: Theme) => {
+    try {
+      localStorage.setItem('lavanta_crm_theme', newTheme);
+    } catch {
+      // Storage access restricted
+    }
     setThemeState(newTheme);
   };
 
   const toggleTheme = () => {
-    setThemeState(prev => (prev === 'light' ? 'dark' : 'light'));
+    setThemeState(prev => {
+      const nextTheme = prev === 'light' ? 'dark' : 'light';
+      try {
+        localStorage.setItem('lavanta_crm_theme', nextTheme);
+      } catch {
+        // Storage access restricted
+      }
+      return nextTheme;
+    });
   };
 
   return (

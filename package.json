@@ -11,9 +11,13 @@
     "build:client": "npm --prefix Frontend run build",
     "build:server": "npm --prefix Backend run build",
     "seed": "npm --prefix Backend run seed",
-    "test": "npm --prefix Backend run test:phase13"
+    "test": "npm --prefix Backend run test:phase13",
+    "test:e2e": "playwright test",
+    "test:browsers": "playwright test tests/browser-compatibility.spec.ts",
+    "test:responsive": "playwright test tests/responsive.spec.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "concurrently": "^9.2.4"
   }
 }

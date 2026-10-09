@@ -345,17 +345,17 @@ body.dark {
 }
 
 /* Form Controls (Inputs, Selects, Textareas) -> #0D1624 */
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not(.chat-search-input):not(#global-command-palette-input),
 [data-theme="dark"] select,
-[data-theme="dark"] textarea {
+[data-theme="dark"] textarea:not(.chat-composer-textarea) {
   background-color: var(--bg-input) !important;
   color: var(--color-text-primary) !important;
   border: 1px solid var(--border-input) !important;
 }
 
-[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):focus,
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not(.chat-search-input):not(#global-command-palette-input):focus,
 [data-theme="dark"] select:focus,
-[data-theme="dark"] textarea:focus {
+[data-theme="dark"] textarea:not(.chat-composer-textarea):focus {
   border-color: var(--border-focus) !important;
   box-shadow: 0 0 0 2px rgba(88, 200, 58, 0.12) !important;
 }

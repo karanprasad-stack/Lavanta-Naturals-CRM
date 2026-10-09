@@ -233,7 +233,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: '#FAFBF8',
+        backgroundColor: 'var(--chat-bg-container)',
         position: 'relative'
       }}
     >
@@ -241,8 +241,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
       <div
         style={{
           padding: '0.85rem 1.5rem',
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
+          backgroundColor: 'var(--chat-bg-header)',
+          borderBottom: '1px solid var(--chat-border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -257,7 +257,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#64748B',
+                color: 'var(--chat-text-secondary)',
                 cursor: 'pointer',
                 padding: '4px',
                 display: 'flex',
@@ -277,9 +277,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 width: '42px',
                 height: '42px',
                 borderRadius: isCompany ? '12px' : '50%',
-                backgroundColor: isCompany ? '#EAF7E6' : '#F1F5F9',
-                color: isCompany ? '#377E1E' : '#334155',
-                border: '1px solid #E2E8F0',
+                backgroundColor: isCompany ? 'var(--chat-tab-active-bg)' : 'var(--chat-bg-input)',
+                color: isCompany ? 'var(--chat-tab-active-text)' : 'var(--chat-text-primary)',
+                border: '1px solid var(--chat-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -317,7 +317,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                   height: '11px',
                   borderRadius: '50%',
                   backgroundColor: isOtherUserOnline ? '#22C55E' : '#94A3B8',
-                  border: '2px solid #FFFFFF'
+                  border: '2px solid var(--chat-bg-header)'
                 }}
                 title={isOtherUserOnline ? 'Active now' : 'Offline'}
               />
@@ -327,7 +327,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           {/* Title & Status */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h3 style={{ margin: 0, fontSize: '0.975rem', fontWeight: 700, color: '#1B2533' }}>
+              <h3 style={{ margin: 0, fontSize: '0.975rem', fontWeight: 700, color: 'var(--chat-text-primary)' }}>
                 {isCompany ? conversation.name : otherUser?.name || conversation.name}
               </h3>
 
@@ -340,20 +340,21 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                     borderRadius: '4px',
                     backgroundColor:
                       otherUser.role === 'FOUNDER'
-                        ? '#FEF3C7'
+                        ? 'rgba(245, 158, 11, 0.15)'
                         : otherUser.role === 'HR' || otherUser.role === 'HR_MANAGER'
-                        ? '#EDE9FE'
+                        ? 'rgba(139, 92, 246, 0.15)'
                         : otherUser.role === 'MANAGER'
-                        ? '#E0F2FE'
-                        : '#F1F5F9',
+                        ? 'rgba(14, 165, 233, 0.15)'
+                        : 'var(--chat-bg-input)',
                     color:
                       otherUser.role === 'FOUNDER'
-                        ? '#92400E'
+                        ? '#F59E0B'
                         : otherUser.role === 'HR' || otherUser.role === 'HR_MANAGER'
-                        ? '#6D28D9'
+                        ? '#A78BFA'
                         : otherUser.role === 'MANAGER'
-                        ? '#0369A1'
-                        : '#475569'
+                        ? '#38BDF8'
+                        : 'var(--chat-text-secondary)',
+                    border: '1px solid var(--chat-border)'
                   }}
                 >
                   {otherUser.role}
@@ -361,14 +362,14 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               )}
             </div>
 
-            <div style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1px' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--chat-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1px' }}>
               {isCompany ? (
                 <span>All Active Team Members • General Workspace</span>
               ) : (
                 <>
                   <span>{otherUser?.designation || otherUser?.department || 'Colleague'}</span>
                   <span>•</span>
-                  <span style={{ color: isOtherUserOnline ? '#15803D' : '#94A3B8', fontWeight: isOtherUserOnline ? 600 : 400 }}>
+                  <span style={{ color: isOtherUserOnline ? '#65C943' : 'var(--chat-text-muted)', fontWeight: isOtherUserOnline ? 600 : 400 }}>
                     {isOtherUserOnline ? 'Active now' : 'Offline'}
                   </span>
                 </>
@@ -385,8 +386,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.35rem',
-                backgroundColor: '#EAF7E6',
-                color: '#377E1E',
+                backgroundColor: 'var(--chat-tab-active-bg)',
+                color: 'var(--chat-tab-active-text)',
+                border: '1px solid var(--chat-tab-active-border, var(--chat-border))',
                 fontSize: '0.725rem',
                 fontWeight: 600,
                 padding: '4px 10px',
@@ -408,7 +410,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           padding: '1.25rem 1.5rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.75rem'
+          gap: '0.75rem',
+          backgroundColor: 'var(--chat-bg-history)'
         }}
       >
         {isLoadingMessages ? (
@@ -417,13 +420,13 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               style={{
                 width: '28px',
                 height: '28px',
-                border: '3px solid #E2E8F0',
-                borderTopColor: '#69C43F',
+                border: '3px solid var(--chat-border)',
+                borderTopColor: '#65C943',
                 borderRadius: '50%',
                 animation: 'spin 0.8s linear infinite'
               }}
             />
-            <span style={{ fontSize: '0.8rem', color: '#94A3B8' }}>Loading conversation history...</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--chat-text-muted)' }}>Loading conversation history...</span>
           </div>
         ) : messages.length === 0 ? (
           <div
@@ -433,7 +436,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%',
-              color: '#94A3B8',
+              color: 'var(--chat-text-muted)',
               textAlign: 'center'
             }}
           >
@@ -442,20 +445,21 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 width: '48px',
                 height: '48px',
                 borderRadius: '50%',
-                backgroundColor: '#F1F5F9',
+                backgroundColor: 'var(--chat-bg-input)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: '0.75rem',
-                color: '#69C43F'
+                color: '#65C943',
+                border: '1px solid var(--chat-border)'
               }}
             >
               <Smile size={24} />
             </div>
-            <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>
+            <p style={{ margin: '0 0 0.25rem', fontSize: '0.9rem', fontWeight: 600, color: 'var(--chat-text-primary)' }}>
               No messages here yet
             </p>
-            <p style={{ margin: 0, fontSize: '0.775rem' }}>
+            <p style={{ margin: 0, fontSize: '0.775rem', color: 'var(--chat-text-secondary)' }}>
               Say hello to start the conversation!
             </p>
           </div>
@@ -489,14 +493,14 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0.75rem 0' }}>
                     <span
                       style={{
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        color: '#64748B',
+                        backgroundColor: 'var(--chat-date-separator-bg)',
+                        border: '1px solid var(--chat-date-separator-border)',
+                        color: 'var(--chat-date-separator-text)',
                         fontSize: '0.7rem',
                         fontWeight: 600,
                         padding: '2px 10px',
                         borderRadius: '12px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
                       }}
                     >
                       {getMessageDateLabel(msg.createdAt)}
@@ -522,8 +526,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        backgroundColor: '#E2E8F0',
-                        color: '#334155',
+                        backgroundColor: 'var(--chat-bg-input)',
+                        color: 'var(--chat-text-primary)',
+                        border: '1px solid var(--chat-border)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -572,7 +577,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                           paddingLeft: '4px'
                         }}
                       >
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#334155' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--chat-sender-text)' }}>
                           {sender?.name || 'Team Member'}
                         </span>
                         {sender?.role && (
@@ -580,8 +585,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                             style={{
                               fontSize: '0.6rem',
                               fontWeight: 600,
-                              color: '#64748B',
-                              backgroundColor: '#F1F5F9',
+                              color: 'var(--chat-text-secondary)',
+                              backgroundColor: 'var(--chat-bg-input)',
+                              border: '1px solid var(--chat-border)',
                               padding: '1px 4px',
                               borderRadius: '3px'
                             }}
@@ -598,10 +604,22 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         position: 'relative',
                         padding: msg.isDeleted ? '0.6rem 0.85rem' : '0.65rem 0.95rem',
                         borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                        backgroundColor: msg.isDeleted ? '#F8FAFC' : isMe ? '#EAF7E6' : '#FFFFFF',
-                        border: msg.isDeleted ? '1px dashed #CBD5E1' : isMe ? '1px solid #C4E9B7' : '1px solid #E2E8F0',
-                        color: msg.isDeleted ? '#94A3B8' : '#1B2533',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        backgroundColor: msg.isDeleted
+                          ? 'var(--chat-bg-input)'
+                          : isMe
+                          ? 'var(--chat-bubble-out-bg)'
+                          : 'var(--chat-bubble-in-bg)',
+                        border: msg.isDeleted
+                          ? '1px dashed var(--chat-border)'
+                          : isMe
+                          ? '1px solid var(--chat-bubble-out-border)'
+                          : '1px solid var(--chat-bubble-in-border)',
+                        color: msg.isDeleted
+                          ? 'var(--chat-text-muted)'
+                          : isMe
+                          ? 'var(--chat-bubble-out-text)'
+                          : 'var(--chat-bubble-in-text)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
                         wordBreak: 'break-word',
                         fontSize: '0.875rem',
                         lineHeight: 1.45
@@ -617,9 +635,10 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                               width: '100%',
                               padding: '6px 8px',
                               borderRadius: '6px',
-                              border: '1px solid #69C43F',
+                              border: '1px solid #65C943',
+                              backgroundColor: 'var(--chat-bg-input)',
                               fontSize: '0.85rem',
-                              color: '#1B2533',
+                              color: 'var(--chat-text-primary)',
                               outline: 'none',
                               resize: 'none',
                               boxSizing: 'border-box'
@@ -633,9 +652,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                               style={{
                                 padding: '3px 8px',
                                 borderRadius: '4px',
-                                border: '1px solid #CBD5E1',
-                                background: '#FFFFFF',
-                                color: '#64748B',
+                                border: '1px solid var(--chat-border)',
+                                background: 'var(--chat-bg-header)',
+                                color: 'var(--chat-text-secondary)',
                                 fontSize: '0.725rem',
                                 cursor: 'pointer'
                               }}
@@ -648,7 +667,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                                 padding: '3px 10px',
                                 borderRadius: '4px',
                                 border: 'none',
-                                background: '#69C43F',
+                                background: '#65C943',
                                 color: '#FFFFFF',
                                 fontSize: '0.725rem',
                                 fontWeight: 600,
@@ -661,7 +680,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         </div>
                       ) : msg.isDeleted ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontStyle: 'italic' }}>
-                          <Shield size={14} color="#94A3B8" />
+                          <Shield size={14} color="var(--chat-text-muted)" />
                           <span>This message was deleted.</span>
                         </div>
                       ) : (
@@ -680,10 +699,10 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                                     alignItems: 'center',
                                     gap: '0.4rem',
                                     padding: '4px 8px',
-                                    backgroundColor: isMe ? '#DDF2D8' : '#F1F5F9',
+                                    backgroundColor: isMe ? 'rgba(0, 0, 0, 0.2)' : 'var(--chat-bg-container)',
                                     borderRadius: '6px',
                                     fontSize: '0.775rem',
-                                    color: '#2563EB',
+                                    color: isMe ? '#86EFAC' : '#60A5FA',
                                     textDecoration: 'none'
                                   }}
                                 >
@@ -706,7 +725,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                               gap: '0.3rem',
                               marginTop: '4px',
                               fontSize: '0.675rem',
-                              color: '#94A3B8'
+                              color: 'var(--chat-timestamp-text)'
                             }}
                           >
                             {msg.isEdited && <span>(edited)</span>}
@@ -717,11 +736,11 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                               <span>
                                 {msg.readBy && msg.readBy.length > 1 ? (
                                   <span title="Read" style={{ display: 'inline-flex' }}>
-                                    <CheckCheck size={13} color="#4B9B2B" />
+                                    <CheckCheck size={13} color="#65C943" />
                                   </span>
                                 ) : (
                                   <span title="Delivered" style={{ display: 'inline-flex' }}>
-                                    <Check size={13} color="#94A3B8" />
+                                    <Check size={13} color="var(--chat-timestamp-text)" />
                                   </span>
                                 )}
                               </span>
@@ -737,11 +756,11 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         style={{
                           marginTop: '4px',
                           padding: '4px 8px',
-                          backgroundColor: '#FEF2F2',
-                          border: '1px solid #FCA5A5',
+                          backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.35)',
                           borderRadius: '6px',
                           fontSize: '0.725rem',
-                          color: '#B91C1C',
+                          color: '#F87171',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.5rem'
@@ -767,7 +786,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                           style={{
                             border: 'none',
                             background: 'transparent',
-                            color: '#64748B',
+                            color: 'var(--chat-text-secondary)',
                             cursor: 'pointer',
                             fontSize: '0.7rem'
                           }}
@@ -794,7 +813,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#94A3B8',
+                              color: 'var(--chat-text-muted)',
                               cursor: 'pointer',
                               padding: '2px 4px',
                               borderRadius: '4px'
@@ -810,7 +829,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#94A3B8',
+                              color: 'var(--chat-text-muted)',
                               cursor: 'pointer',
                               padding: '2px 4px',
                               borderRadius: '4px'
@@ -834,8 +853,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: '40px' }}>
             <div
               style={{
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #E2E8F0',
+                backgroundColor: 'var(--chat-bubble-in-bg)',
+                border: '1px solid var(--chat-bubble-in-border)',
                 padding: '6px 12px',
                 borderRadius: '16px',
                 display: 'flex',
@@ -844,11 +863,11 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               }}
             >
               <div style={{ display: 'flex', gap: '3px' }}>
-                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#69C43F', borderRadius: '50%' }} />
-                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#69C43F', borderRadius: '50%', animationDelay: '0.2s' }} />
-                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#69C43F', borderRadius: '50%', animationDelay: '0.4s' }} />
+                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#65C943', borderRadius: '50%' }} />
+                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#65C943', borderRadius: '50%', animationDelay: '0.2s' }} />
+                <span className="typing-dot" style={{ width: '5px', height: '5px', backgroundColor: '#65C943', borderRadius: '50%', animationDelay: '0.4s' }} />
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--chat-text-secondary)' }}>
                 {typingUsers.join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
               </span>
             </div>
@@ -869,8 +888,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
       <div
         style={{
           padding: '0.85rem 1.5rem 1rem',
-          backgroundColor: '#FFFFFF',
-          borderTop: '1px solid #E2E8F0'
+          backgroundColor: 'var(--chat-bg-composer)',
+          borderTop: '1px solid var(--chat-border)'
         }}
       >
         {/* Attachment Pills Preview */}
@@ -884,11 +903,11 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                   alignItems: 'center',
                   gap: '0.35rem',
                   padding: '3px 8px',
-                  backgroundColor: '#EAF7E6',
+                  backgroundColor: 'var(--chat-tab-active-bg)',
                   borderRadius: '6px',
                   fontSize: '0.75rem',
-                  color: '#377E1E',
-                  border: '1px solid #C4E9B7'
+                  color: 'var(--chat-tab-active-text)',
+                  border: '1px solid var(--chat-tab-active-border, var(--chat-border))'
                 }}
               >
                 <Paperclip size={12} />
@@ -897,7 +916,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 </span>
                 <button
                   onClick={() => removeAttachment(idx)}
-                  style={{ background: 'transparent', border: 'none', color: '#377E1E', cursor: 'pointer', padding: 0 }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--chat-tab-active-text)', cursor: 'pointer', padding: 0 }}
                 >
                   <X size={12} />
                 </button>
@@ -907,17 +926,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
         )}
 
         {/* Input Bar */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: '0.5rem',
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            borderRadius: '12px',
-            padding: '0.5rem 0.75rem'
-          }}
-        >
+        <div className="chat-composer-container">
           {/* File Attachment Hidden Input */}
           <input
             type="file"
@@ -929,10 +938,11 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
 
           <button
             onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach file"
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94A3B8',
+              color: 'var(--chat-text-muted)',
               cursor: 'pointer',
               padding: '6px',
               borderRadius: '6px',
@@ -941,8 +951,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               justifyContent: 'center',
               transition: 'color 0.15s ease'
             }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#334155')}
-            onMouseLeave={e => (e.currentTarget.style.color = '#94A3B8')}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--chat-text-primary)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--chat-text-muted)')}
             title="Attach file"
           >
             <Paperclip size={18} />
@@ -950,24 +960,14 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
 
           <textarea
             ref={textareaRef}
+            id="chat-message-composer"
+            className="chat-composer-textarea"
+            aria-label={`Message ${isCompany ? 'Lavanta Team' : otherUser?.name || 'colleague'}`}
             placeholder={`Message ${isCompany ? '#Lavanta Team' : otherUser?.name || 'colleague'}... (Enter to send, Shift+Enter for new line)`}
             value={inputContent}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             rows={1}
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontSize: '0.875rem',
-              color: '#1B2533',
-              resize: 'none',
-              maxHeight: '120px',
-              minHeight: '24px',
-              lineHeight: 1.4,
-              fontFamily: 'inherit'
-            }}
           />
 
           {/* Send Button */}
@@ -975,8 +975,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
             onClick={handleSend}
             disabled={(!inputContent.trim() && attachedFiles.length === 0) || isSending}
             style={{
-              backgroundColor: (!inputContent.trim() && attachedFiles.length === 0) || isSending ? '#CBD5E1' : '#69C43F',
-              color: '#FFFFFF',
+              backgroundColor: (!inputContent.trim() && attachedFiles.length === 0) || isSending ? 'var(--chat-border)' : '#65C943',
+              color: (!inputContent.trim() && attachedFiles.length === 0) || isSending ? 'var(--chat-text-muted)' : '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
               width: '36px',
@@ -989,10 +989,10 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               flexShrink: 0
             }}
             onMouseEnter={e => {
-              if (inputContent.trim() || attachedFiles.length > 0) e.currentTarget.style.backgroundColor = '#58A835';
+              if (inputContent.trim() || attachedFiles.length > 0) e.currentTarget.style.backgroundColor = '#54B033';
             }}
             onMouseLeave={e => {
-              if (inputContent.trim() || attachedFiles.length > 0) e.currentTarget.style.backgroundColor = '#69C43F';
+              if (inputContent.trim() || attachedFiles.length > 0) e.currentTarget.style.backgroundColor = '#65C943';
             }}
             title="Send message"
           >

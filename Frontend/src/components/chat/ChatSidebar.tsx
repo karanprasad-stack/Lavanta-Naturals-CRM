@@ -9,7 +9,8 @@ import {
   Wifi,
   WifiOff,
   Sparkles,
-  CheckCheck
+  CheckCheck,
+  X
 } from 'lucide-react';
 import { Conversation } from '../../types/chat';
 import { useAuth } from '../../context/AuthContext';
@@ -104,27 +105,28 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        backgroundColor: '#FFFFFF',
-        borderRight: '1px solid #E2E8F0',
-        width: '100%'
+        backgroundColor: 'var(--chat-bg-sidebar)',
+        borderRight: '1px solid var(--chat-border)',
+        width: '100%',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease'
       }}
     >
       {/* Header */}
       <div
         style={{
           padding: '1.25rem 1.25rem 0.85rem',
-          borderBottom: '1px solid #F1F5F9'
+          borderBottom: '1px solid var(--chat-divider)'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#1B2533', letterSpacing: '-0.01em' }}>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--chat-text-primary)', letterSpacing: '-0.01em' }}>
               Messages
             </h2>
             {totalUnreadCount > 0 && (
               <span
                 style={{
-                  backgroundColor: '#69C43F',
+                  backgroundColor: '#65C943',
                   color: '#FFFFFF',
                   fontSize: '0.725rem',
                   fontWeight: 700,
@@ -143,7 +145,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',
-              backgroundColor: '#69C43F',
+              backgroundColor: '#65C943',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: '8px',
@@ -151,10 +153,11 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
               fontSize: '0.775rem',
               fontWeight: 600,
               cursor: 'pointer',
+              boxShadow: '0 1px 3px rgba(101, 201, 67, 0.2)',
               transition: 'background 0.15s ease'
             }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#58A835')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#69C43F')}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#76D957')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#65C943')}
             title="Start new direct message"
           >
             <Plus size={15} />
@@ -163,32 +166,38 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
         </div>
 
         {/* Search */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            borderRadius: '8px',
-            padding: '0.45rem 0.75rem'
-          }}
-        >
-          <Search size={15} color="#94A3B8" />
+        <div className="chat-search-container">
+          <Search size={15} color="var(--chat-text-muted)" style={{ flexShrink: 0 }} />
           <input
+            id="chat-search-input"
             type="text"
+            className="chat-search-input"
+            aria-label="Search messages or people"
             placeholder="Search messages or people..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontSize: '0.825rem',
-              color: '#1B2533',
-              width: '100%'
-            }}
+            style={{ border: 'none', borderWidth: 0, outline: 'none' }}
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              aria-label="Clear search"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '2px',
+                color: 'var(--chat-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '4px'
+              }}
+              title="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         {/* Tab Filters */}
@@ -205,14 +214,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
               onClick={() => setActiveTab(tab)}
               style={{
                 flex: 1,
-                padding: '4px 0',
+                padding: '5px 0',
                 fontSize: '0.725rem',
                 fontWeight: activeTab === tab ? 600 : 500,
                 border: 'none',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                backgroundColor: activeTab === tab ? '#EAF7E6' : 'transparent',
-                color: activeTab === tab ? '#377E1E' : '#64748B',
+                backgroundColor: activeTab === tab ? 'var(--chat-tab-active-bg)' : 'transparent',
+                color: activeTab === tab ? 'var(--chat-tab-active-text)' : 'var(--chat-text-secondary)',
                 transition: 'all 0.15s ease'
               }}
             >
@@ -308,12 +317,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                         gap: '0.75rem',
                         padding: '0.75rem 1.25rem',
                         cursor: 'pointer',
-                        backgroundColor: isSelected ? '#EAF7E6' : 'transparent',
-                        borderLeft: isSelected ? '4px solid #69C43F' : '4px solid transparent',
+                        backgroundColor: isSelected ? 'var(--chat-channel-selected-bg)' : 'transparent',
+                        borderLeft: isSelected ? '4px solid #65C943' : '4px solid transparent',
                         transition: 'background 0.12s ease'
                       }}
                       onMouseEnter={e => {
-                        if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--chat-channel-hover-bg)';
                       }}
                       onMouseLeave={e => {
                         if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -325,8 +334,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                           width: '40px',
                           height: '40px',
                           borderRadius: '10px',
-                          backgroundColor: isSelected ? '#D6F2CB' : '#F1F5F9',
-                          color: '#377E1E',
+                          backgroundColor: isSelected ? 'var(--chat-tab-active-bg)' : 'var(--chat-avatar-bg)',
+                          color: 'var(--chat-channel-selected-text)',
+                          border: '1px solid var(--chat-border)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -343,7 +353,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                               style={{
                                 fontWeight: hasUnread ? 700 : isSelected ? 600 : 500,
                                 fontSize: '0.85rem',
-                                color: '#1B2533',
+                                color: isSelected ? 'var(--chat-channel-selected-text)' : 'var(--chat-text-primary)',
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis'
@@ -355,8 +365,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                               style={{
                                 fontSize: '0.625rem',
                                 fontWeight: 700,
-                                backgroundColor: '#EAF7E6',
-                                color: '#377E1E',
+                                backgroundColor: 'var(--chat-tab-active-bg)',
+                                color: 'var(--chat-channel-selected-text)',
                                 padding: '1px 5px',
                                 borderRadius: '4px'
                               }}
@@ -365,7 +375,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                             </span>
                           </div>
 
-                          <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--chat-text-muted)' }}>
                             {formatTimestamp(companyChat.lastMessageAt)}
                           </span>
                         </div>
@@ -381,7 +391,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                           <span
                             style={{
                               fontSize: '0.75rem',
-                              color: hasUnread ? '#1B2533' : '#64748B',
+                              color: hasUnread ? 'var(--chat-text-primary)' : 'var(--chat-text-secondary)',
                               fontWeight: hasUnread ? 600 : 400,
                               whiteSpace: 'nowrap',
                               overflow: 'hidden',
@@ -391,7 +401,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                           >
                             {companyChat.lastMessage ? (
                               <>
-                                <span style={{ color: '#94A3B8' }}>{companyChat.lastMessage.senderName}: </span>
+                                <span style={{ color: 'var(--chat-text-muted)' }}>{companyChat.lastMessage.senderName}: </span>
                                 {companyChat.lastMessage.text}
                               </>
                             ) : (
@@ -402,7 +412,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                           {hasUnread && (
                             <span
                               style={{
-                                backgroundColor: '#69C43F',
+                                backgroundColor: '#65C943',
                                 color: '#FFFFFF',
                                 fontSize: '0.675rem',
                                 fontWeight: 700,
@@ -426,12 +436,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
               <div>
                 <div
                   style={{
-                    padding: '0.25rem 1.25rem 0.4rem',
+                    padding: '0.35rem 1.25rem 0.4rem',
                     fontSize: '0.675rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    color: '#94A3B8',
+                    color: 'var(--chat-text-muted)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between'
@@ -442,7 +452,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                 </div>
 
                 {directChats.length === 0 ? (
-                  <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.775rem', color: '#94A3B8', fontStyle: 'italic' }}>
+                  <div style={{ padding: '0.75rem 1.25rem', fontSize: '0.775rem', color: 'var(--chat-text-muted)', fontStyle: 'italic' }}>
                     No 1-on-1 messages yet. Click "+ New Chat" above.
                   </div>
                 ) : (
@@ -467,12 +477,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                           gap: '0.75rem',
                           padding: '0.7rem 1.25rem',
                           cursor: 'pointer',
-                          backgroundColor: isSelected ? '#EAF7E6' : 'transparent',
-                          borderLeft: isSelected ? '4px solid #69C43F' : '4px solid transparent',
+                          backgroundColor: isSelected ? 'var(--chat-channel-selected-bg)' : 'transparent',
+                          borderLeft: isSelected ? '4px solid #65C943' : '4px solid transparent',
                           transition: 'background 0.12s ease'
                         }}
                         onMouseEnter={e => {
-                          if (!isSelected) e.currentTarget.style.backgroundColor = '#F8FAFC';
+                          if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--chat-channel-hover-bg)';
                         }}
                         onMouseLeave={e => {
                           if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
@@ -485,14 +495,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                               width: '38px',
                               height: '38px',
                               borderRadius: '50%',
-                              backgroundColor: '#F1F5F9',
-                              border: '1px solid #E2E8F0',
+                              backgroundColor: 'var(--chat-avatar-bg)',
+                              border: '1px solid var(--chat-border)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               fontWeight: 600,
                               fontSize: '0.8rem',
-                              color: '#334155',
+                              color: 'var(--chat-text-primary)',
                               overflow: 'hidden'
                             }}
                           >
@@ -521,8 +531,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                               width: '10px',
                               height: '10px',
                               borderRadius: '50%',
-                              backgroundColor: isOnline ? '#22C55E' : '#CBD5E1',
-                              border: '2px solid #FFFFFF'
+                              backgroundColor: isOnline ? '#22C55E' : 'var(--chat-text-muted)',
+                              border: '2px solid var(--chat-bg-sidebar)'
                             }}
                             title={isOnline ? 'Online now' : 'Offline'}
                           />
@@ -536,7 +546,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                                 style={{
                                   fontWeight: hasUnread ? 700 : isSelected ? 600 : 500,
                                   fontSize: '0.85rem',
-                                  color: '#1B2533',
+                                  color: isSelected ? 'var(--chat-channel-selected-text)' : 'var(--chat-text-primary)',
                                   whiteSpace: 'nowrap',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis'
@@ -553,20 +563,20 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                                     borderRadius: '4px',
                                     backgroundColor:
                                       otherUser.role === 'FOUNDER'
-                                        ? '#FEF3C7'
+                                        ? 'rgba(245, 158, 11, 0.15)'
                                         : otherUser.role === 'HR' || otherUser.role === 'HR_MANAGER'
-                                        ? '#EDE9FE'
+                                        ? 'rgba(139, 92, 246, 0.15)'
                                         : otherUser.role === 'MANAGER'
-                                        ? '#E0F2FE'
-                                        : '#F1F5F9',
+                                        ? 'rgba(59, 130, 246, 0.15)'
+                                        : 'var(--chat-tab-active-bg)',
                                     color:
                                       otherUser.role === 'FOUNDER'
-                                        ? '#92400E'
+                                        ? '#F59E0B'
                                         : otherUser.role === 'HR' || otherUser.role === 'HR_MANAGER'
-                                        ? '#6D28D9'
+                                        ? '#A78BFA'
                                         : otherUser.role === 'MANAGER'
-                                        ? '#0369A1'
-                                        : '#475569'
+                                        ? '#60A5FA'
+                                        : 'var(--chat-tab-active-text)'
                                   }}
                                 >
                                   {otherUser.role}
@@ -574,7 +584,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                               )}
                             </div>
 
-                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--chat-text-muted)' }}>
                               {formatTimestamp(conv.lastMessageAt)}
                             </span>
                           </div>
@@ -590,7 +600,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                             <span
                               style={{
                                 fontSize: '0.75rem',
-                                color: hasUnread ? '#1B2533' : '#64748B',
+                                color: hasUnread ? 'var(--chat-text-primary)' : 'var(--chat-text-secondary)',
                                 fontWeight: hasUnread ? 600 : 400,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
@@ -600,18 +610,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                             >
                               {conv.lastMessage ? (
                                 <>
-                                  {lastSenderIsMe && <span style={{ color: '#94A3B8' }}>You: </span>}
+                                  {lastSenderIsMe && <span style={{ color: 'var(--chat-text-muted)' }}>You: </span>}
                                   {conv.lastMessage.text}
                                 </>
                               ) : (
-                                <span style={{ fontStyle: 'italic', color: '#94A3B8' }}>No messages yet</span>
+                                <span style={{ fontStyle: 'italic', color: 'var(--chat-text-muted)' }}>No messages yet</span>
                               )}
                             </span>
 
                             {hasUnread && (
                               <span
                                 style={{
-                                  backgroundColor: '#69C43F',
+                                  backgroundColor: '#65C943',
                                   color: '#FFFFFF',
                                   fontSize: '0.675rem',
                                   fontWeight: 700,

@@ -122,6 +122,44 @@
   --cal-event-gray-border: #E2E8F0;
   --cal-event-gray-text: #334155;
   --cal-event-gray-dot: #64748B;
+
+  /* Header Layout Dimensions */
+  --header-height: 64px;
+
+  /* ========================================================================
+     Chat Tokens (Light Mode)
+     ======================================================================== */
+  --chat-bg-container: #FFFFFF;
+  --chat-bg-sidebar: #FFFFFF;
+  --chat-bg-header: #FFFFFF;
+  --chat-bg-history: #F8FAFC;
+  --chat-bg-composer: #FFFFFF;
+  --chat-bg-input: #F8FAFC;
+  --chat-border: #E2E8F0;
+  --chat-divider: #F1F5F9;
+  --chat-text-primary: #172033;
+  --chat-text-secondary: #64748B;
+  --chat-text-muted: #94A3B8;
+  --chat-tab-active-bg: #EAF7E6;
+  --chat-tab-active-text: #2E7D1A;
+  --chat-channel-selected-bg: #EAF7E6;
+  --chat-channel-selected-text: #2E7D1A;
+  --chat-channel-hover-bg: #F8FAFC;
+  --chat-bubble-in-bg: #FFFFFF;
+  --chat-bubble-in-border: #E2E8F0;
+  --chat-bubble-in-text: #172033;
+  --chat-bubble-out-bg: #EAF7E6;
+  --chat-bubble-out-border: rgba(105, 196, 63, 0.25);
+  --chat-bubble-out-text: #172033;
+  --chat-sender-text: #334155;
+  --chat-timestamp-text: #94A3B8;
+  --chat-date-separator-bg: #FFFFFF;
+  --chat-date-separator-border: #E2E8F0;
+  --chat-date-separator-text: #64748B;
+  --chat-avatar-bg: #F1F5F9;
+  --chat-modal-bg: #FFFFFF;
+  --chat-modal-header-bg: #FAFBF8;
+  --chat-modal-footer-bg: #FAFBF8;
 }
 
 /* ==========================================================================
@@ -130,9 +168,9 @@
 :root[data-theme="dark"],
 .dark {
   /* Level 1: Page & Main Background */
-  --bg-app: #070B14;                     /* Primary deep navy-black page */
-  --bg-main: #0B1220;                    /* Main content background */
-  --bg-sidebar: #080E19;                 /* Sidebar container */
+  --bg-app: #0B1120;                     /* Primary deep navy-black page */
+  --bg-main: #0B1120;                    /* Main content background */
+  --bg-sidebar: #080F1A;                 /* Sidebar container */
   --bg-header: #0A101C;                  /* Header bar */
 
   /* Level 2: Main Card / Surface */
@@ -240,4 +278,39 @@
   --cal-event-gray-border: rgba(148, 163, 184, 0.25);
   --cal-event-gray-text: #CBD5E1;
   --cal-event-gray-dot: #94A3B8;
+
+  /* ========================================================================
+     Chat Tokens (Dark Mode — Deep Slate-Navy Matching Suggested Palette)
+     ======================================================================== */
+  --chat-bg-container: #101A29;
+  --chat-bg-sidebar: #101A29;
+  --chat-bg-header: #101A29;
+  --chat-bg-history: #0B1421;
+  --chat-bg-composer: #101A29;
+  --chat-bg-input: #0B1220;
+  --chat-border: #263449;
+  --chat-divider: #1E2B3D;
+  --chat-text-primary: #F1F5F9;
+  --chat-text-secondary: #A5B4C7;
+  --chat-text-muted: #8494AA;
+  --chat-tab-active-bg: #173021;
+  --chat-tab-active-text: #79DF59;
+  --chat-channel-selected-bg: #173021;
+  --chat-channel-selected-text: #79DF59;
+  --chat-channel-hover-bg: #162438;
+  --chat-bubble-in-bg: #182436;
+  --chat-bubble-in-border: #263449;
+  --chat-bubble-in-text: #F1F5F9;
+  --chat-bubble-out-bg: #163321;
+  --chat-bubble-out-border: rgba(101, 201, 67, 0.35);
+  --chat-bubble-out-text: #F1F5F9;
+  --chat-sender-text: #E2E8F0;
+  --chat-timestamp-text: #9AAAC0;
+  --chat-date-separator-bg: #182436;
+  --chat-date-separator-border: #263449;
+  --chat-date-separator-text: #8494AA;
+  --chat-avatar-bg: #1A2738;
+  --chat-modal-bg: #101A29;
+  --chat-modal-header-bg: #0D1624;
+  --chat-modal-footer-bg: #0D1624;
 }

@@ -7,8 +7,20 @@ import {
 } from '../types/sales';
 
 export const salesService = {
-  async getSalesSummary(): Promise<SalesSummary> {
-    const res = await apiClient<{ success: boolean; data: SalesSummary }>('/api/sales/summary');
+  async getSalesSummary(
+    range?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<SalesSummary> {
+    const params = new URLSearchParams();
+    if (range) params.append('range', range);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const query = params.toString();
+    const res = await apiClient<{ success: boolean; data: SalesSummary }>(
+      `/api/sales/summary${query ? `?${query}` : ''}`
+    );
     return res.data;
   },
 
@@ -44,10 +56,19 @@ export const salesService = {
     return res.data?.trends || [];
   },
 
-  async getTopProducts(limit: number = 5, channel?: string): Promise<TopProduct[]> {
+  async getTopProducts(
+    limit: number = 5,
+    channel?: string,
+    range?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<TopProduct[]> {
     const params = new URLSearchParams();
     params.append('limit', limit.toString());
     if (channel && channel !== 'ALL') params.append('channel', channel);
+    if (range) params.append('range', range);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
 
     const query = params.toString();
     const res = await apiClient<{ success: boolean; data: TopProduct[] }>(

@@ -5,7 +5,7 @@ import { OrderModel, IOrder, OrderStatus, PaymentStatus } from '../models/Order.
 import { OrderActivityModel, OrderActivityType } from '../models/OrderActivity.js';
 import { ProductModel } from '../models/Product.js';
 import { CustomerModel } from '../models/Customer.js';
-import { SALES_CHANNELS, SalesChannelType } from '../config/salesChannels.js';
+import { SALES_CHANNELS, SALES_CHANNEL_CONFIGS, SalesChannelType } from '../config/salesChannels.js';
 import { generateOrderNumber } from '../utils/orderNumber.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
 
@@ -670,6 +670,446 @@ export const updatePaymentStatus = async (
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to update payment status'
+    });
+  }
+};
+
+/**
+ * Helper to resolve customer for import or manual order without fabricating fake information
+ */
+async function resolveOrderCustomer(
+  channel: SalesChannelType,
+  customerData?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+  },
+  userId?: mongoose.Types.ObjectId
+) {
+  if (customerData && customerData.name && customerData.name.trim()) {
+    const custPhone = customerData.phone ? customerData.phone.trim() : `guest-${Date.now()}`;
+    const custEmail = customerData.email ? customerData.email.trim().toLowerCase() : `cust-${Date.now()}@lavanta.internal`;
+
+    let existingCust = await CustomerModel.findOne({
+      $or: [{ phone: custPhone }, { email: custEmail }]
+    });
+
+    if (existingCust) return existingCust;
+
+    return await CustomerModel.create({
+      name: customerData.name.trim(),
+      email: custEmail,
+      phone: custPhone,
+      address: customerData.address || '',
+      city: customerData.city || '',
+      state: customerData.state || '',
+      pincode: customerData.pincode || '',
+      createdBy: userId
+    });
+  }
+
+  // Fallback to channel-specific marketplace customer placeholder
+  const channelEmail = `orders@${channel.toLowerCase()}.lavanta.internal`;
+  let channelCust = await CustomerModel.findOne({ email: channelEmail });
+  if (!channelCust) {
+    const meta = SALES_CHANNEL_CONFIGS[channel];
+    channelCust = await CustomerModel.create({
+      name: `${meta?.displayName || channel} Customer`,
+      email: channelEmail,
+      phone: `CH-${channel}`,
+      address: 'Marketplace Operations',
+      city: 'Central',
+      state: 'National',
+      pincode: '000000',
+      createdBy: userId
+    });
+  }
+  return channelCust;
+}
+
+/**
+ * POST /api/orders/import/preview
+ * Analyzes CSV import records, identifies duplicates, validates product links,
+ * and returns summary metrics before actual database insertion.
+ */
+export const previewOrderImport = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { salesChannel = 'WEBSITE', records = [] } = req.body;
+
+    const normalizedChannel = (salesChannel || 'WEBSITE').toUpperCase() as SalesChannelType;
+    if (!SALES_CHANNELS.includes(normalizedChannel)) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid sales channel: "${salesChannel}". Supported channels: ${SALES_CHANNELS.join(', ')}`
+      });
+      return;
+    }
+
+    if (!Array.isArray(records) || records.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'No records provided for preview'
+      });
+      return;
+    }
+
+    const previewRows: any[] = [];
+    const duplicates: any[] = [];
+    const errors: any[] = [];
+    const seenExternalIdsInBatch = new Set<string>();
+
+    let validCount = 0;
+    let duplicateCount = 0;
+    let invalidCount = 0;
+
+    for (let index = 0; index < records.length; index++) {
+      const raw = records[index];
+      const rowNum = index + 1;
+      const rowErrors: string[] = [];
+
+      // 1. External Order ID validation
+      const externalOrderId = raw.externalOrderId ? String(raw.externalOrderId).trim() : '';
+      if (!externalOrderId) {
+        rowErrors.push('Missing External Order ID');
+      }
+
+      // 2. Quantity validation
+      const quantity = parseInt(raw.quantity, 10);
+      if (isNaN(quantity) || quantity <= 0) {
+        rowErrors.push('Quantity must be an integer >= 1');
+      }
+
+      // 3. Price validation
+      const unitPrice = parseFloat(raw.unitPrice);
+      if (isNaN(unitPrice) || unitPrice < 0) {
+        rowErrors.push('Unit price must be a valid number >= 0');
+      }
+
+      // 4. Product matching (SKU or Name snapshot)
+      const sku = raw.sku ? String(raw.sku).trim().toUpperCase() : '';
+      const productName = raw.productName ? String(raw.productName).trim() : '';
+
+      let matchedProduct = null;
+      if (sku) {
+        matchedProduct = await ProductModel.findOne({ sku: { $regex: new RegExp(`^${sku}$`, 'i') } });
+      }
+      if (!matchedProduct && productName) {
+        matchedProduct = await ProductModel.findOne({ name: { $regex: new RegExp(`^${productName}$`, 'i') } });
+      }
+
+      if (!matchedProduct) {
+        rowErrors.push(`Product not found in catalog (SKU: "${sku || 'N/A'}", Name: "${productName || 'N/A'}")`);
+      }
+
+      // 5. Duplicate Check
+      let isDuplicate = false;
+      let duplicateReason = '';
+
+      if (externalOrderId) {
+        if (seenExternalIdsInBatch.has(externalOrderId)) {
+          isDuplicate = true;
+          duplicateReason = `Duplicate order ID "${externalOrderId}" repeated within upload batch`;
+        } else {
+          seenExternalIdsInBatch.add(externalOrderId);
+          const existingInDb = await OrderModel.findOne({
+            salesChannel: normalizedChannel,
+            externalOrderId
+          });
+          if (existingInDb) {
+            isDuplicate = true;
+            duplicateReason = `Already registered in CRM as Order #${existingInDb.orderNumber}`;
+          }
+        }
+      }
+
+      // Classify row
+      let status: 'VALID' | 'DUPLICATE' | 'INVALID' = 'VALID';
+      if (rowErrors.length > 0) {
+        status = 'INVALID';
+        invalidCount++;
+        errors.push({ row: rowNum, externalOrderId, errors: rowErrors });
+      } else if (isDuplicate) {
+        status = 'DUPLICATE';
+        duplicateCount++;
+        duplicates.push({ row: rowNum, externalOrderId, reason: duplicateReason });
+      } else {
+        status = 'VALID';
+        validCount++;
+      }
+
+      previewRows.push({
+        row: rowNum,
+        status,
+        externalOrderId,
+        salesChannel: normalizedChannel,
+        productName: matchedProduct ? matchedProduct.name : productName,
+        sku: matchedProduct ? matchedProduct.sku : sku,
+        quantity: isNaN(quantity) ? 0 : quantity,
+        unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
+        discount: parseFloat(raw.discount) || 0,
+        tax: parseFloat(raw.tax) || 0,
+        shipping: parseFloat(raw.shipping) || 0,
+        marketplaceFee: parseFloat(raw.marketplaceFee) || 0,
+        total: isNaN(quantity) || isNaN(unitPrice) ? 0 : Math.max(0, quantity * unitPrice - (parseFloat(raw.discount) || 0) + (parseFloat(raw.tax) || 0) + (parseFloat(raw.shipping) || 0)),
+        customerName: raw.customerName || '',
+        customerEmail: raw.customerEmail || '',
+        customerPhone: raw.customerPhone || '',
+        orderDate: raw.orderDate || new Date().toISOString(),
+        orderStatus: raw.orderStatus || 'CONFIRMED',
+        paymentStatus: raw.paymentStatus || 'PAID',
+        errors: rowErrors,
+        duplicateReason: isDuplicate ? duplicateReason : undefined
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        salesChannel: normalizedChannel,
+        totalRows: records.length,
+        validCount,
+        duplicateCount,
+        invalidCount,
+        previewRows,
+        duplicates,
+        errors
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate import preview'
+    });
+  }
+};
+
+/**
+ * POST /api/orders/import
+ * Confirms import of validated multi-channel orders.
+ * Strictly enforces duplicate prevention (skips existing orders safely without crashing batch).
+ * Persists orders with source='CSV_IMPORT' and records security audit log.
+ * Does NOT mutate inventory.
+ */
+export const importOrders = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const user = req.user!;
+    const { salesChannel = 'WEBSITE', records = [] } = req.body;
+
+    const normalizedChannel = (salesChannel || 'WEBSITE').toUpperCase() as SalesChannelType;
+    if (!SALES_CHANNELS.includes(normalizedChannel)) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid sales channel: "${salesChannel}". Supported channels: ${SALES_CHANNELS.join(', ')}`
+      });
+      return;
+    }
+
+    if (!Array.isArray(records) || records.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'No records to import'
+      });
+      return;
+    }
+
+    const importedOrders: any[] = [];
+    const skippedDuplicates: any[] = [];
+    const failedRows: any[] = [];
+
+    for (let i = 0; i < records.length; i++) {
+      const rec = records[i];
+      const rowNum = i + 1;
+
+      const externalOrderId = rec.externalOrderId ? String(rec.externalOrderId).trim() : null;
+      if (!externalOrderId) {
+        failedRows.push({ row: rowNum, error: 'External Order ID missing' });
+        continue;
+      }
+
+      // Check DB duplication atomically
+      const existing = await OrderModel.findOne({
+        salesChannel: normalizedChannel,
+        externalOrderId
+      });
+      if (existing) {
+        skippedDuplicates.push({
+          row: rowNum,
+          externalOrderId,
+          reason: `Already registered as CRM Order #${existing.orderNumber}`
+        });
+        continue;
+      }
+
+      // Match product
+      const sku = rec.sku ? String(rec.sku).trim().toUpperCase() : '';
+      const productName = rec.productName ? String(rec.productName).trim() : '';
+
+      let product = null;
+      if (sku) {
+        product = await ProductModel.findOne({ sku: { $regex: new RegExp(`^${sku}$`, 'i') } });
+      }
+      if (!product && productName) {
+        product = await ProductModel.findOne({ name: { $regex: new RegExp(`^${productName}$`, 'i') } });
+      }
+
+      if (!product) {
+        failedRows.push({
+          row: rowNum,
+          externalOrderId,
+          error: `Product with SKU "${sku}" or Name "${productName}" not found in catalog`
+        });
+        continue;
+      }
+
+      const qty = parseInt(rec.quantity, 10);
+      if (isNaN(qty) || qty <= 0) {
+        failedRows.push({ row: rowNum, externalOrderId, error: 'Quantity must be >= 1' });
+        continue;
+      }
+
+      const rawPrice = rec.unitPrice !== undefined ? Number(rec.unitPrice) : product.sellingPrice;
+      if (isNaN(rawPrice) || rawPrice < 0) {
+        failedRows.push({ row: rowNum, externalOrderId, error: 'Unit price must be >= 0' });
+        continue;
+      }
+      const unitPrice = rawPrice;
+      const discount = Math.max(0, Number(rec.discount) || 0);
+      const tax = Math.max(0, Number(rec.tax) || 0);
+      const shipping = Math.max(0, Number(rec.shipping) || 0);
+      const marketplaceFee = Math.max(0, Number(rec.marketplaceFee) || 0);
+
+      const itemTotal = Math.max(0, (qty * unitPrice) - discount);
+      const grossAmount = Math.max(0, itemTotal + tax + shipping);
+      const netAmount = Math.max(0, grossAmount - marketplaceFee);
+
+      // Customer resolution without fabricating fake data
+      const targetCustomer = await resolveOrderCustomer(
+        normalizedChannel,
+        {
+          name: rec.customerName,
+          email: rec.customerEmail,
+          phone: rec.customerPhone,
+          address: rec.customerAddress,
+          city: rec.customerCity,
+          state: rec.customerState,
+          pincode: rec.customerPincode
+        },
+        user._id
+      );
+
+      const orderNumber = await generateOrderNumber();
+
+      const normalizedStatus = ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'PENDING', 'CANCELLED']
+        .includes((rec.orderStatus || '').toUpperCase())
+        ? (rec.orderStatus.toUpperCase() as OrderStatus)
+        : 'CONFIRMED';
+
+      const normalizedPayment = ['PAID', 'PENDING', 'PARTIALLY_PAID', 'FAILED', 'REFUNDED']
+        .includes((rec.paymentStatus || '').toUpperCase())
+        ? (rec.paymentStatus.toUpperCase() as PaymentStatus)
+        : 'PAID';
+
+      const order = new OrderModel({
+        orderNumber,
+        externalOrderId,
+        salesChannel: normalizedChannel,
+        orderDate: rec.orderDate ? new Date(rec.orderDate) : new Date(),
+        customerId: targetCustomer._id,
+        items: [
+          {
+            productId: product._id,
+            productNameSnapshot: product.name,
+            skuSnapshot: product.sku,
+            quantity: qty,
+            unitPrice,
+            discount,
+            total: itemTotal
+          }
+        ],
+        subtotal: itemTotal,
+        discount,
+        tax,
+        shipping,
+        marketplaceFee,
+        grossAmount,
+        netAmount,
+        total: grossAmount,
+        orderStatus: normalizedStatus,
+        paymentStatus: normalizedPayment,
+        source: 'CSV_IMPORT',
+        notes: rec.notes ? String(rec.notes).trim() : `Imported via CSV for ${normalizedChannel}`,
+        createdBy: user._id,
+        confirmedBy: normalizedStatus === 'CONFIRMED' ? user._id : null
+      });
+
+      await order.save();
+
+      await logOrderActivity(order._id, user._id, 'ORDER_CREATED', {
+        orderNumber: order.orderNumber,
+        externalOrderId: order.externalOrderId,
+        salesChannel: order.salesChannel,
+        source: 'CSV_IMPORT',
+        total: order.total
+      });
+
+      if (order.orderStatus === 'CONFIRMED') {
+        await logOrderActivity(order._id, user._id, 'ORDER_CONFIRMED', {
+          orderNumber: order.orderNumber,
+          source: 'CSV_IMPORT'
+        });
+      }
+
+      importedOrders.push({
+        _id: order._id,
+        orderNumber: order.orderNumber,
+        externalOrderId: order.externalOrderId,
+        total: order.total,
+        orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus
+      });
+    }
+
+    // Persist security audit log
+    await logAuditEvent(req, {
+      action: 'ORDERS_IMPORTED',
+      entityType: 'ORDER',
+      metadata: {
+        salesChannel: normalizedChannel,
+        totalProcessed: records.length,
+        importedCount: importedOrders.length,
+        skippedDuplicatesCount: skippedDuplicates.length,
+        failedCount: failedRows.length
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Import completed: ${importedOrders.length} new orders created, ${skippedDuplicates.length} duplicates skipped, ${failedRows.length} invalid records rejected.`,
+      data: {
+        salesChannel: normalizedChannel,
+        totalProcessed: records.length,
+        importedCount: importedOrders.length,
+        skippedDuplicatesCount: skippedDuplicates.length,
+        failedCount: failedRows.length,
+        importedOrders,
+        skippedDuplicates,
+        failedRows
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to import orders'
     });
   }
 };

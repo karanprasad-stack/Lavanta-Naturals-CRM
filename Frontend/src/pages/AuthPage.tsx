@@ -11,9 +11,12 @@ import {
   X,
   Sparkles,
   Loader2,
-  Check
+  Check,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import { LavantaLogo } from '../components/ui/LavantaLogo';
 import '../styles/login.css';
 
@@ -25,6 +28,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register, isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   // Determine active mode from URL or prop
   const currentMode = initialMode || (location.pathname === '/register' ? 'register' : 'login');
@@ -252,6 +256,21 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
 
   return (
     <div className="login-page-root">
+      {/* Top-Right Theme Toggle */}
+      <button
+        type="button"
+        onClick={toggleTheme}
+        className="theme-toggle-btn"
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      >
+        {isDark ? (
+          <Sun size={18} className="theme-toggle-icon" aria-hidden="true" />
+        ) : (
+          <Moon size={18} className="theme-toggle-icon" aria-hidden="true" />
+        )}
+      </button>
+
       {/* ======================================================================
           LEFT SIDE: Brand & Workspace Introduction (100% STATIC & UNCHANGED)
           ====================================================================== */}
@@ -259,12 +278,14 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
         <div className="showcase-container">
           {/* Brand Header */}
           <div className="showcase-header">
-            <LavantaLogo variant="brand-image" size="sm" />
+            <div className="showcase-logo-badge">
+              <LavantaLogo variant="brand-image" size="sm" />
+            </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--color-text-primary)', lineHeight: 1.2 }}>
+              <div className="showcase-brand-name">
                 Lavanta Naturals
               </div>
-              <div className="showcase-tagline-badge" style={{ marginTop: '2px' }}>
+              <div className="showcase-tagline-badge">
                 Clean Skincare HQ
               </div>
             </div>
@@ -288,11 +309,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                     <Sparkles size={15} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>Botanical Formulations & Inventory</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 400 }}>Real-time batch tracking & raw material controls</div>
+                    <div className="showcase-feature-title">Botanical Formulations & Inventory</div>
+                    <div className="showcase-feature-subtitle">Real-time batch tracking & raw material controls</div>
                   </div>
                 </div>
-                <CheckCircle2 size={16} color="var(--color-primary, #69C43F)" />
+                <CheckCircle2 size={16} className="showcase-feature-check" />
               </div>
 
               <div className="showcase-visual-row">
@@ -301,11 +322,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                     <Shield size={15} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>Enterprise Role-Governed Access</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 400 }}>Centralized permissions & end-to-end audit security</div>
+                    <div className="showcase-feature-title">Enterprise Role-Governed Access</div>
+                    <div className="showcase-feature-subtitle">Centralized permissions & end-to-end audit security</div>
                   </div>
                 </div>
-                <CheckCircle2 size={16} color="var(--color-primary, #69C43F)" />
+                <CheckCircle2 size={16} className="showcase-feature-check" />
               </div>
 
               <div className="showcase-visual-row">
@@ -314,11 +335,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                     <Lock size={15} />
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>Encrypted Workspace Operations</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', fontWeight: 400 }}>Multi-department collaboration & live reporting</div>
+                    <div className="showcase-feature-title">Encrypted Workspace Operations</div>
+                    <div className="showcase-feature-subtitle">Multi-department collaboration & live reporting</div>
                   </div>
                 </div>
-                <CheckCircle2 size={16} color="var(--color-primary, #69C43F)" />
+                <CheckCircle2 size={16} className="showcase-feature-check" />
               </div>
             </div>
           </div>
@@ -769,40 +790,33 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
             className="login-modal-card"
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <div className="login-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Shield size={20} color="var(--color-primary-deep, #3E8E25)" />
-                <h3 id="forgot-modal-title" style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                <Shield size={20} className="login-modal-shield" />
+                <h3 id="forgot-modal-title" className="login-modal-title">
                   Password Recovery
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsForgotModalOpen(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: '4px',
-                  cursor: 'pointer',
-                  color: 'var(--color-text-secondary)',
-                  borderRadius: '4px'
-                }}
+                className="login-modal-close-btn"
                 aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <p style={{ margin: '0 0 1.25rem 0', fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+            <p className="login-modal-desc">
               For internal security and compliance, Lavanta CRM authentication credentials are managed directly by workspace administrators.
             </p>
 
-            <div style={{ background: '#FAFBF8', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
+            <div className="login-modal-support-box">
+              <div className="login-modal-support-title">
                 Assistance & Support Contact
               </div>
-              <div style={{ fontSize: '0.825rem', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
-                Please reach out to your HR operations partner or email IT administration at <strong style={{ color: 'var(--color-primary-deep)' }}>support@lavantanaturals.com</strong> with your staff ID.
+              <div className="login-modal-support-text">
+                Please reach out to your HR operations partner or email IT administration at <strong className="login-modal-email">support@lavantanaturals.com</strong> with your staff ID.
               </div>
             </div>
 

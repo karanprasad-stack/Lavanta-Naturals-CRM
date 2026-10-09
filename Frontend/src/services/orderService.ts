@@ -1,10 +1,18 @@
 import { apiClient } from './apiClient';
-import { Order, OrderStatus, PaymentStatus, CreateOrderInput } from '../types/sales';
+import {
+  Order,
+  OrderStatus,
+  PaymentStatus,
+  CreateOrderInput,
+  ImportPreviewResponse,
+  ImportOrdersResponse
+} from '../types/sales';
 
 export interface GetOrdersParams {
   salesChannel?: string;
   orderStatus?: string;
   paymentStatus?: string;
+  source?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -28,6 +36,7 @@ export const orderService = {
     if (params.salesChannel && params.salesChannel !== 'ALL') query.append('salesChannel', params.salesChannel);
     if (params.orderStatus && params.orderStatus !== 'ALL') query.append('orderStatus', params.orderStatus);
     if (params.paymentStatus && params.paymentStatus !== 'ALL') query.append('paymentStatus', params.paymentStatus);
+    if (params.source && params.source !== 'ALL') query.append('source', params.source);
     if (params.search) query.append('search', params.search);
     if (params.page) query.append('page', params.page.toString());
     if (params.limit) query.append('limit', params.limit.toString());
@@ -72,6 +81,22 @@ export const orderService = {
     const res = await apiClient<{ success: boolean; data: Order }>('/api/orders', {
       method: 'POST',
       body: JSON.stringify(input)
+    });
+    return res.data;
+  },
+
+  async previewImport(salesChannel: string, records: any[]): Promise<ImportPreviewResponse> {
+    const res = await apiClient<{ success: boolean; data: ImportPreviewResponse }>('/api/orders/import/preview', {
+      method: 'POST',
+      body: JSON.stringify({ salesChannel, records })
+    });
+    return res.data;
+  },
+
+  async confirmImport(salesChannel: string, records: any[]): Promise<ImportOrdersResponse> {
+    const res = await apiClient<{ success: boolean; data: ImportOrdersResponse }>('/api/orders/import', {
+      method: 'POST',
+      body: JSON.stringify({ salesChannel, records })
     });
     return res.data;
   },

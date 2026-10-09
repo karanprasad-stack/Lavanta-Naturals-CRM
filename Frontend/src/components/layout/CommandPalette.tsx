@@ -322,8 +322,10 @@ export const CommandPalette: React.FC = () => {
                 <Search size={20} color="var(--color-primary)" />
               )}
               <input
+                id="global-command-palette-input"
                 autoFocus
                 type="text"
+                aria-label="Search people, tasks, products, orders, documents, goals"
                 placeholder="Search people, tasks, products, orders, documents, goals..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -332,6 +334,8 @@ export const CommandPalette: React.FC = () => {
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
+                  boxShadow: 'none',
+                  WebkitAppearance: 'none',
                   fontSize: '1rem',
                   color: 'var(--color-text-primary)'
                 }}
