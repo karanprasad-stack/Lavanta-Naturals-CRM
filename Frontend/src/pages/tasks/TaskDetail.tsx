@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -218,6 +218,23 @@ export const TaskDetail: React.FC = () => {
   const isOverdue = task.isOverdue && task.status !== 'COMPLETED' && task.status !== 'CANCELLED';
   const deadlineDate = new Date(task.deadline);
 
+  // Canonical deduplicated unique assignees by stable MongoDB user ID
+  const uniqueAssignees = useMemo(() => {
+    if (!task?.assignees || !Array.isArray(task.assignees) || task.assignees.length === 0) {
+      return task?.assignedTo ? [task.assignedTo] : [];
+    }
+    const seen = new Set<string>();
+    const list: typeof task.assignees = [];
+    for (const a of task.assignees) {
+      const aId = a?._id ? a._id.toString() : (a as any)?.id ? (a as any).id.toString() : '';
+      if (aId && !seen.has(aId)) {
+        seen.add(aId);
+        list.push(a);
+      }
+    }
+    return list.length > 0 ? list : (task.assignedTo ? [task.assignedTo] : []);
+  }, [task?.assignees, task?.assignedTo]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Top Navigation */}
@@ -236,7 +253,7 @@ export const TaskDetail: React.FC = () => {
       {/* Task Header Banner */}
       <div
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
           padding: '1.75rem 2rem',
@@ -264,10 +281,13 @@ export const TaskDetail: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
             <div>
               Assigned to:{' '}
-              {task.assignees && task.assignees.length > 1 ? (
+              {uniqueAssignees && uniqueAssignees.length > 1 ? (
                 <>
                   <strong style={{ color: 'var(--color-text-primary)' }}>
-                    {task.assignees.map(a => a.name).join(', ')}
+                    {uniqueAssignees.map(a => {
+                      const hasDuplicateName = uniqueAssignees.filter(u => u.name === a.name).length > 1;
+                      return hasDuplicateName && a.email ? `${a.name} (${a.email})` : a.name;
+                    }).join(', ')}
                   </strong>{' '}
                   <span
                     style={{
@@ -280,12 +300,12 @@ export const TaskDetail: React.FC = () => {
                       marginLeft: '6px'
                     }}
                   >
-                    Shared ({task.assignees.length} members)
+                    Shared ({uniqueAssignees.length} members)
                   </span>
                 </>
               ) : (
                 <strong style={{ color: 'var(--color-text-primary)' }}>
-                  {task.assignees?.[0]?.name || task.assignedTo?.name || 'Unassigned'}
+                  {uniqueAssignees[0]?.name || task.assignedTo?.name || 'Unassigned'}
                 </strong>
               )}
             </div>
@@ -401,7 +421,7 @@ export const TaskDetail: React.FC = () => {
           {/* Description Card */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -426,7 +446,7 @@ export const TaskDetail: React.FC = () => {
           {task.proofOfWork && task.proofOfWork.length > 0 && (
             <div
               style={{
-                background: '#FFFFFF',
+                background: 'var(--bg-surface)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-color)',
                 padding: '1.5rem',
@@ -450,7 +470,7 @@ export const TaskDetail: React.FC = () => {
                       justifyContent: 'space-between',
                       padding: '0.85rem 1rem',
                       borderRadius: 'var(--radius-sm)',
-                      background: '#FAFBF8',
+                      background: 'var(--bg-surface-elevated)',
                       border: '1px solid var(--border-color)'
                     }}
                   >
@@ -507,7 +527,7 @@ export const TaskDetail: React.FC = () => {
           {/* Activity Timeline Card */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -526,7 +546,7 @@ export const TaskDetail: React.FC = () => {
           {/* Metadata Card */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',
@@ -554,11 +574,11 @@ export const TaskDetail: React.FC = () => {
               </div>
 
               {/* Assignee(s) Card */}
-              {task.assignees && task.assignees.length > 1 ? (
+              {uniqueAssignees && uniqueAssignees.length > 1 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                      Assignees ({task.assignees.length})
+                      Assignees ({uniqueAssignees.length})
                     </span>
                     <span
                       style={{
@@ -574,33 +594,44 @@ export const TaskDetail: React.FC = () => {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {task.assignees.map(a => (
-                      <div
-                        key={a._id}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '4px 6px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: 'var(--color-background-soft, #F8FAFC)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <img
-                            src={a.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                            alt={a.name}
-                            style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                          <span style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)' }}>
-                            {a.name}
+                    {uniqueAssignees.map(a => {
+                      const hasDuplicateName = uniqueAssignees.filter(u => u.name === a.name).length > 1;
+                      return (
+                        <div
+                          key={a._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '6px 8px',
+                            borderRadius: 'var(--radius-xs)',
+                            background: 'var(--bg-surface-elevated)',
+                            border: '1px solid var(--border-color)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img
+                              src={a.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
+                              alt={a.name}
+                              style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                            />
+                            <div>
+                              <span style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)', display: 'block' }}>
+                                {a.name}
+                              </span>
+                              {hasDuplicateName && a.email && (
+                                <span style={{ fontSize: '0.675rem', color: 'var(--color-text-muted)' }}>
+                                  {a.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
+                            {a.role ? a.role.toLowerCase() : ''}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
-                          {a.role ? a.role.toLowerCase() : ''}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
                     Task status and workflow are shared between all assignees.
@@ -612,15 +643,15 @@ export const TaskDetail: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <img
                       src={
-                        (task.assignees && task.assignees[0]?.profilePhoto) ||
+                        (uniqueAssignees && uniqueAssignees[0]?.profilePhoto) ||
                         task.assignedTo?.profilePhoto ||
                         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
                       }
-                      alt={(task.assignees && task.assignees[0]?.name) || task.assignedTo?.name}
+                      alt={(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name}
                       style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
                     />
                     <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      {(task.assignees && task.assignees[0]?.name) || task.assignedTo?.name || 'Unassigned'}
+                      {(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name || 'Unassigned'}
                     </span>
                   </div>
                 </div>
@@ -653,7 +684,7 @@ export const TaskDetail: React.FC = () => {
           {/* Comments & Discussion Card */}
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
               padding: '1.5rem',

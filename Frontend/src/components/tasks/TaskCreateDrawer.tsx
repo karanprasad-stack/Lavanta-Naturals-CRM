@@ -125,13 +125,16 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
     return selectedMemberIds.length;
   }, [targetType, cohortMode, eligibleInterns.length, eligibleEmployees.length, eligibleHR.length, selectedMemberIds.length]);
 
-  const toggleMemberSelection = (id: string) => {
+  const toggleMemberSelection = (rawId: string) => {
+    const id = String(rawId || '').trim();
+    if (!id) return;
     setSelectedMemberIds(prev =>
-      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(mId => mId !== id) : Array.from(new Set([...prev, id]))
     );
   };
 
-  const removeMember = (id: string) => {
+  const removeMember = (rawId: string) => {
+    const id = String(rawId || '').trim();
     setSelectedMemberIds(prev => prev.filter(mId => mId !== id));
   };
 
@@ -160,14 +163,14 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
         setValidationError('Please select at least one team member to assign this task to.');
         return;
       }
-      finalAssigneeIds = selectedMemberIds;
+      finalAssigneeIds = Array.from(new Set(selectedMemberIds.map(id => String(id || '').trim()))).filter(Boolean);
     } else {
       if (cohortMode === 'CUSTOM') {
         if (selectedMemberIds.length === 0) {
           setValidationError(`Please select at least one ${targetType.toLowerCase()} member or switch to "All".`);
           return;
         }
-        finalAssigneeIds = selectedMemberIds;
+        finalAssigneeIds = Array.from(new Set(selectedMemberIds.map(id => String(id || '').trim()))).filter(Boolean);
       } else {
         // ALL in cohort
         const cohortList =
@@ -181,7 +184,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
           setValidationError(`No active ${targetType.toLowerCase()} members found in your authorized scope.`);
           return;
         }
-        finalAssigneeIds = cohortList.map(m => m.id || (m as any)._id);
+        finalAssigneeIds = Array.from(new Set(cohortList.map(m => String((m as any)._id || m.id || '').trim()))).filter(Boolean);
       }
     }
 
@@ -673,7 +676,10 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                             style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
                           />
                           <span>
-                            {member.name} <span style={{ opacity: 0.7 }}>({member.role})</span>
+                            {member.name}{' '}
+                            <span style={{ opacity: 0.75, fontSize: '0.7rem' }}>
+                              ({member.email || member.role})
+                            </span>
                           </span>
                           <button
                             type="button"
@@ -792,7 +798,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                                   {m.name}
                                 </div>
                                 <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
-                                  {m.designation || m.role} • {m.department}
+                                  {m.email ? `${m.email} • ` : ''}{m.designation || m.role} • {m.department}
                                 </div>
                               </div>
                             </div>
@@ -803,7 +809,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                                 height: '18px',
                                 borderRadius: '4px',
                                 border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                                background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
+                                background: isSelected ? 'var(--color-primary)' : 'var(--bg-surface)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center'

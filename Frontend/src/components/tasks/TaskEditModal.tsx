@@ -112,9 +112,14 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
   }, [eligibleAssignees, searchQuery]);
 
   const toggleMemberSelection = (id: string) => {
-    setSelectedAssigneeIds(prev =>
-      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
-    );
+    setSelectedAssigneeIds(prev => {
+      const cleanId = String(id || '').trim();
+      if (!cleanId) return prev;
+      if (prev.includes(cleanId)) {
+        return prev.filter(mId => mId !== cleanId);
+      }
+      return Array.from(new Set([...prev, cleanId]));
+    });
   };
 
   const removeMember = (id: string) => {
@@ -129,7 +134,11 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
       setValidationError('Task title is required.');
       return;
     }
-    if (selectedAssigneeIds.length === 0) {
+    const cleanAssigneeIds = Array.from(
+      new Set(selectedAssigneeIds.map(id => String(id || '').trim()))
+    ).filter(Boolean);
+
+    if (cleanAssigneeIds.length === 0) {
       setValidationError('Please select at least one assignee for this task.');
       return;
     }
@@ -147,8 +156,8 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
       const payload: UpdateTaskPayload = {
         title: title.trim(),
         description: description.trim(),
-        assigneeIds: selectedAssigneeIds,
-        assignedTo: selectedAssigneeIds[0],
+        assigneeIds: cleanAssigneeIds,
+        assignedTo: cleanAssigneeIds[0],
         priority,
         status,
         deadline: fullDeadline.toISOString()
@@ -431,7 +440,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                           alt={member?.name || 'User'}
                           style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
                         />
-                        <span>{member?.name || 'Member'}</span>
+                        <span>{member?.name || 'Member'}{member?.email ? ` (${member.email})` : ''}</span>
                         <button
                           type="button"
                           onClick={() => removeMember(id)}
@@ -541,7 +550,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                               {m.name}
                             </div>
                             <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
-                              {m.designation || m.role} • {m.department}
+                              {m.email ? `${m.email} • ` : ''}{m.designation || m.role} • {m.department}
                             </div>
                           </div>
                         </div>
@@ -552,7 +561,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                             height: '16px',
                             borderRadius: '4px',
                             border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                            background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
+                            background: isSelected ? 'var(--color-primary)' : 'var(--bg-surface)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center'

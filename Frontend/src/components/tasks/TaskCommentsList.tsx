@@ -70,10 +70,11 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                 <div
                   style={{
                     flex: 1,
-                    background: '#FAFBF8',
+                    background: 'var(--bg-surface-elevated)',
                     border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-sm)',
-                    padding: '0.75rem 0.85rem'
+                    padding: '0.75rem 0.85rem',
+                    boxShadow: 'var(--shadow-xs)'
                   }}
                 >
                   <div
@@ -98,11 +99,13 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                         <span
                           style={{
                             fontSize: '0.675rem',
-                            color: 'var(--color-text-muted)',
-                            background: '#FFFFFF',
+                            fontWeight: 600,
+                            color: 'var(--color-text-secondary)',
+                            background: 'var(--bg-surface)',
                             border: '1px solid var(--border-color)',
-                            padding: '1px 5px',
-                            borderRadius: '4px'
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            textTransform: 'uppercase'
                           }}
                         >
                           {c.author.role}
@@ -118,9 +121,9 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                   <p
                     style={{
                       fontSize: '0.825rem',
-                      color: 'var(--color-text-secondary)',
+                      color: 'var(--color-text-primary)',
                       margin: 0,
-                      lineHeight: 1.45,
+                      lineHeight: 1.5,
                       whiteSpace: 'pre-wrap'
                     }}
                   >
@@ -157,7 +160,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
             fontSize: '0.85rem',
-            background: '#FFFFFF',
+            background: 'var(--bg-surface-elevated)',
             outline: 'none',
             color: 'var(--color-text-primary)'
           }}

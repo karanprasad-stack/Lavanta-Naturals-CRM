@@ -134,10 +134,21 @@ export const taskController = {
       }
     }
 
+    // Deduplicate target users strictly by _id
+    const seenUserIds = new Set<string>();
+    const deduplicatedTargetUsers: IUser[] = [];
+    for (const u of targetUsers) {
+      const uId = u._id.toString();
+      if (!seenUserIds.has(uId)) {
+        seenUserIds.add(uId);
+        deduplicatedTargetUsers.push(u);
+      }
+    }
+
     // Filter out self-assignment
-    const filteredUsers = targetUsers.filter(u => u._id.toString() !== creatorIdStr);
+    const filteredUsers = deduplicatedTargetUsers.filter(u => u._id.toString() !== creatorIdStr);
     if (filteredUsers.length === 0) {
-      if (targetUsers.length > 0) {
+      if (deduplicatedTargetUsers.length > 0) {
         return { error: 'You cannot assign a task to yourself. Please select team members.', status: 400, users: [] };
       }
       return { error: 'No eligible assignees found for the selected target.', status: 400, users: [] };
@@ -161,6 +172,27 @@ export const taskController = {
     }
 
     return { users: filteredUsers };
+  },
+
+  /**
+   * Helper: format assignee names for activity logs, differentiating same-name users by email
+   */
+  formatAssigneesActivity(users: IUser[]): string {
+    const nameCounts: Record<string, number> = {};
+    users.forEach(u => {
+      const n = u.name || 'User';
+      nameCounts[n] = (nameCounts[n] || 0) + 1;
+    });
+
+    return users
+      .map(u => {
+        const n = u.name || 'User';
+        if (nameCounts[n] > 1 && u.email) {
+          return `${n} (${u.email})`;
+        }
+        return n;
+      })
+      .join(', ');
   },
 
   /**
@@ -447,7 +479,7 @@ export const taskController = {
       const savedTask = await task.save();
 
       // Create activity logs
-      const assigneeNames = validAssignees.map(u => u.name).join(', ');
+      const assigneeNames = taskController.formatAssigneesActivity(validAssignees);
       await TaskActivityModel.create([
         {
           taskId: savedTask._id,
@@ -653,7 +685,7 @@ export const taskController = {
         updates.department = newAssignees[0].department || task.department;
 
         if (newlyAdded.length > 0) {
-          const addedNames = newlyAdded.map(u => u.name).join(', ');
+          const addedNames = taskController.formatAssigneesActivity(newlyAdded);
           activities.push({
             type: 'TASK_ASSIGNED',
             message: `${user.name} added ${addedNames} to this task.`
