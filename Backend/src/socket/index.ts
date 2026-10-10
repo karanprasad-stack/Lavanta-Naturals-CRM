@@ -8,6 +8,7 @@ import { MessageModel, IMessage } from '../models/Message.js';
 import { notificationDispatcher } from '../services/notificationDispatcher.js';
 import { calculateUnreadMessageCounts } from '../controllers/chatController.js';
 import { config } from '../config/env.js';
+import { isAllowedOrigin } from '../config/cors.js';
 
 export interface AuthenticatedSocket extends Socket {
   data: {
@@ -23,7 +24,13 @@ export let io: SocketIOServer;
 export function initSocketServer(httpServer: HttpServer): SocketIOServer {
   io = new SocketIOServer(httpServer, {
     cors: {
-      origin: [config.clientUrl, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+      origin: (origin, callback) => {
+        if (isAllowedOrigin(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS blocked socket origin: ${origin}`));
+        }
+      },
       credentials: true
     },
     pingTimeout: 60000,
