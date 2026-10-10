@@ -48,6 +48,23 @@ export const TaskDetail: React.FC = () => {
   const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
   const isManagement = userRole === 'FOUNDER' || userRole === 'HR' || userRole === 'MANAGER';
 
+  // Canonical deduplicated unique assignees by stable MongoDB user ID (called unconditionally before early returns)
+  const uniqueAssignees = useMemo(() => {
+    if (!task?.assignees || !Array.isArray(task.assignees) || task.assignees.length === 0) {
+      return task?.assignedTo ? [task.assignedTo] : [];
+    }
+    const seen = new Set<string>();
+    const list: typeof task.assignees = [];
+    for (const a of task.assignees) {
+      const aId = a?._id ? a._id.toString() : (a as any)?.id ? (a as any).id.toString() : '';
+      if (aId && !seen.has(aId)) {
+        seen.add(aId);
+        list.push(a);
+      }
+    }
+    return list.length > 0 ? list : (task.assignedTo ? [task.assignedTo] : []);
+  }, [task?.assignees, task?.assignedTo]);
+
   useEffect(() => {
     if (isManagement) {
       userService.getUsers().then(res => {
@@ -217,23 +234,6 @@ export const TaskDetail: React.FC = () => {
   const perms = getTaskPermissions(currentUser, task);
   const isOverdue = task.isOverdue && task.status !== 'COMPLETED' && task.status !== 'CANCELLED';
   const deadlineDate = new Date(task.deadline);
-
-  // Canonical deduplicated unique assignees by stable MongoDB user ID
-  const uniqueAssignees = useMemo(() => {
-    if (!task?.assignees || !Array.isArray(task.assignees) || task.assignees.length === 0) {
-      return task?.assignedTo ? [task.assignedTo] : [];
-    }
-    const seen = new Set<string>();
-    const list: typeof task.assignees = [];
-    for (const a of task.assignees) {
-      const aId = a?._id ? a._id.toString() : (a as any)?.id ? (a as any).id.toString() : '';
-      if (aId && !seen.has(aId)) {
-        seen.add(aId);
-        list.push(a);
-      }
-    }
-    return list.length > 0 ? list : (task.assignedTo ? [task.assignedTo] : []);
-  }, [task?.assignees, task?.assignedTo]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
