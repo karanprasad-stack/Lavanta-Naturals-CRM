@@ -105,8 +105,8 @@ export const chatService = {
   /**
    * Mark all unread messages in conversation as read
    */
-  async markAsRead(conversationId: string): Promise<void> {
-    await apiClient(`/api/chat/conversations/${conversationId}/read`, {
+  async markAsRead(conversationId: string): Promise<{ success: boolean; unreadCount?: number }> {
+    return await apiClient<{ success: boolean; unreadCount?: number }>(`/api/chat/conversations/${conversationId}/read`, {
       method: 'POST'
     });
   },

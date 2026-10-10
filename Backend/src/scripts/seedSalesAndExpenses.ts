@@ -24,7 +24,7 @@ async function seedSalesAndExpenses() {
       throw new Error('Founder, Manager, and Employee users required. Run main seed script first.');
     }
 
-    const products = await ProductModel.find({ status: 'ACTIVE' });
+    const products = await ProductModel.find();
     if (products.length === 0) {
       throw new Error('No active products found. Run seedProducts.ts first.');
     }

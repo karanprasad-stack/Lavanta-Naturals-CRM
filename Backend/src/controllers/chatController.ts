@@ -7,6 +7,57 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 import { io, getOnlineUsers } from '../socket/index.js';
 import { notificationDispatcher } from '../services/notificationDispatcher.js';
 
+/**
+ * Authoritative unread message count calculation using persisted MessageModel state.
+ * Strictly excludes:
+ * - Messages authored by current user (senderId === userId)
+ * - Messages already acknowledged in readBy
+ * - Soft-deleted messages
+ */
+export async function calculateUnreadMessageCounts(userId: Types.ObjectId): Promise<{
+  totalUnread: number;
+  byConversation: Record<string, number>;
+}> {
+  const accessibleConvs = await ConversationModel.find({
+    $or: [
+      { type: 'COMPANY' },
+      { participants: userId }
+    ]
+  }).select('_id');
+
+  const convIds = accessibleConvs.map(c => c._id);
+  if (convIds.length === 0) {
+    return { totalUnread: 0, byConversation: {} };
+  }
+
+  const unreadAgg = await MessageModel.aggregate([
+    {
+      $match: {
+        conversationId: { $in: convIds },
+        senderId: { $ne: userId },
+        readBy: { $ne: userId },
+        isDeleted: { $ne: true }
+      }
+    },
+    {
+      $group: {
+        _id: '$conversationId',
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+
+  const byConversation: Record<string, number> = {};
+  let totalUnread = 0;
+  for (const item of unreadAgg) {
+    const cid = item._id.toString();
+    byConversation[cid] = item.count;
+    totalUnread += item.count;
+  }
+
+  return { totalUnread, byConversation };
+}
+
 export const chatController = {
   /**
    * Helper: Check if user is permitted to start a direct chat with target user
@@ -42,16 +93,18 @@ export const chatController = {
    */
   async ensureCompanyConversation(): Promise<IConversation> {
     let companyConv = await ConversationModel.findOne({ type: 'COMPANY' });
+    const allActiveUsers = await UserModel.find({ status: 'ACTIVE' }).select('_id');
+    const allUserIds = allActiveUsers.map(u => u._id);
+
     if (!companyConv) {
       // Find founder to set as creator if available
       const founder = await UserModel.findOne({ role: 'FOUNDER' });
-      const allActiveUsers = await UserModel.find({ status: 'ACTIVE' }).select('_id');
 
       companyConv = await ConversationModel.create({
         type: 'COMPANY',
         name: 'Lavanta Team',
         avatar: '',
-        participants: allActiveUsers.map(u => u._id),
+        participants: allUserIds,
         createdBy: founder?._id,
         lastMessage: {
           text: 'Welcome to the Lavanta Naturals company team workspace.',
@@ -62,6 +115,19 @@ export const chatController = {
         lastMessageAt: new Date(),
         unreadCounts: {}
       });
+    } else {
+      // Sync all active users into company conversation participants
+      const existingParticipantSet = new Set(companyConv.participants.map(p => p.toString()));
+      let hasMissing = false;
+      for (const uid of allUserIds) {
+        if (!existingParticipantSet.has(uid.toString())) {
+          companyConv.participants.push(uid);
+          hasMissing = true;
+        }
+      }
+      if (hasMissing) {
+        await companyConv.save();
+      }
     }
     return companyConv;
   },
@@ -90,19 +156,37 @@ export const chatController = {
         .populate('participants', 'name email role department designation profilePhoto status')
         .sort({ lastMessageAt: -1 });
 
+      const { byConversation } = await calculateUnreadMessageCounts(user._id);
+
       const mapped = conversations.map(conv => {
-        const obj = conv.toObject();
-        const unreadMap = obj.unreadCounts || {};
-        const unread = Number(unreadMap[user._id.toString()] || 0);
+        const convIdStr = conv._id.toString();
+        const unread = Number(byConversation[convIdStr] || 0);
 
         if (conv.type === 'COMPANY') {
           return {
             _id: conv._id,
             id: conv._id,
             type: 'COMPANY',
-            name: 'Lavanta Team',
-            avatar: '',
+            name: conv.name || 'Lavanta Team',
+            avatar: conv.avatar || '',
             isOnline: true,
+            participants: conv.participants,
+            participantCount: conv.participants.length,
+            lastMessage: conv.lastMessage,
+            lastMessageAt: conv.lastMessageAt,
+            unreadCount: unread
+          };
+        }
+
+        if (conv.type === 'GROUP') {
+          return {
+            _id: conv._id,
+            id: conv._id,
+            type: 'GROUP',
+            name: conv.name || 'Group Conversation',
+            avatar: conv.avatar || '',
+            isOnline: false,
+            participants: conv.participants,
             participantCount: conv.participants.length,
             lastMessage: conv.lastMessage,
             lastMessageAt: conv.lastMessageAt,
@@ -124,6 +208,7 @@ export const chatController = {
           type: 'DIRECT',
           name: otherParticipant?.name || 'Team Member',
           avatar: otherParticipant?.profilePhoto || '',
+          participants: conv.participants,
           otherUser: otherParticipant,
           isOnline,
           lastMessage: conv.lastMessage,
@@ -203,6 +288,9 @@ export const chatController = {
       const onlineUserIds = new Set(getOnlineUsers());
       const otherIdStr = targetUser._id.toString();
 
+      const { byConversation } = await calculateUnreadMessageCounts(user._id);
+      const unreadCount = Number(byConversation[conversation!._id.toString()] || 0);
+
       res.status(200).json({
         success: true,
         conversation: {
@@ -215,7 +303,7 @@ export const chatController = {
           isOnline: onlineUserIds.has(otherIdStr),
           lastMessage: conversation!.lastMessage,
           lastMessageAt: conversation!.lastMessageAt,
-          unreadCount: (conversation!.unreadCounts as any)?.[user._id.toString()] || 0
+          unreadCount
         }
       });
     } catch (error) {
@@ -261,9 +349,10 @@ export const chatController = {
       }
 
       const onlineUserIds = new Set(getOnlineUsers());
-      const otherParticipant = (conversation.participants as any[]).find(
-        p => p._id.toString() !== user._id.toString()
-      );
+      const isDirect = conversation.type === 'DIRECT';
+      const otherParticipant = isDirect
+        ? (conversation.participants as any[]).find(p => p._id.toString() !== user._id.toString())
+        : undefined;
 
       res.json({
         success: true,
@@ -271,7 +360,7 @@ export const chatController = {
           ...conversation.toObject(),
           id: conversation._id,
           otherUser: otherParticipant,
-          isOnline: otherParticipant ? onlineUserIds.has(otherParticipant._id.toString()) : false
+          isOnline: isDirect && otherParticipant ? onlineUserIds.has(otherParticipant._id.toString()) : false
         }
       });
     } catch (error) {
@@ -328,7 +417,7 @@ export const chatController = {
 
       // Query newest first, then reverse for chronological display
       const messages = await MessageModel.find(query)
-        .populate('senderId', 'name role department designation profilePhoto')
+        .populate('senderId', 'name role department designation profilePhoto email')
         .populate('replyTo', 'content senderId createdAt')
         .sort({ createdAt: -1 })
         .limit(pageLimit);
@@ -400,7 +489,7 @@ export const chatController = {
 
       // Populate sender
       const populatedMessage = await MessageModel.findById(savedMessage._id)
-        .populate('senderId', 'name role department designation profilePhoto')
+        .populate('senderId', 'name role department designation profilePhoto email')
         .populate('replyTo', 'content senderId createdAt');
 
       // Update Conversation lastMessage & unread
@@ -425,18 +514,39 @@ export const chatController = {
 
       // Emit through Socket.IO if available
       if (io) {
+        // Broadcast to conversation room
         io.to(`conversation:${id}`).emit('new_message', {
           conversationId: id,
           message: populatedMessage
         });
-        conversation.participants.forEach(p => {
-          io.to(`user:${p.toString()}`).emit('conversation_updated', {
+
+        // Also broadcast directly to every participant's personal room
+        for (const p of conversation.participants) {
+          const pIdStr = p.toString();
+          io.to(`user:${pIdStr}`).emit('new_message', {
+            conversationId: id,
+            message: populatedMessage
+          });
+          io.to(`user:${pIdStr}`).emit('conversation_updated', {
             conversationId: id,
             lastMessage: conversation.lastMessage,
             lastMessageAt: conversation.lastMessageAt,
             unreadCounts: conversation.unreadCounts
           });
-        });
+
+          if (pIdStr !== user._id.toString()) {
+            calculateUnreadMessageCounts(p as Types.ObjectId)
+              .then(pCounts => {
+                io.to(`user:${pIdStr}`).emit('unread_count_updated', {
+                  totalUnread: pCounts.totalUnread,
+                  unreadCount: pCounts.totalUnread,
+                  conversationId: id,
+                  conversationUnreadCount: pCounts.byConversation[id] || 0
+                });
+              })
+              .catch(err => console.error('[chatController.sendMessage] Error recalculating unread for participant:', err));
+          }
+        }
       }
 
       // Dispatch persistent notifications for other participants
@@ -617,15 +727,31 @@ export const chatController = {
         await conversation.save();
       }
 
+      // Calculate new total unread count for the current user
+      const { totalUnread, byConversation } = await calculateUnreadMessageCounts(user._id);
+
       if (io) {
         io.to(`conversation:${id}`).emit('message_read_receipt', {
           conversationId: id,
           userId: user._id.toString(),
           readAt: new Date()
         });
+        io.to(`user:${user._id.toString()}`).emit('unread_count_updated', {
+          totalUnread,
+          unreadCount: totalUnread,
+          conversationId: id,
+          conversationUnreadCount: 0,
+          byConversation
+        });
       }
 
-      res.json({ success: true, message: 'Conversation marked as read' });
+      res.json({
+        success: true,
+        message: 'Conversation marked as read',
+        unreadCount: totalUnread,
+        conversationUnreadCount: 0,
+        byConversation
+      });
     } catch (error) {
       console.error('[chatController.markAsRead] Error:', error);
       res.status(500).json({ success: false, message: 'Failed to mark as read', error });
@@ -634,7 +760,7 @@ export const chatController = {
 
   /**
    * GET /api/chat/unread-count
-   * Total unread messages across all conversations for header badge
+   * Authoritative total unread messages across all conversations for header badge
    */
   async getUnreadCount(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -644,22 +770,12 @@ export const chatController = {
         return;
       }
 
-      const conversations = await ConversationModel.find({
-        $or: [
-          { type: 'COMPANY' },
-          { participants: user._id }
-        ]
-      });
-
-      let totalUnread = 0;
-      conversations.forEach(c => {
-        const unreadMap = (c.unreadCounts || {}) as Record<string, number>;
-        totalUnread += Number(unreadMap[user._id.toString()] || 0);
-      });
+      const { totalUnread, byConversation } = await calculateUnreadMessageCounts(user._id);
 
       res.json({
         success: true,
-        unreadCount: totalUnread
+        unreadCount: totalUnread,
+        byConversation
       });
     } catch (error) {
       console.error('[chatController.getUnreadCount] Error:', error);

@@ -104,4 +104,7 @@ const MessageSchema = new Schema(
 // Compound index for paginating conversation messages chronologically
 MessageSchema.index({ conversationId: 1, createdAt: -1 });
 
+// Compound index for high-performance unread count aggregation
+MessageSchema.index({ conversationId: 1, readBy: 1, senderId: 1, isDeleted: 1 });
+
 export const MessageModel = mongoose.model<IMessage>('Message', MessageSchema);

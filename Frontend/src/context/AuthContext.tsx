@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { authService, ProfileUpdateData, RegisterData } from '../services/authService';
+import { socketService } from '../services/socketService';
 
 interface AuthContextType {
   currentUser: User;
@@ -14,37 +15,41 @@ interface AuthContextType {
   updateCurrentUser: (user: Partial<User>) => void;
 }
 
-const DEFAULT_FALLBACK_USER: User = {
-  id: 'user-karan',
-  name: 'Karan Prasad',
-  email: 'karan@lavantanaturals.com',
-  role: 'FOUNDER',
-  department: 'Executive',
-  designation: 'Founder & CEO',
-  joiningDate: '2023-01-15',
-  joinDate: '2023-01-15',
-  phone: '+91 98201 44521',
-  profilePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-  avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80',
-  status: 'ACTIVE'
+const DEFAULT_UNAUTHENTICATED_USER: User = {
+  id: '',
+  _id: '',
+  name: '',
+  email: '',
+  role: 'EMPLOYEE',
+  department: '',
+  designation: '',
+  joiningDate: '',
+  joinDate: '',
+  phone: '',
+  profilePhoto: '',
+  avatar: '',
+  status: 'INACTIVE'
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_FALLBACK_USER);
+  const [currentUser, setCurrentUser] = useState<User>(DEFAULT_UNAUTHENTICATED_USER);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => authService.hasToken());
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Helper to ensure avatar and joinDate compatibility
+  // Helper to ensure avatar, id, and joinDate compatibility
   const normalizeUser = (user: any): User => {
+    if (!user) return DEFAULT_UNAUTHENTICATED_USER;
+    const rawId = (user.id || user._id)?.toString() || '';
     return {
       ...user,
-      id: user.id || user._id,
-      avatar: user.profilePhoto || user.avatar || DEFAULT_FALLBACK_USER.avatar,
-      profilePhoto: user.profilePhoto || user.avatar || DEFAULT_FALLBACK_USER.profilePhoto,
-      joinDate: user.joiningDate || user.joinDate || '2023-01-15',
-      joiningDate: user.joiningDate || user.joinDate || '2023-01-15'
+      id: rawId,
+      _id: rawId,
+      avatar: user.profilePhoto || user.avatar || '',
+      profilePhoto: user.profilePhoto || user.avatar || '',
+      joinDate: user.joiningDate || user.joinDate || '',
+      joiningDate: user.joiningDate || user.joinDate || ''
     };
   };
 
@@ -57,11 +62,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsAuthenticated(true);
         } catch (err) {
           console.warn('[Auth] Session validation failed:', err);
+          socketService.disconnect();
           authService.removeToken();
           setIsAuthenticated(false);
+          setCurrentUser(DEFAULT_UNAUTHENTICATED_USER);
         }
       } else {
+        socketService.disconnect();
         setIsAuthenticated(false);
+        setCurrentUser(DEFAULT_UNAUTHENTICATED_USER);
       }
       setIsLoading(false);
     };
@@ -72,10 +81,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (identifier: string, password: string): Promise<User> => {
     setIsLoading(true);
     try {
+      socketService.disconnect();
       const response = await authService.login(identifier, password);
       const normalized = normalizeUser(response.user);
       setCurrentUser(normalized);
       setIsAuthenticated(true);
+      socketService.connect();
       return normalized;
     } finally {
       setIsLoading(false);
@@ -85,10 +96,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (data: RegisterData): Promise<User> => {
     setIsLoading(true);
     try {
+      socketService.disconnect();
       const response = await authService.register(data);
       const normalized = normalizeUser(response.user);
       setCurrentUser(normalized);
       setIsAuthenticated(true);
+      socketService.connect();
       return normalized;
     } finally {
       setIsLoading(false);
@@ -101,9 +114,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Ignore API logout errors
     } finally {
+      socketService.disconnect();
       authService.removeToken();
       setIsAuthenticated(false);
-      setCurrentUser(DEFAULT_FALLBACK_USER);
+      setCurrentUser(DEFAULT_UNAUTHENTICATED_USER);
     }
   };
 
@@ -118,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(prev => normalizeUser({ ...prev, ...user }));
   };
 
-  const activeRole: UserRole = currentUser.role || 'FOUNDER';
+  const activeRole: UserRole = currentUser.role || 'EMPLOYEE';
 
   return (
     <AuthContext.Provider

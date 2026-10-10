@@ -58,10 +58,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
     });
   }, [conversations, searchTerm, activeTab]);
 
-  // Separate pinned company chat vs direct chats
+  // Separate pinned company chat vs direct chats vs group chats
   const companyChat = useMemo(() => {
     return conversations.find(c => c.type === 'COMPANY');
   }, [conversations]);
+
+  const groupChats = useMemo(() => {
+    return filteredConversations.filter(c => c.type === 'GROUP');
+  }, [filteredConversations]);
 
   const directChats = useMemo(() => {
     return filteredConversations.filter(c => c.type === 'DIRECT');
@@ -101,13 +105,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
 
   return (
     <div
+      id="chat-sidebar-inner"
+      className="chat-sidebar-inner"
       style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
         backgroundColor: 'var(--chat-bg-sidebar)',
         borderRight: '1px solid var(--chat-border)',
         width: '100%',
+        overflow: 'hidden',
         transition: 'background-color 0.2s ease, border-color 0.2s ease'
       }}
     >
@@ -115,7 +124,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
       <div
         style={{
           padding: '1.25rem 1.25rem 0.85rem',
-          borderBottom: '1px solid var(--chat-divider)'
+          borderBottom: '1px solid var(--chat-divider)',
+          flexShrink: 0
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem' }}>
@@ -140,6 +150,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
           </div>
 
           <button
+            id="open-new-chat-btn"
             onClick={onOpenNewChat}
             style={{
               display: 'flex',
@@ -255,9 +266,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
 
       {/* Conversation List */}
       <div
+        id="chat-conversations-list"
+        className="chat-conversations-list"
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
+          overflowX: 'hidden',
+          overscrollBehavior: 'contain',
           padding: '0.5rem 0'
         }}
       >
@@ -309,6 +325,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
 
                   return (
                     <div
+                      id="company-channel-item"
+                      data-testid="company-channel-item"
+                      className="chat-conversation-item"
                       key={companyChat._id || companyChat.id}
                       onClick={() => handleSelect(companyChat._id || companyChat.id!)}
                       style={{
@@ -428,6 +447,133 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ onOpenNewChat, onSelec
                     </div>
                   );
                 })()}
+
+                {/* Group Conversations */}
+                {groupChats.map(group => {
+                  const groupId = group._id || group.id!;
+                  const isSelected = (activeConversation?._id || activeConversation?.id) === groupId;
+                  const hasUnread = (group.unreadCount || 0) > 0;
+
+                  return (
+                    <div
+                      key={groupId}
+                      onClick={() => handleSelect(groupId)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        padding: '0.75rem 1.25rem',
+                        cursor: 'pointer',
+                        backgroundColor: isSelected ? 'var(--chat-channel-selected-bg)' : 'transparent',
+                        borderLeft: isSelected ? '4px solid #65C943' : '4px solid transparent',
+                        transition: 'background 0.12s ease'
+                      }}
+                      onMouseEnter={e => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--chat-channel-hover-bg)';
+                      }}
+                      onMouseLeave={e => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '10px',
+                          backgroundColor: isSelected ? 'var(--chat-tab-active-bg)' : 'var(--chat-avatar-bg)',
+                          color: 'var(--chat-channel-selected-text)',
+                          border: '1px solid var(--chat-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}
+                      >
+                        <Users size={19} />
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span
+                              style={{
+                                fontWeight: hasUnread ? 700 : isSelected ? 600 : 500,
+                                fontSize: '0.85rem',
+                                color: isSelected ? 'var(--chat-channel-selected-text)' : 'var(--chat-text-primary)',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}
+                            >
+                              {group.name || 'Group Chat'}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.625rem',
+                                fontWeight: 700,
+                                backgroundColor: 'var(--chat-tab-active-bg)',
+                                color: 'var(--chat-channel-selected-text)',
+                                padding: '1px 5px',
+                                borderRadius: '4px'
+                              }}
+                            >
+                              Group
+                            </span>
+                          </div>
+
+                          <span style={{ fontSize: '0.7rem', color: 'var(--chat-text-muted)' }}>
+                            {formatTimestamp(group.lastMessageAt)}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '2px'
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              color: hasUnread ? 'var(--chat-text-primary)' : 'var(--chat-text-secondary)',
+                              fontWeight: hasUnread ? 600 : 400,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              maxWidth: '180px'
+                            }}
+                          >
+                            {group.lastMessage ? (
+                              <>
+                                <span style={{ color: 'var(--chat-text-muted)' }}>{group.lastMessage.senderName}: </span>
+                                {group.lastMessage.text}
+                              </>
+                            ) : (
+                              'Group discussion'
+                            )}
+                          </span>
+
+                          {hasUnread && (
+                            <span
+                              style={{
+                                backgroundColor: '#65C943',
+                                color: '#FFFFFF',
+                                fontSize: '0.675rem',
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: '10px'
+                              }}
+                            >
+                              {group.unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

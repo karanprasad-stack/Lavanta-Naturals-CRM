@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import {
   Search,
@@ -15,7 +15,10 @@ import {
   Target,
   Settings,
   Sun,
-  Moon
+  Moon,
+  Check,
+  AlertCircle,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -44,8 +47,113 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
   const { isDark, toggleTheme } = useTheme();
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifError, setNotifError] = useState<string | null>(null);
+  const [isNotifActionLoading, setIsNotifActionLoading] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+
+  const notifPopoverRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Outside click and Escape key dismissal for notification popup
+  useEffect(() => {
+    if (!isNotifOpen) return;
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (notifPopoverRef.current && !notifPopoverRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsNotifOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isNotifOpen]);
+
+  // Outside click and Escape key dismissal for profile dropdown
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isProfileMenuOpen]);
+
+  const handleMarkAllRead = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNotifError(null);
+    setIsNotifActionLoading(true);
+    try {
+      await markAllAsRead();
+      setIsNotifOpen(false);
+    } catch (err: any) {
+      console.error('[Header] Failed to mark all notifications read:', err);
+      setNotifError(err.message || 'Failed to mark all as read. Please try again.');
+    } finally {
+      setIsNotifActionLoading(false);
+    }
+  };
+
+  const handleMarkOneRead = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setNotifError(null);
+    setIsNotifActionLoading(true);
+    try {
+      await markAsRead(id);
+      setIsNotifOpen(false);
+    } catch (err: any) {
+      console.error('[Header] Failed to mark notification read:', err);
+      setNotifError(err.message || 'Failed to mark as read. Please try again.');
+    } finally {
+      setIsNotifActionLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (n: any, link?: string) => {
+    setNotifError(null);
+    try {
+      if (!n.isRead) {
+        await markAsRead(n._id);
+      }
+      setIsNotifOpen(false);
+      if (link) {
+        navigate(link);
+      }
+    } catch (err: any) {
+      console.error('[Header] Failed to process notification click:', err);
+      setNotifError(err.message || 'Failed to update notification.');
+    }
+  };
 
   // Generate readable title
   const pathParts = location.pathname.split('/').filter(Boolean);
@@ -251,11 +359,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
           </button>
 
           {/* Notifications Popover */}
-          <div style={{ position: 'relative' }}>
+          <div ref={notifPopoverRef} style={{ position: 'relative' }}>
             <button
               onClick={() => {
                 setIsNotifOpen(!isNotifOpen);
                 setIsProfileMenuOpen(false);
+                setNotifError(null);
               }}
               style={{
                 width: '36px',
@@ -305,7 +414,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 position: 'absolute',
                 right: 0,
                 top: '115%',
-                width: '320px',
+                width: '330px',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-strong)',
                 borderRadius: 'var(--radius-md)',
@@ -316,6 +425,34 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 overflowY: 'auto'
               }}
             >
+              {notifError && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 8px',
+                    marginBottom: '0.5rem',
+                    borderRadius: '6px',
+                    background: '#FEF2F2',
+                    color: '#DC2626',
+                    fontSize: '0.725rem',
+                    border: '1px solid #FCA5A5'
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <AlertCircle size={13} />
+                    {notifError}
+                  </span>
+                  <button
+                    onClick={() => setNotifError(null)}
+                    style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 0 }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', paddingBottom: '0.4rem', borderBottom: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>Notifications</span>
@@ -337,18 +474,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {unreadCount > 0 && (
                     <button
-                      onClick={() => markAllAsRead()}
+                      onClick={handleMarkAllRead}
+                      disabled={isNotifActionLoading}
                       style={{
                         background: 'transparent',
                         border: 'none',
                         color: 'var(--color-primary-deep)',
                         fontSize: '0.725rem',
                         fontWeight: 600,
-                        cursor: 'pointer',
+                        cursor: isNotifActionLoading ? 'not-allowed' : 'pointer',
                         padding: 0
                       }}
                     >
-                      Mark all read
+                      {isNotifActionLoading ? 'Marking...' : 'Mark all read'}
                     </button>
                   )}
                   <Link
@@ -377,11 +515,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                     return (
                       <div
                         key={n._id}
-                        onClick={() => {
-                          if (!n.isRead) markAsRead(n._id);
-                          if (link) navigate(link);
-                          setIsNotifOpen(false);
-                        }}
+                        onClick={() => handleNotificationClick(n, link)}
                         style={{
                           padding: '0.6rem',
                           borderRadius: '8px',
@@ -397,14 +531,36 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
                             {n.title}
                           </span>
                           {!n.isRead && (
-                            <span
-                              style={{
-                                width: '6px',
-                                height: '6px',
-                                borderRadius: '50%',
-                                background: 'var(--color-primary)'
-                              }}
-                            />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <button
+                                onClick={(e) => handleMarkOneRead(e, n._id)}
+                                title="Mark as read"
+                                style={{
+                                  background: 'var(--color-primary)',
+                                  color: '#FFFFFF',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '2px 5px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '2px'
+                                }}
+                              >
+                                <Check size={10} />
+                                <span>Read</span>
+                              </button>
+                              <span
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  borderRadius: '50%',
+                                  background: 'var(--color-primary)'
+                                }}
+                              />
+                            </div>
                           )}
                         </div>
                         <div style={{ color: 'var(--color-text-secondary)', fontSize: '0.725rem', margin: '2px 0 4px 0', lineHeight: 1.35 }}>
@@ -428,7 +584,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
       </div>
 
         {/* Profile Avatar & Dropdown */}
-        <div style={{ position: 'relative' }}>
+        <div ref={profileMenuRef} style={{ position: 'relative' }}>
           <button
             onClick={() => {
               setIsProfileMenuOpen(!isProfileMenuOpen);

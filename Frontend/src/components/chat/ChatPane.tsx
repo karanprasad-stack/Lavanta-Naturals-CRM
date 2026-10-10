@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import {
   Send,
   Users,
@@ -14,7 +14,9 @@ import {
   Shield,
   Smile,
   AlertCircle,
-  FileText
+  FileText,
+  ChevronDown,
+  ArrowDown
 } from 'lucide-react';
 import { Conversation, ChatMessage, ChatParticipant } from '../../types/chat';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +32,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
   const {
     messages,
     isLoadingMessages,
+    hasMoreMessages,
+    isLoadingOlderMessages,
+    loadOlderMessages,
     sendMessage,
     editMessage,
     deleteMessage,
@@ -37,7 +42,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
     sendTypingStart,
     sendTypingStop,
     onlineUsers,
-    connectionStatus
+    connectionStatus,
+    markConversationAsRead
   } = useChat();
 
   const [inputContent, setInputContent] = useState<string>('');
@@ -45,24 +51,189 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
   const [editContent, setEditContent] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState<boolean>(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<Array<{ filename: string; url: string; size?: number }>>([]);
 
+  // Scroll tracking state & refs
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isNearBottomRef = useRef<boolean>(true);
+  const [isAtBottom, setIsAtBottom] = useState<boolean>(true);
+  const [hasUnreadBelow, setHasUnreadBelow] = useState<boolean>(false);
+  const [newIncomingCount, setNewIncomingCount] = useState<number>(0);
+
+  const prevMessagesRef = useRef<ChatMessage[]>([]);
+  const activeConvIdRef = useRef<string | null>(null);
+  const prevScrollHeightRef = useRef<number>(0);
+  const prevScrollTopRef = useRef<number>(0);
+  const isPrependingRef = useRef<boolean>(false);
+  const justSentMessageRef = useRef<boolean>(false);
+
   const currentUserId = currentUser?._id || currentUser?.id;
   const currentUserRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
+  const convId = conversation?._id || conversation?.id;
 
-  // Scroll to bottom on new messages or active conversation change
+  // Mark conversation read whenever conversation is viewed
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, typingUsers]);
+    if (convId && markConversationAsRead) {
+      markConversationAsRead(convId);
+    }
+  }, [convId, markConversationAsRead]);
+
+  // Dedicated container-only scroll to bottom (never scrolls window or ancestor nodes)
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    if (behavior === 'smooth') {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
+    isNearBottomRef.current = true;
+    setIsAtBottom(true);
+    setHasUnreadBelow(false);
+    setNewIncomingCount(0);
+  }, []);
+
+  // Monitor user scroll position without fighting manual navigation
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const threshold = 120;
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const nearBottom = distanceFromBottom <= threshold;
+
+    isNearBottomRef.current = nearBottom;
+    setIsAtBottom(nearBottom);
+
+    // If user returned near bottom, clear unread badge
+    if (nearBottom) {
+      setHasUnreadBelow(false);
+      setNewIncomingCount(0);
+    }
+  }, []);
+
+  // Prepend pagination without jumping
+  const handleLoadOlder = async () => {
+    const container = scrollContainerRef.current;
+    if (!container || isLoadingOlderMessages || !hasMoreMessages) return;
+
+    prevScrollHeightRef.current = container.scrollHeight;
+    prevScrollTopRef.current = container.scrollTop;
+    isPrependingRef.current = true;
+
+    await loadOlderMessages();
+  };
+
+  // Synchronous layout adjustment for jump-free rendering
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // 1. Pagination: maintain precise relative scroll position when older messages prepended
+    if (isPrependingRef.current) {
+      const heightDiff = container.scrollHeight - prevScrollHeightRef.current;
+      container.scrollTop = prevScrollTopRef.current + heightDiff;
+      isPrependingRef.current = false;
+      prevMessagesRef.current = messages;
+      return;
+    }
+
+    const currentConvId = conversation?._id || conversation?.id || null;
+    const convChanged = currentConvId !== activeConvIdRef.current;
+
+    // 2. Switched conversation: reset scroll and jump immediately to bottom of new conversation
+    if (convChanged) {
+      activeConvIdRef.current = currentConvId;
+      prevMessagesRef.current = messages;
+      isNearBottomRef.current = true;
+      setIsAtBottom(true);
+      setHasUnreadBelow(false);
+      setNewIncomingCount(0);
+
+      if (!isLoadingMessages && messages.length > 0) {
+        scrollToBottom('auto');
+        requestAnimationFrame(() => scrollToBottom('auto'));
+      }
+      return;
+    }
+
+    // 3. Finished initial async load of messages for current conversation
+    if (!isLoadingMessages && prevMessagesRef.current.length === 0 && messages.length > 0) {
+      prevMessagesRef.current = messages;
+      scrollToBottom('auto');
+      requestAnimationFrame(() => scrollToBottom('auto'));
+      return;
+    }
+
+    const prev = prevMessagesRef.current;
+    prevMessagesRef.current = messages;
+
+    // 4. New message appended to bottom
+    if (messages.length > prev.length) {
+      const latestMessage = messages[messages.length - 1];
+      const senderId = typeof latestMessage.senderId === 'object' && latestMessage.senderId !== null
+        ? (latestMessage.senderId as any)._id || (latestMessage.senderId as any).id
+        : latestMessage.senderId;
+      const isMe = String(senderId) === String(currentUserId);
+
+      if (isMe || justSentMessageRef.current) {
+        justSentMessageRef.current = false;
+        scrollToBottom('smooth');
+      } else {
+        // Real-time message from another user
+        if (isNearBottomRef.current) {
+          scrollToBottom('smooth');
+        } else {
+          // Preserve manual scroll position; show new messages indicator
+          setHasUnreadBelow(true);
+          setNewIncomingCount(c => c + 1);
+        }
+      }
+      return;
+    }
+
+    // 5. Typing indicator appeared: only scroll if user was already at bottom
+    if (typingUsers.length > 0 && isNearBottomRef.current) {
+      scrollToBottom('smooth');
+    }
+    // Edits, deletes, and read receipts do not change messages.length at bottom,
+    // so manual scroll position remains strictly preserved.
+  }, [messages, isLoadingMessages, conversation, currentUserId, typingUsers, scrollToBottom]);
+
+  // Keep anchored to bottom if images/dynamic multiline wrap changes while at bottom
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let prevHeight = container.scrollHeight;
+    const observer = new ResizeObserver(() => {
+      if (isPrependingRef.current) return;
+      const currentHeight = container.scrollHeight;
+      if (currentHeight !== prevHeight) {
+        if (isNearBottomRef.current) {
+          scrollToBottom('auto');
+        }
+        prevHeight = currentHeight;
+      }
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [scrollToBottom]);
 
   // Handle typing debounce
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputContent(e.target.value);
+    if (sendError) setSendError(null);
 
     // Emit typing start
     sendTypingStart();
@@ -87,15 +258,20 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
     const content = inputContent.trim();
     const attachments = [...attachedFiles];
 
-    setInputContent('');
-    setAttachedFiles([]);
-    sendTypingStop();
+    setSendError(null);
     setIsSending(true);
+    justSentMessageRef.current = true;
 
     try {
       await sendMessage(content, attachments.length > 0 ? attachments : undefined);
-    } catch (err) {
+      // Clear input only upon successful send confirmation
+      setInputContent('');
+      setAttachedFiles([]);
+      sendTypingStop();
+      scrollToBottom('smooth');
+    } catch (err: any) {
       console.error('[ChatPane] Failed to send message:', err);
+      setSendError(err.message || 'Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
       if (textareaRef.current) {
@@ -221,7 +397,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
   }
 
   const isCompany = conversation.type === 'COMPANY';
-  const otherUser = conversation.otherUser;
+  const isGroup = conversation.type === 'GROUP';
+  const isGroupOrCompany = isCompany || isGroup || Boolean(conversation.participants && conversation.participants.length > 2);
+  const otherUser = isGroupOrCompany ? undefined : conversation.otherUser;
   const isOtherUserOnline =
     otherUser && (otherUser._id || otherUser.id)
       ? onlineUsers.has(otherUser._id || otherUser.id!)
@@ -229,16 +407,22 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
 
   return (
     <div
+      id="chat-pane-container"
+      className="chat-pane-container"
       style={{
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
         backgroundColor: 'var(--chat-bg-container)',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
       {/* 1. Header */}
       <div
+        id="chat-pane-header"
         style={{
           padding: '0.85rem 1.5rem',
           backgroundColor: 'var(--chat-bg-header)',
@@ -246,7 +430,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          zIndex: 10
+          zIndex: 10,
+          flexShrink: 0
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -276,9 +461,9 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               style={{
                 width: '42px',
                 height: '42px',
-                borderRadius: isCompany ? '12px' : '50%',
-                backgroundColor: isCompany ? 'var(--chat-tab-active-bg)' : 'var(--chat-bg-input)',
-                color: isCompany ? 'var(--chat-tab-active-text)' : 'var(--chat-text-primary)',
+                borderRadius: isGroupOrCompany ? '12px' : '50%',
+                backgroundColor: isGroupOrCompany ? 'var(--chat-tab-active-bg)' : 'var(--chat-bg-input)',
+                color: isGroupOrCompany ? 'var(--chat-tab-active-text)' : 'var(--chat-text-primary)',
                 border: '1px solid var(--chat-border)',
                 display: 'flex',
                 alignItems: 'center',
@@ -288,7 +473,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 overflow: 'hidden'
               }}
             >
-              {isCompany ? (
+              {isGroupOrCompany ? (
                 <Users size={20} />
               ) : otherUser?.profilePhoto ? (
                 <img
@@ -307,7 +492,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
             </div>
 
             {/* Direct online presence dot */}
-            {!isCompany && (
+            {!isGroupOrCompany && (
               <span
                 style={{
                   position: 'absolute',
@@ -328,10 +513,14 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h3 style={{ margin: 0, fontSize: '0.975rem', fontWeight: 700, color: 'var(--chat-text-primary)' }}>
-                {isCompany ? conversation.name : otherUser?.name || conversation.name}
+                {isCompany
+                  ? (conversation.name || 'Lavanta Team')
+                  : isGroup
+                  ? (conversation.name || 'Group Conversation')
+                  : otherUser?.name || conversation.name}
               </h3>
 
-              {!isCompany && otherUser?.role && (
+              {!isGroupOrCompany && otherUser?.role && (
                 <span
                   style={{
                     fontSize: '0.65rem',
@@ -365,6 +554,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
             <div style={{ fontSize: '0.75rem', color: 'var(--chat-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '1px' }}>
               {isCompany ? (
                 <span>All Active Team Members • General Workspace</span>
+              ) : isGroup ? (
+                <span>{conversation.participants?.length || conversation.participantCount || 0} participants • Group Chat</span>
               ) : (
                 <>
                   <span>{otherUser?.designation || otherUser?.department || 'Colleague'}</span>
@@ -380,7 +571,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
 
         {/* Header Right Badges / Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {isCompany && (
+          {isCompany ? (
             <div
               style={{
                 display: 'flex',
@@ -398,15 +589,42 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
               <Users size={13} />
               <span>Company Channel</span>
             </div>
-          )}
+          ) : isGroup ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                backgroundColor: 'var(--chat-tab-active-bg)',
+                color: 'var(--chat-tab-active-text)',
+                border: '1px solid var(--chat-tab-active-border, var(--chat-border))',
+                fontSize: '0.725rem',
+                fontWeight: 600,
+                padding: '4px 10px',
+                borderRadius: '12px'
+              }}
+            >
+              <Users size={13} />
+              <span>Group Chat</span>
+            </div>
+          ) : null}
         </div>
       </div>
 
       {/* 2. Messages List Area */}
       <div
+        id="chat-messages-scroll-container"
+        className="chat-messages-scroll-container"
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
+          overflowX: 'hidden',
+          overscrollBehavior: 'contain',
+          overscrollBehaviorY: 'contain',
+          WebkitOverflowScrolling: 'touch',
           padding: '1.25rem 1.5rem',
           display: 'flex',
           flexDirection: 'column',
@@ -414,6 +632,48 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
           backgroundColor: 'var(--chat-bg-history)'
         }}
       >
+        {/* Load older messages button if more exist */}
+        {hasMoreMessages && !isLoadingMessages && (
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0.25rem 0 0.5rem' }}>
+            <button
+              id="load-older-messages-btn"
+              onClick={handleLoadOlder}
+              disabled={isLoadingOlderMessages}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                backgroundColor: 'var(--chat-bg-input)',
+                border: '1px solid var(--chat-border)',
+                color: 'var(--chat-text-secondary)',
+                fontSize: '0.725rem',
+                fontWeight: 500,
+                cursor: isLoadingOlderMessages ? 'wait' : 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {isLoadingOlderMessages ? (
+                <>
+                  <div
+                    style={{
+                      width: '11px',
+                      height: '11px',
+                      border: '2px solid var(--chat-border)',
+                      borderTopColor: '#65C943',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }}
+                  />
+                  <span>Loading older messages...</span>
+                </>
+              ) : (
+                <span>Load older messages</span>
+              )}
+            </button>
+          </div>
+        )}
         {isLoadingMessages ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.5rem' }}>
             <div
@@ -466,9 +726,23 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
         ) : (
           messages.map((msg, index) => {
             const msgId = msg._id || msg.id!;
-            const sender = typeof msg.senderId === 'object' ? (msg.senderId as ChatParticipant) : null;
-            const senderId = sender ? (sender._id || sender.id) : (msg.senderId as string);
-            const isMe = senderId === currentUserId;
+            const sender = typeof msg.senderId === 'object' && msg.senderId !== null
+              ? (msg.senderId as ChatParticipant)
+              : null;
+            const rawSenderId = sender ? (sender._id || sender.id) : (msg.senderId as string);
+            const senderIdStr = rawSenderId ? String(rawSenderId) : '';
+            const currentUserIdStr = currentUserId ? String(currentUserId) : '';
+            const isMe = Boolean(senderIdStr && currentUserIdStr && senderIdStr === currentUserIdStr);
+
+            // Lookup sender in conversation participants if sender object wasn't populated
+            const participant = conversation.participants?.find(p => {
+              const pId = String(p._id || p.id || '');
+              return pId && pId === senderIdStr;
+            });
+
+            const resolvedName = sender?.name || participant?.name || (isMe ? (currentUser?.name || 'You') : 'Team Member');
+            const resolvedRole = sender?.role || participant?.role || (isMe ? currentUser?.role : undefined);
+            const resolvedAvatar = sender?.profilePhoto || participant?.profilePhoto || (isMe ? (currentUser?.profilePhoto || currentUser?.avatar) : undefined);
 
             // Show date divider if first message or different day from previous
             const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -538,17 +812,17 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         overflow: 'hidden',
                         marginTop: '2px'
                       }}
-                      title={sender?.name || 'User'}
+                      title={resolvedName}
                     >
-                      {sender?.profilePhoto ? (
+                      {resolvedAvatar ? (
                         <img
-                          src={sender.profilePhoto}
-                          alt={sender.name}
+                          src={resolvedAvatar}
+                          alt={resolvedName}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                         />
                       ) : (
-                        sender?.name
-                          ?.split(' ')
+                        resolvedName
+                          .split(' ')
                           .map(n => n[0])
                           .join('')
                           .substring(0, 2)
@@ -567,7 +841,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                     }}
                   >
                     {/* In group/company chat, display sender name and role if incoming */}
-                    {!isMe && isCompany && (
+                    {!isMe && isGroupOrCompany && (
                       <div
                         style={{
                           display: 'flex',
@@ -578,21 +852,30 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                         }}
                       >
                         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--chat-sender-text)' }}>
-                          {sender?.name || 'Team Member'}
+                          {resolvedName}
                         </span>
-                        {sender?.role && (
+                        {resolvedRole && (
                           <span
                             style={{
                               fontSize: '0.6rem',
                               fontWeight: 600,
-                              color: 'var(--chat-text-secondary)',
+                              color:
+                                resolvedRole.toUpperCase() === 'FOUNDER'
+                                  ? '#F59E0B'
+                                  : resolvedRole.toUpperCase() === 'HR' || resolvedRole.toUpperCase() === 'HR_MANAGER'
+                                  ? '#A78BFA'
+                                  : resolvedRole.toUpperCase() === 'MANAGER'
+                                  ? '#38BDF8'
+                                  : resolvedRole.toUpperCase() === 'INTERN'
+                                  ? '#EAB308'
+                                  : 'var(--chat-text-secondary)',
                               backgroundColor: 'var(--chat-bg-input)',
                               border: '1px solid var(--chat-border)',
                               padding: '1px 4px',
                               borderRadius: '3px'
                             }}
                           >
-                            {sender.role}
+                            {resolvedRole.toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -884,12 +1167,34 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Floating Scroll to Bottom / New Messages Pill */}
+      {(!isAtBottom || hasUnreadBelow) && (
+        <button
+          id="scroll-to-bottom-button"
+          className="scroll-to-bottom-btn"
+          onClick={() => scrollToBottom('smooth')}
+          aria-label="Scroll to latest messages"
+          title="Scroll to latest messages"
+        >
+          <ChevronDown size={14} />
+          <span>
+            {hasUnreadBelow
+              ? newIncomingCount > 1
+                ? `${newIncomingCount} new messages`
+                : 'New message'
+              : 'Latest messages'}
+          </span>
+        </button>
+      )}
+
       {/* 3. Bottom Message Composer */}
       <div
+        id="chat-pane-composer"
         style={{
           padding: '0.85rem 1.5rem 1rem',
           backgroundColor: 'var(--chat-bg-composer)',
-          borderTop: '1px solid var(--chat-border)'
+          borderTop: '1px solid var(--chat-border)',
+          flexShrink: 0
         }}
       >
         {/* Attachment Pills Preview */}
@@ -922,6 +1227,31 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {sendError && (
+          <div
+            style={{
+              padding: '6px 12px',
+              marginBottom: '6px',
+              backgroundColor: '#FEF2F2',
+              color: '#DC2626',
+              border: '1px solid #FCA5A5',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <span>{sendError}</span>
+            <button
+              onClick={() => setSendError(null)}
+              style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', padding: 0 }}
+            >
+              <X size={13} />
+            </button>
           </div>
         )}
 
@@ -962,8 +1292,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
             ref={textareaRef}
             id="chat-message-composer"
             className="chat-composer-textarea"
-            aria-label={`Message ${isCompany ? 'Lavanta Team' : otherUser?.name || 'colleague'}`}
-            placeholder={`Message ${isCompany ? '#Lavanta Team' : otherUser?.name || 'colleague'}... (Enter to send, Shift+Enter for new line)`}
+            aria-label={`Message ${isCompany ? 'Lavanta Team' : isGroup ? (conversation.name || 'Group Chat') : otherUser?.name || 'colleague'}`}
+            placeholder={`Message ${isCompany ? '#Lavanta Team' : isGroup ? (conversation.name || 'Group Chat') : otherUser?.name || 'colleague'}... (Enter to send, Shift+Enter for new line)`}
             value={inputContent}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}

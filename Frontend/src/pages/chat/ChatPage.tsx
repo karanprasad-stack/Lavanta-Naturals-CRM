@@ -28,8 +28,10 @@ export const ChatPage: React.FC = () => {
       className="chat-page-container"
       style={{
         display: 'flex',
-        height: 'calc(100vh - 145px)',
-        minHeight: '520px',
+        flex: 1,
+        height: '100%',
+        maxHeight: '100%',
+        minHeight: 0,
         background: 'var(--chat-bg-container, var(--bg-surface))',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--chat-border, var(--border-color))',
@@ -44,19 +46,24 @@ export const ChatPage: React.FC = () => {
       {/* Left sidebar: conversation list */}
       {(showSidebar || !isMobile) && (
         <div
+          id="chat-sidebar-wrapper"
+          className="chat-sidebar-wrapper"
           style={{
             width: isMobile ? '100%' : '310px',
             flexShrink: 0,
             borderRight: isMobile ? 'none' : '1px solid var(--chat-border, var(--border-color))',
             display: 'flex',
             flexDirection: 'column',
-            height: '100%'
+            height: '100%',
+            maxHeight: '100%',
+            minHeight: 0,
+            overflow: 'hidden'
           }}
         >
           <ChatSidebar
             onOpenNewChat={() => setIsNewChatOpen(true)}
             onSelectConversation={() => {
-              if (window.innerWidth < 768) setShowSidebar(false);
+              setShowSidebar(false);
             }}
           />
         </div>
@@ -64,7 +71,21 @@ export const ChatPage: React.FC = () => {
 
       {/* Right: active chat pane */}
       {(!showSidebar || !isMobile) && (
-        <div id="chat-pane-wrapper" className="chat-pane-wrapper" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', background: 'var(--chat-bg-history, var(--bg-main))', height: '100%' }}>
+        <div
+          id="chat-pane-wrapper"
+          className="chat-pane-wrapper"
+          style={{
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            background: 'var(--chat-bg-history, var(--bg-main))',
+            height: '100%',
+            maxHeight: '100%',
+            overflow: 'hidden'
+          }}
+        >
         {activeConversation ? (
           <ChatPane
             conversation={activeConversation}
@@ -73,10 +94,16 @@ export const ChatPage: React.FC = () => {
         ) : (
           <div
             style={{
-              flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              color: 'var(--chat-text-secondary)', textAlign: 'center', padding: '2rem', gap: '0.75rem',
-              minHeight: '400px'
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--chat-text-secondary)',
+              textAlign: 'center',
+              padding: '2rem',
+              gap: '0.75rem',
+              minHeight: 0
             }}
           >
             <div style={{ fontSize: '2.5rem' }}>💬</div>

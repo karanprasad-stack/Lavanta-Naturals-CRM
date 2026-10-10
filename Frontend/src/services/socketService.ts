@@ -2,6 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { getAuthToken } from './apiClient';
 
 let socket: Socket | null = null;
+let currentSocketToken: string | null = null;
 let connectionListeners: Array<(status: 'connected' | 'reconnecting' | 'disconnected') => void> = [];
 
 export const socketService = {
@@ -15,14 +16,21 @@ export const socketService = {
       return null;
     }
 
-    // Return existing connected socket if already active
-    if (socket && socket.connected) {
+    // Return existing socket if active/connecting with matching session token
+    if (socket && currentSocketToken === token) {
+      if (socket.disconnected) {
+        socket.connect();
+      }
       return socket;
     }
 
+    // If socket exists with a stale token, cleanly disconnect it
     if (socket) {
       socket.disconnect();
+      socket = null;
     }
+
+    currentSocketToken = token;
 
     // Connect directly to backend in development to avoid proxy drops, or use origin in production
     const socketUrl =
@@ -58,6 +66,11 @@ export const socketService = {
       this.notifyStatus('reconnecting');
     });
 
+    if (typeof window !== 'undefined') {
+      (window as any).__socket = socket;
+      (window as any).__socketService = this;
+    }
+
     return socket;
   },
 
@@ -68,6 +81,7 @@ export const socketService = {
     if (socket) {
       socket.disconnect();
       socket = null;
+      currentSocketToken = null;
       this.notifyStatus('disconnected');
     }
   },
@@ -76,7 +90,12 @@ export const socketService = {
    * Get active socket instance or attempt connection
    */
   getSocket(): Socket | null {
-    if (!socket || !socket.connected) {
+    const token = getAuthToken();
+    if (!token) {
+      this.disconnect();
+      return null;
+    }
+    if (!socket || socket.disconnected || currentSocketToken !== token) {
       return this.connect();
     }
     return socket;
@@ -100,5 +119,39 @@ export const socketService = {
         console.error('Error in socket status listener:', err);
       }
     });
+  },
+
+  /**
+   * Test harness helper to dispatch socket events directly to client listeners
+   */
+  triggerEvent(event: string, data: any) {
+    const s = socket || this.getSocket();
+    if (s) {
+      if (typeof (s as any).listeners === 'function') {
+        const list = (s as any).listeners(event);
+        list.forEach((fn: any) => {
+          try {
+            fn(data);
+          } catch (e) {
+            console.error('[socketService.triggerEvent] Error:', e);
+          }
+        });
+        return;
+      }
+      const callbacks = (s as any)._callbacks;
+      const fns = callbacks?.[`$${event}`] || callbacks?.[event] || [];
+      fns.forEach((fn: any) => {
+        try {
+          fn(data);
+        } catch (e) {
+          console.error('[socketService.triggerEvent] Error:', e);
+        }
+      });
+    }
   }
 };
+
+if (typeof window !== 'undefined') {
+  (window as any).__socketService = socketService;
+}
+

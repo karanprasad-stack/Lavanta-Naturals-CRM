@@ -33,6 +33,8 @@ storage/uploads/*
 !storage/uploads/.gitkeep
 Backend/uploads/*
 !Backend/uploads/.gitkeep
+Backend/storage/*
+!Backend/storage/**/.gitkeep
 
 # OS and Editor
 .DS_Store

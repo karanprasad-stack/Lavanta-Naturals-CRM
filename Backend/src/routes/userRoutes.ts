@@ -10,8 +10,8 @@ router.put('/users/profile', authenticate, userController.updateProfile);
 // Get real-time aggregated team statistics (Accessible to all authenticated users for dashboards)
 router.get('/users/stats', authenticate, userController.getStats);
 
-// Get all team members with search, filters, pagination (Restricted to FOUNDER, HR, and MANAGER)
-router.get('/users', authenticate, authorize('FOUNDER', 'HR', 'MANAGER'), userController.getUsers);
+// Get all team members with search, filters, pagination (Accessible to all authenticated team members)
+router.get('/users', authenticate, userController.getUsers);
 
 // Get single employee by ID
 router.get('/users/:id', authenticate, userController.getUserById);

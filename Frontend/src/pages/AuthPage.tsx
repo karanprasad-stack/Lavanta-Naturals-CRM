@@ -286,7 +286,7 @@ export const AuthPage: React.FC<AuthPageProps> = ({ initialMode }) => {
                 Lavanta Naturals
               </div>
               <div className="showcase-tagline-badge">
-                Clean Skincare HQ
+                Workflow CRM
               </div>
             </div>
           </div>

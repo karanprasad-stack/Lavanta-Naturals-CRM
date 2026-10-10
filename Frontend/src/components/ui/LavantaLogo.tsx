@@ -152,9 +152,9 @@ export const LavantaLogo: React.FC<LavantaLogoProps> = ({
               marginTop: '1px'
             }}
           >
-            Clean Skincare HQ
+            Workflow CRM
           </span>
-        </div>
+        </div> 
       )}
     </div>
   );

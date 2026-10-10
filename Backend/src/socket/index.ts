@@ -6,6 +6,7 @@ import { UserModel, IUser } from '../models/User.js';
 import { ConversationModel, IConversation } from '../models/Conversation.js';
 import { MessageModel, IMessage } from '../models/Message.js';
 import { notificationDispatcher } from '../services/notificationDispatcher.js';
+import { calculateUnreadMessageCounts } from '../controllers/chatController.js';
 import { config } from '../config/env.js';
 
 export interface AuthenticatedSocket extends Socket {
@@ -82,6 +83,19 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     // Join personal user room for direct alerts
     socket.join(`user:${userIdStr}`);
 
+    // Auto-join all accessible conversation rooms (Company and Group/Direct channels)
+    ConversationModel.find({
+      $or: [
+        { type: 'COMPANY' },
+        { participants: user._id }
+      ]
+    })
+      .select('_id')
+      .then(convs => {
+        convs.forEach(c => socket.join(`conversation:${c._id.toString()}`));
+      })
+      .catch(err => console.error('[Socket Auto-join] Error joining rooms:', err));
+
     // If this is the user's first active tab/connection, broadcast online status
     if (userSockets.size === 1) {
       io.emit('user_online', { userId: userIdStr, name: user.name });
@@ -133,24 +147,41 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
       messageType?: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
       attachments?: any[];
       replyTo?: string;
-    }) => {
+    }, callback?: (response: any) => void) => {
       try {
         const { conversationId, content, messageType, attachments, replyTo } = data;
 
+        // Verify authenticated identity of this socket connection
+        if (!user || !user._id) {
+          socket.emit('error_message', { message: 'Authentication required' });
+          if (typeof callback === 'function') callback({ success: false, message: 'Authentication required' });
+          return;
+        }
+
+        const currentUserDoc = await UserModel.findById(user._id);
+        if (!currentUserDoc || currentUserDoc.status === 'INACTIVE') {
+          socket.emit('error_message', { message: 'User account is inactive or no longer exists' });
+          if (typeof callback === 'function') callback({ success: false, message: 'User account is inactive or no longer exists' });
+          return;
+        }
+
         if (!Types.ObjectId.isValid(conversationId)) {
           socket.emit('error_message', { message: 'Invalid conversation ID' });
+          if (typeof callback === 'function') callback({ success: false, message: 'Invalid conversation ID' });
           return;
         }
 
         const trimmedContent = (content || '').trim();
         if (!trimmedContent && (!attachments || attachments.length === 0)) {
           socket.emit('error_message', { message: 'Message content cannot be empty' });
+          if (typeof callback === 'function') callback({ success: false, message: 'Message content cannot be empty' });
           return;
         }
 
         const conversation = await ConversationModel.findById(conversationId);
         if (!conversation) {
           socket.emit('error_message', { message: 'Conversation not found' });
+          if (typeof callback === 'function') callback({ success: false, message: 'Conversation not found' });
           return;
         }
 
@@ -161,18 +192,19 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
 
         if (!isParticipant) {
           socket.emit('error_message', { message: 'You are not a participant in this conversation' });
+          if (typeof callback === 'function') callback({ success: false, message: 'You are not a participant in this conversation' });
           return;
         }
 
-        // Create Message
+        // Create Message with strictly server-verified sender identity
         const message = new MessageModel({
           conversationId: conversation._id,
-          senderId: user._id,
+          senderId: currentUserDoc._id,
           content: trimmedContent,
           messageType: messageType || 'TEXT',
           attachments: attachments || [],
           replyTo: replyTo && Types.ObjectId.isValid(replyTo) ? replyTo : null,
-          readBy: [user._id],
+          readBy: [currentUserDoc._id],
           isEdited: false,
           isDeleted: false
         });
@@ -187,8 +219,8 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
         // Update Conversation's lastMessage and unread counts
         conversation.lastMessage = {
           text: trimmedContent,
-          senderId: user._id,
-          senderName: user.name,
+          senderId: currentUserDoc._id,
+          senderName: currentUserDoc.name,
           createdAt: new Date()
         };
         conversation.lastMessageAt = new Date();
@@ -211,15 +243,39 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
           message: populatedMessage
         });
 
-        // 2. Also notify each participant's personal room to update conversation list previews
-        conversation.participants.forEach(p => {
-          io.to(`user:${p.toString()}`).emit('conversation_updated', {
+        // 2. Also broadcast directly to each participant's personal user room
+        for (const p of conversation.participants) {
+          const pIdStr = p.toString();
+          io.to(`user:${pIdStr}`).emit('new_message', {
+            conversationId,
+            message: populatedMessage
+          });
+          io.to(`user:${pIdStr}`).emit('conversation_updated', {
             conversationId,
             lastMessage: conversation.lastMessage,
             lastMessageAt: conversation.lastMessageAt,
             unreadCounts: conversation.unreadCounts
           });
-        });
+
+          // Dispatch updated authoritative unread count to recipient
+          if (pIdStr !== userIdStr) {
+            calculateUnreadMessageCounts(p as Types.ObjectId)
+              .then(pCounts => {
+                io.to(`user:${pIdStr}`).emit('unread_count_updated', {
+                  totalUnread: pCounts.totalUnread,
+                  unreadCount: pCounts.totalUnread,
+                  conversationId,
+                  conversationUnreadCount: pCounts.byConversation[conversationId] || 0
+                });
+              })
+              .catch(err => console.error('[Socket send_message] Error recalculating unread for participant:', err));
+          }
+        }
+
+        // Acknowledge back to sender via callback if provided
+        if (typeof callback === 'function') {
+          callback({ success: true, message: populatedMessage });
+        }
 
         // 3. Dispatch persistent notifications for other participants
         for (const p of conversation.participants) {
@@ -229,12 +285,12 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
           const isDirect = conversation.type === 'DIRECT';
           const notifType = isDirect ? 'DIRECT_MESSAGE' : 'MESSAGE_RECEIVED';
           const notifTitle = isDirect
-            ? `New message from ${user.name}`
-            : `${conversation.name || 'Team Chat'}: ${user.name}`;
+            ? `New message from ${currentUserDoc.name}`
+            : `${conversation.name || 'Team Chat'}: ${currentUserDoc.name}`;
 
           await notificationDispatcher.dispatch({
             recipientId: p,
-            senderId: user._id,
+            senderId: currentUserDoc._id,
             type: notifType,
             title: notifTitle,
             message: trimmedContent.length > 80 ? trimmedContent.substring(0, 80) + '...' : trimmedContent,
@@ -247,6 +303,7 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
       } catch (err) {
         console.error('[Socket send_message] Error:', err);
         socket.emit('error_message', { message: 'Failed to deliver message' });
+        if (typeof callback === 'function') callback({ success: false, message: 'Failed to deliver message' });
       }
     });
 
@@ -276,10 +333,13 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
     /**
      * Read Receipts
      */
-    socket.on('message_read', async (data: { conversationId: string }) => {
+    socket.on('message_read', async (data: { conversationId: string }, callback?: (response: any) => void) => {
       try {
         const { conversationId } = data;
-        if (!Types.ObjectId.isValid(conversationId)) return;
+        if (!Types.ObjectId.isValid(conversationId)) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Invalid conversation ID' });
+          return;
+        }
 
         // Mark messages as read by current user
         await MessageModel.updateMany(
@@ -303,14 +363,30 @@ export function initSocketServer(httpServer: HttpServer): SocketIOServer {
           await conversation.save();
         }
 
+        const { totalUnread, byConversation } = await calculateUnreadMessageCounts(user._id);
+
         // Broadcast read receipt to the conversation room
         io.to(`conversation:${conversationId}`).emit('message_read_receipt', {
           conversationId,
           userId: userIdStr,
           readAt: new Date()
         });
+
+        // Broadcast updated unread count to current user's personal room
+        io.to(`user:${userIdStr}`).emit('unread_count_updated', {
+          totalUnread,
+          unreadCount: totalUnread,
+          conversationId,
+          conversationUnreadCount: 0,
+          byConversation
+        });
+
+        if (typeof callback === 'function') {
+          callback({ success: true, unreadCount: totalUnread, byConversation });
+        }
       } catch (err) {
         console.error('[Socket message_read] Error:', err);
+        if (typeof callback === 'function') callback({ success: false, message: 'Failed to mark as read' });
       }
     });
 

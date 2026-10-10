@@ -143,6 +143,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Rollback on failure
       setNotifications(prevNotifications);
       setUnreadCount(prevCount);
+      throw err;
     }
   };
 
@@ -165,6 +166,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.warn('Could not mark notification unread on backend:', err);
       setNotifications(prevNotifications);
       setUnreadCount(prevCount);
+      throw err;
     }
   };
 
@@ -188,6 +190,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       console.warn('Could not mark all notifications read on backend:', err);
       setNotifications(prevNotifications);
       setUnreadCount(prevCount);
+      throw err;
     }
   };
 

@@ -41,15 +41,15 @@ export async function seedChat(): Promise<void> {
       participants: allUserIds,
       createdBy: founder._id,
       lastMessage: {
-        text: "I'll join with the formulation sample kit.",
-        senderId: employee._id,
-        senderName: employee.name,
-        createdAt: new Date(now.getTime() - 15 * 60 * 1000)
+        text: 'Completed the color-grading cut for the Bakuchiol serum reel! Ready for review.',
+        senderId: intern._id,
+        senderName: intern.name,
+        createdAt: new Date(now.getTime() - 5 * 60 * 1000)
       },
-      lastMessageAt: new Date(now.getTime() - 15 * 60 * 1000),
+      lastMessageAt: new Date(now.getTime() - 5 * 60 * 1000),
       unreadCounts: {
         [founder._id.toString()]: 1,
-        [intern._id.toString()]: 2
+        [intern._id.toString()]: 0
       }
     });
 
@@ -59,7 +59,7 @@ export async function seedChat(): Promise<void> {
         senderId: hr._id,
         content: 'Marketing & Product sync is scheduled for 4:00 PM in Conference Room A.',
         messageType: 'TEXT',
-        readBy: [hr._id, manager._id, employee._id],
+        readBy: [hr._id, manager._id, employee._id, intern._id],
         createdAt: new Date(now.getTime() - 45 * 60 * 1000)
       },
       {
@@ -67,7 +67,7 @@ export async function seedChat(): Promise<void> {
         senderId: manager._id,
         content: 'Operations team will present batch stability and logistics status.',
         messageType: 'TEXT',
-        readBy: [manager._id, hr._id, employee._id],
+        readBy: [manager._id, hr._id, employee._id, intern._id],
         createdAt: new Date(now.getTime() - 30 * 60 * 1000)
       },
       {
@@ -75,8 +75,70 @@ export async function seedChat(): Promise<void> {
         senderId: employee._id,
         content: "I'll join with the formulation sample kit.",
         messageType: 'TEXT',
-        readBy: [employee._id],
+        readBy: [employee._id, intern._id],
         createdAt: new Date(now.getTime() - 15 * 60 * 1000)
+      },
+      {
+        conversationId: companyConv._id,
+        senderId: intern._id,
+        content: 'Completed the color-grading cut for the Bakuchiol serum reel! Ready for review.',
+        messageType: 'TEXT',
+        readBy: [intern._id],
+        createdAt: new Date(now.getTime() - 5 * 60 * 1000)
+      }
+    ]);
+
+    // 2. Create Group Chat: "Product & Campaign Squad"
+    const groupConv = await ConversationModel.create({
+      type: 'GROUP',
+      name: 'Product & Campaign Squad',
+      participants: [founder._id, manager._id, employee._id, intern._id],
+      createdBy: founder._id,
+      lastMessage: {
+        text: 'I have uploaded the social preview mockups to the shared workspace.',
+        senderId: intern._id,
+        senderName: intern.name,
+        createdAt: new Date(now.getTime() - 2 * 60 * 1000)
+      },
+      lastMessageAt: new Date(now.getTime() - 2 * 60 * 1000),
+      unreadCounts: {
+        [founder._id.toString()]: 1,
+        [intern._id.toString()]: 0
+      }
+    });
+
+    await MessageModel.create([
+      {
+        conversationId: groupConv._id,
+        senderId: founder._id,
+        content: 'Welcome team. Let us coordinate the Diwali product launch here.',
+        messageType: 'TEXT',
+        readBy: [founder._id, manager._id, employee._id, intern._id],
+        createdAt: new Date(now.getTime() - 20 * 60 * 1000)
+      },
+      {
+        conversationId: groupConv._id,
+        senderId: manager._id,
+        content: 'Logistics dispatch is aligned with the promotional schedule.',
+        messageType: 'TEXT',
+        readBy: [manager._id, intern._id],
+        createdAt: new Date(now.getTime() - 10 * 60 * 1000)
+      },
+      {
+        conversationId: groupConv._id,
+        senderId: employee._id,
+        content: 'Samples ready for the beauty influencers cohort.',
+        messageType: 'TEXT',
+        readBy: [employee._id, intern._id],
+        createdAt: new Date(now.getTime() - 6 * 60 * 1000)
+      },
+      {
+        conversationId: groupConv._id,
+        senderId: intern._id,
+        content: 'I have uploaded the social preview mockups to the shared workspace.',
+        messageType: 'TEXT',
+        readBy: [intern._id],
+        createdAt: new Date(now.getTime() - 2 * 60 * 1000)
       }
     ]);
 

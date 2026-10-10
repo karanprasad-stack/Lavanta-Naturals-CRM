@@ -20,9 +20,11 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [isStarting, setIsStarting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isInputFocused, setIsInputFocused] = useState<boolean>(true);
 
   useEffect(() => {
     if (!isOpen) return;
+    setIsInputFocused(true);
 
     let isMounted = true;
     const fetchUsers = async () => {
@@ -185,35 +187,52 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({ isOpen, onClose }) =
         {/* Search & Filters */}
         <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--chat-border)', backgroundColor: 'var(--chat-modal-bg)' }}>
           <div
+            id="new-chat-search-container"
+            className={`new-chat-search-container ${isInputFocused ? 'focused' : ''}`}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem',
               backgroundColor: 'var(--chat-bg-input)',
-              border: '1px solid var(--chat-border)',
+              border: `1px solid ${isInputFocused ? '#65C943' : 'var(--chat-border)'}`,
               borderRadius: '10px',
-              padding: '0.6rem 0.85rem'
+              padding: '0.6rem 0.85rem',
+              boxShadow: isInputFocused ? '0 0 0 2px rgba(101, 201, 67, 0.25)' : 'none',
+              transition: 'border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease'
             }}
           >
-            <Search size={16} color="var(--chat-text-muted)" />
+            <Search size={16} color="var(--chat-text-muted)" style={{ flexShrink: 0 }} />
             <input
+              id="new-chat-search-input"
               type="text"
+              className="new-chat-search-input"
               placeholder="Search team member by name, role, department..."
+              aria-label="Search team member by name, role, department"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
               autoFocus
               style={{
                 background: 'transparent',
+                backgroundColor: 'transparent',
                 border: 'none',
+                borderWidth: 0,
                 outline: 'none',
+                outlineWidth: 0,
+                boxShadow: 'none',
                 fontSize: '0.875rem',
                 color: 'var(--chat-text-primary)',
-                width: '100%'
+                width: '100%',
+                flex: 1,
+                padding: 0,
+                margin: 0
               }}
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
+                aria-label="Clear search query"
                 style={{ background: 'none', border: 'none', color: 'var(--chat-text-muted)', cursor: 'pointer', padding: 0 }}
               >
                 <X size={15} />

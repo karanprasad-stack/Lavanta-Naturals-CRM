@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { useChat } from '../../context/ChatContext';
 import { useWorkspaceConfig } from '../../context/WorkspaceConfigContext';
 import { LavantaLogo } from '../ui/LavantaLogo';
 
@@ -56,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const { unreadCount } = useNotifications();
+  const { totalUnreadCount } = useChat();
   const { isModuleVisible, previewRole } = useWorkspaceConfig();
   const location = useLocation();
 
@@ -108,7 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Communication',
       items: [
-        { label: 'Company Chat', icon: <MessageSquare size={18} />, to: '/chat', moduleKey: 'companyChat' },
+        { label: 'Company Chat', icon: <MessageSquare size={18} />, to: '/chat', moduleKey: 'companyChat', badge: totalUnreadCount > 0 ? totalUnreadCount : undefined },
         { label: 'Announcements', icon: <Megaphone size={18} />, to: '/announcements', moduleKey: 'announcements' },
         { label: 'Notifications', icon: <Bell size={18} />, to: '/notifications', moduleKey: 'notifications', badge: unreadCount > 0 ? unreadCount : undefined }
       ]
@@ -153,19 +155,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       )}
 
       <aside
-        className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}
+        className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
         style={{
-          transform: isMobileOpen ? 'translateX(0)' : undefined,
-          ...(window.innerWidth <= 768
-            ? {
-                position: 'fixed',
-                left: isMobileOpen ? 0 : '-100%',
-                top: 0,
-                bottom: 0,
-                zIndex: 50,
-                transition: 'left 0.25s ease'
-              }
-            : {})
+          transform: isMobileOpen ? 'translateX(0)' : undefined
         }}
       >
         {/* Brand Header — Clean White with Lavanta Naturals Logo */}
