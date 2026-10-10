@@ -957,7 +957,7 @@ export const taskController = {
       if (task.assignedTo) notifyRecipients.add(task.assignedTo.toString());
       notifyRecipients.delete(user._id.toString());
 
-      for (const recId of notifyRecipients) {
+      for (const recId of Array.from(notifyRecipients)) {
         await notificationDispatcher.dispatch({
           recipientId: recId,
           senderId: user._id,
@@ -1040,7 +1040,7 @@ export const taskController = {
       if (task.assignedTo) notifyRecipientIds.add(task.assignedTo.toString());
       notifyRecipientIds.delete(user._id.toString());
 
-      for (const recId of notifyRecipientIds) {
+      for (const recId of Array.from(notifyRecipientIds)) {
         await notificationDispatcher.dispatch({
           recipientId: recId,
           senderId: user._id,
@@ -1214,7 +1214,7 @@ export const taskController = {
         }
         if (task.assignedBy) recipientIds.add(task.assignedBy.toString());
 
-        for (const recipientIdStr of recipientIds) {
+        for (const recipientIdStr of Array.from(recipientIds)) {
           const recipientId = new Types.ObjectId(recipientIdStr);
 
           // Idempotency: verify no existing TASK_OVERDUE notification for this task & recipient
