@@ -263,7 +263,31 @@ export const TaskDetail: React.FC = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
             <div>
-              Assigned to: <strong style={{ color: 'var(--color-text-primary)' }}>{task.assignedTo?.name}</strong>
+              Assigned to:{' '}
+              {task.assignees && task.assignees.length > 1 ? (
+                <>
+                  <strong style={{ color: 'var(--color-text-primary)' }}>
+                    {task.assignees.map(a => a.name).join(', ')}
+                  </strong>{' '}
+                  <span
+                    style={{
+                      fontSize: '0.725rem',
+                      background: 'var(--color-primary-soft, #EEF2F6)',
+                      color: 'var(--color-primary-deep, #1E3A8A)',
+                      padding: '2px 8px',
+                      borderRadius: 'var(--radius-full)',
+                      fontWeight: 700,
+                      marginLeft: '6px'
+                    }}
+                  >
+                    Shared ({task.assignees.length} members)
+                  </span>
+                </>
+              ) : (
+                <strong style={{ color: 'var(--color-text-primary)' }}>
+                  {task.assignees?.[0]?.name || task.assignedTo?.name || 'Unassigned'}
+                </strong>
+              )}
             </div>
             <span>•</span>
             <div>
@@ -529,18 +553,78 @@ export const TaskDetail: React.FC = () => {
                 <span style={{ fontWeight: 600, color: 'var(--color-primary-deep)' }}>{task.department}</span>
               </div>
 
-              {/* Assignee Card */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Assignee</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <img
-                    src={task.assignedTo?.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                    alt={task.assignedTo?.name}
-                    style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                  />
-                  <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{task.assignedTo?.name}</span>
+              {/* Assignee(s) Card */}
+              {task.assignees && task.assignees.length > 1 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                      Assignees ({task.assignees.length})
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: 'var(--color-primary-deep)',
+                        background: 'var(--color-primary-soft, #EEF2F6)',
+                        padding: '1px 7px',
+                        borderRadius: '4px'
+                      }}
+                    >
+                      Shared Task
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {task.assignees.map(a => (
+                      <div
+                        key={a._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '4px 6px',
+                          borderRadius: 'var(--radius-xs)',
+                          background: 'var(--color-background-soft, #F8FAFC)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={a.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
+                            alt={a.name}
+                            style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <span style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)' }}>
+                            {a.name}
+                          </span>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
+                          {a.role ? a.role.toLowerCase() : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                    Task status and workflow are shared between all assignees.
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>Assignee</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <img
+                      src={
+                        (task.assignees && task.assignees[0]?.profilePhoto) ||
+                        task.assignedTo?.profilePhoto ||
+                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+                      }
+                      alt={(task.assignees && task.assignees[0]?.name) || task.assignedTo?.name}
+                      style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                    <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                      {(task.assignees && task.assignees[0]?.name) || task.assignedTo?.name || 'Unassigned'}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Assignor Card */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>

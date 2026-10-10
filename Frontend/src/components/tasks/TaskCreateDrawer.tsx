@@ -1,7 +1,18 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, AlertCircle, CheckCircle2, UserCheck, CheckSquare, Paperclip } from 'lucide-react';
-import { TaskPriority, CreateTaskPayload } from '../../types/task';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import {
+  X,
+  AlertCircle,
+  CheckSquare,
+  Users,
+  UserCheck,
+  Search,
+  Check,
+  GraduationCap,
+  Briefcase,
+  Shield
+} from 'lucide-react';
+import { TaskPriority, CreateTaskPayload, AssignmentTargetType } from '../../types/task';
 import { User } from '../../types';
 import { taskService } from '../../services/taskService';
 import { Button } from '../ui/Button';
@@ -26,50 +37,152 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
   const { showToast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('18:00');
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Filter assignees based on current user's role
+  // Target mode state: 'INTERNS' | 'EMPLOYEES' | 'HR' | 'MEMBERS'
+  const [targetType, setTargetType] = useState<AssignmentTargetType>('MEMBERS');
+  // For role cohorts: 'ALL' vs 'CUSTOM'
+  const [cohortMode, setCohortMode] = useState<'ALL' | 'CUSTOM'>('ALL');
+  // Selected member IDs
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  // Search query for member selector
+  const [searchQuery, setSearchQuery] = useState('');
+
   const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
   const currentUserId = currentUser?.id || (currentUser as any)?._id;
 
-  const eligibleAssignees = teamMembers.filter(m => {
-    const memberId = m.id || (m as any)._id;
-    // Cannot assign to oneself
-    if (memberId === currentUserId) return false;
+  // Filter team members based on RBAC
+  const eligibleMembers = useMemo(() => {
+    return teamMembers.filter(m => {
+      const memberId = m.id || (m as any)._id;
+      if (!memberId || memberId === currentUserId) return false;
 
-    if (userRole === 'FOUNDER') {
-      // Founder can assign to anyone
-      return true;
+      if (userRole === 'FOUNDER') {
+        return true;
+      }
+      if (userRole === 'HR') {
+        const r = (m.role || '').toUpperCase();
+        return r === 'EMPLOYEE' || r === 'INTERN' || r === 'MANAGER';
+      }
+      if (userRole === 'MANAGER') {
+        return m.department === currentUser?.department;
+      }
+      return false;
+    });
+  }, [teamMembers, currentUserId, userRole, currentUser?.department]);
+
+  // Cohort lists
+  const eligibleInterns = useMemo(
+    () => eligibleMembers.filter(m => (m.role || '').toUpperCase() === 'INTERN'),
+    [eligibleMembers]
+  );
+  const eligibleEmployees = useMemo(
+    () => eligibleMembers.filter(m => (m.role || '').toUpperCase() === 'EMPLOYEE'),
+    [eligibleMembers]
+  );
+  const eligibleHR = useMemo(
+    () => eligibleMembers.filter(m => (m.role || '').toUpperCase() === 'HR'),
+    [eligibleMembers]
+  );
+
+  // Filtered members for search list
+  const filteredSearchMembers = useMemo(() => {
+    let pool = eligibleMembers;
+    if (targetType === 'INTERNS' && cohortMode === 'CUSTOM') {
+      pool = eligibleInterns;
+    } else if (targetType === 'EMPLOYEES' && cohortMode === 'CUSTOM') {
+      pool = eligibleEmployees;
+    } else if (targetType === 'HR' && cohortMode === 'CUSTOM') {
+      pool = eligibleHR;
     }
-    if (userRole === 'HR') {
-      // HR can assign to employees and interns
-      const r = m.role.toUpperCase();
-      return r === 'EMPLOYEE' || r === 'INTERN' || r === 'MANAGER';
+
+    if (!searchQuery.trim()) return pool;
+    const q = searchQuery.toLowerCase().trim();
+    return pool.filter(
+      m =>
+        m.name?.toLowerCase().includes(q) ||
+        m.role?.toLowerCase().includes(q) ||
+        m.department?.toLowerCase().includes(q) ||
+        m.designation?.toLowerCase().includes(q)
+    );
+  }, [eligibleMembers, eligibleInterns, eligibleEmployees, eligibleHR, targetType, cohortMode, searchQuery]);
+
+  // Compute final effective assignees count preview
+  const effectiveAssigneesCount = useMemo(() => {
+    if (targetType === 'INTERNS') {
+      return cohortMode === 'ALL' ? eligibleInterns.length : selectedMemberIds.length;
     }
-    if (userRole === 'MANAGER') {
-      // Manager can assign strictly within their department
-      return m.department === currentUser?.department;
+    if (targetType === 'EMPLOYEES') {
+      return cohortMode === 'ALL' ? eligibleEmployees.length : selectedMemberIds.length;
     }
-    return false;
-  });
+    if (targetType === 'HR') {
+      return cohortMode === 'ALL' ? eligibleHR.length : selectedMemberIds.length;
+    }
+    return selectedMemberIds.length;
+  }, [targetType, cohortMode, eligibleInterns.length, eligibleEmployees.length, eligibleHR.length, selectedMemberIds.length]);
+
+  const toggleMemberSelection = (id: string) => {
+    setSelectedMemberIds(prev =>
+      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+    );
+  };
+
+  const removeMember = (id: string) => {
+    setSelectedMemberIds(prev => prev.filter(mId => mId !== id));
+  };
+
+  const handleTargetTypeChange = (newTarget: AssignmentTargetType) => {
+    setTargetType(newTarget);
+    setCohortMode('ALL');
+    setSelectedMemberIds([]);
+    setSearchQuery('');
+    setValidationError(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
 
     if (!title.trim()) {
-      setValidationError('Task name is required.');
+      setValidationError('Task title is required.');
       return;
     }
 
-    if (!assignedTo) {
-      setValidationError('Please select an assignee from your permitted team members.');
-      return;
+    // Assignee validation
+    let finalAssigneeIds: string[] = [];
+
+    if (targetType === 'MEMBERS') {
+      if (selectedMemberIds.length === 0) {
+        setValidationError('Please select at least one team member to assign this task to.');
+        return;
+      }
+      finalAssigneeIds = selectedMemberIds;
+    } else {
+      if (cohortMode === 'CUSTOM') {
+        if (selectedMemberIds.length === 0) {
+          setValidationError(`Please select at least one ${targetType.toLowerCase()} member or switch to "All".`);
+          return;
+        }
+        finalAssigneeIds = selectedMemberIds;
+      } else {
+        // ALL in cohort
+        const cohortList =
+          targetType === 'INTERNS'
+            ? eligibleInterns
+            : targetType === 'EMPLOYEES'
+            ? eligibleEmployees
+            : eligibleHR;
+
+        if (cohortList.length === 0) {
+          setValidationError(`No active ${targetType.toLowerCase()} members found in your authorized scope.`);
+          return;
+        }
+        finalAssigneeIds = cohortList.map(m => m.id || (m as any)._id);
+      }
     }
 
     if (!deadlineDate) {
@@ -77,7 +190,6 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
       return;
     }
 
-    // Combine date and time
     const fullDeadlineStr = `${deadlineDate}T${deadlineTime || '18:00'}:00`;
     const deadlineObj = new Date(fullDeadlineStr);
 
@@ -96,18 +208,27 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
       const payload: CreateTaskPayload = {
         title: title.trim(),
         description: description.trim(),
-        assignedTo,
+        targetType,
+        assigneeIds: finalAssigneeIds,
+        assignedTo: finalAssigneeIds[0],
         priority,
         deadline: deadlineObj.toISOString()
       };
 
       await taskService.createTask(payload);
-      showToast('Task assigned successfully.', 'success');
+      showToast(
+        `Task assigned to ${finalAssigneeIds.length} member${finalAssigneeIds.length > 1 ? 's' : ''} successfully.`,
+        'success'
+      );
       onTaskCreated();
+
       // Reset form
       setTitle('');
       setDescription('');
-      setAssignedTo('');
+      setTargetType('MEMBERS');
+      setCohortMode('ALL');
+      setSelectedMemberIds([]);
+      setSearchQuery('');
       setPriority('MEDIUM');
       setDeadlineDate('');
       setDeadlineTime('18:00');
@@ -129,7 +250,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
         zIndex: 50,
         display: 'flex',
         justifyContent: 'flex-end',
-        background: 'rgba(23, 34, 53, 0.4)',
+        background: 'rgba(23, 34, 53, 0.5)',
         backdropFilter: 'blur(3px)'
       }}
       onClick={onClose}
@@ -142,9 +263,10 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '560px',
           height: '100%',
-          background: '#FFFFFF',
+          background: 'var(--bg-surface, #FFFFFF)',
+          color: 'var(--color-text-primary, #172235)',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-lg)'
@@ -157,27 +279,45 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            background: 'var(--bg-surface)'
           }}
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-primary-deep)', textTransform: 'uppercase' }}>
-                Task Delegation
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--color-primary-deep)',
+                  textTransform: 'uppercase'
+                }}
+              >
+                Multi-Member Task Delegation
               </span>
-              <Badge variant="green" size="sm">Phase 4</Badge>
+              <Badge variant="green" size="sm">
+                Shared Task
+              </Badge>
             </div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '2px 0 0' }}>
+            <h2
+              style={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: 'var(--color-text-primary)',
+                margin: '2px 0 0'
+              }}
+            >
               Assign New Task
             </h2>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close Drawer"
             style={{
               padding: '6px',
               borderRadius: 'var(--radius-sm)',
               border: 'none',
-              background: '#FAFBF8',
+              background: 'var(--bg-surface-elevated, #FAFBF8)',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer'
             }}
@@ -219,17 +359,33 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
 
           {/* Section 1: TASK DETAILS */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--color-text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
               1. Task Details
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Task Name *
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  marginBottom: '4px'
+                }}
+              >
+                Task Title *
               </label>
               <input
                 type="text"
-                placeholder="e.g. Create Instagram Content for Face Serum"
+                placeholder="e.g. Conduct QC Lab Formulation Batch 04"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 style={{
@@ -239,7 +395,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                   border: '1px solid var(--border-color)',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   color: 'var(--color-text-primary)'
                 }}
                 required
@@ -247,8 +403,16 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Description & Instructions
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  color: 'var(--color-text-primary)',
+                  marginBottom: '4px'
+                }}
+              >
+                Description & Deliverables
               </label>
               <textarea
                 rows={3}
@@ -262,7 +426,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                   border: '1px solid var(--border-color)',
                   fontSize: '0.85rem',
                   outline: 'none',
-                  background: '#FFFFFF',
+                  background: 'var(--bg-surface)',
                   color: 'var(--color-text-primary)',
                   resize: 'vertical'
                 }}
@@ -270,50 +434,404 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
             </div>
           </div>
 
-          {/* Section 2: ASSIGNMENT */}
+          {/* Section 2: TARGET & MULTI-MEMBER ASSIGNMENT */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              2. Assignee Selection
-            </div>
-
-            <div>
-              <label style={{ display: 'block', fontSize: '0.825rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Assign To *
-              </label>
-              <select
-                value={assignedTo}
-                onChange={e => setAssignedTo(e.target.value)}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <span
                 style={{
-                  width: '100%',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                  background: '#FFFFFF',
-                  color: 'var(--color-text-primary)',
-                  cursor: 'pointer'
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--color-text-secondary)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
                 }}
-                required
               >
-                <option value="">-- Select Permitted Team Member --</option>
-                {eligibleAssignees.map(m => (
-                  <option key={m.id || (m as any)._id} value={m.id || (m as any)._id}>
-                    {m.name} — {m.designation} ({m.department})
-                  </option>
-                ))}
-              </select>
-              <span style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', marginTop: '3px', display: 'block' }}>
-                {userRole === 'MANAGER'
-                  ? `Showing team members reporting to ${currentUser?.department}.`
-                  : 'Showing employees and intern cohort members.'}
+                2. Assignment Target
+              </span>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: 'var(--color-primary-deep)',
+                  background: 'var(--color-soft-green)',
+                  padding: '2px 8px',
+                  borderRadius: '12px'
+                }}
+              >
+                {effectiveAssigneesCount} Recipient{effectiveAssigneesCount !== 1 ? 's' : ''}
               </span>
             </div>
+
+            {/* Target Options Tabs */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: userRole === 'MANAGER' ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
+                gap: '6px'
+              }}
+            >
+              {/* Option A: Interns */}
+              <button
+                type="button"
+                onClick={() => handleTargetTypeChange('INTERNS')}
+                style={{
+                  padding: '0.6rem 0.4rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: targetType === 'INTERNS' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  background: targetType === 'INTERNS' ? 'var(--color-soft-green)' : 'var(--bg-surface)',
+                  color: targetType === 'INTERNS' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <GraduationCap size={16} />
+                <span>Interns</span>
+              </button>
+
+              {/* Option B: Employees */}
+              <button
+                type="button"
+                onClick={() => handleTargetTypeChange('EMPLOYEES')}
+                style={{
+                  padding: '0.6rem 0.4rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: targetType === 'EMPLOYEES' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  background: targetType === 'EMPLOYEES' ? 'var(--color-soft-green)' : 'var(--bg-surface)',
+                  color: targetType === 'EMPLOYEES' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Briefcase size={16} />
+                <span>Employees</span>
+              </button>
+
+              {/* Option C: HR (Founder & HR only) */}
+              {userRole !== 'MANAGER' && (
+                <button
+                  type="button"
+                  onClick={() => handleTargetTypeChange('HR')}
+                  style={{
+                    padding: '0.6rem 0.4rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: targetType === 'HR' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                    background: targetType === 'HR' ? 'var(--color-soft-green)' : 'var(--bg-surface)',
+                    color: targetType === 'HR' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <Shield size={16} />
+                  <span>HR Team</span>
+                </button>
+              )}
+
+              {/* Option D: Specific Member(s) */}
+              <button
+                type="button"
+                onClick={() => handleTargetTypeChange('MEMBERS')}
+                style={{
+                  padding: '0.6rem 0.4rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: targetType === 'MEMBERS' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  background: targetType === 'MEMBERS' ? 'var(--color-soft-green)' : 'var(--bg-surface)',
+                  color: targetType === 'MEMBERS' ? 'var(--color-primary-deep)' : 'var(--color-text-secondary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Users size={16} />
+                <span>Specific Member(s)</span>
+              </button>
+            </div>
+
+            {/* Sub-mode for Cohorts: All vs Custom */}
+            {targetType !== 'MEMBERS' && (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface-elevated, #FAFBF8)',
+                  border: '1px solid var(--border-color)',
+                  alignItems: 'center'
+                }}
+              >
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="cohortMode"
+                    checked={cohortMode === 'ALL'}
+                    onChange={() => {
+                      setCohortMode('ALL');
+                      setSelectedMemberIds([]);
+                    }}
+                  />
+                  <span>
+                    All Eligible {targetType === 'INTERNS' ? 'Interns' : targetType === 'EMPLOYEES' ? 'Employees' : 'HR Members'} (
+                    {targetType === 'INTERNS'
+                      ? eligibleInterns.length
+                      : targetType === 'EMPLOYEES'
+                      ? eligibleEmployees.length
+                      : eligibleHR.length}
+                    )
+                  </span>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="cohortMode"
+                    checked={cohortMode === 'CUSTOM'}
+                    onChange={() => setCohortMode('CUSTOM')}
+                  />
+                  <span>Select Specific</span>
+                </label>
+              </div>
+            )}
+
+            {/* Selected Member Chips (when specific or custom selected) */}
+            {(targetType === 'MEMBERS' || cohortMode === 'CUSTOM') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {selectedMemberIds.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedMemberIds.map(id => {
+                      const member = eligibleMembers.find(m => (m.id || (m as any)._id) === id);
+                      if (!member) return null;
+                      return (
+                        <div
+                          key={id}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 8px',
+                            background: 'var(--color-soft-green)',
+                            border: '1px solid var(--color-primary)',
+                            borderRadius: '16px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            color: 'var(--color-primary-deep)'
+                          }}
+                        >
+                          <img
+                            src={
+                              member.profilePhoto ||
+                              member.avatar ||
+                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                            }
+                            alt={member.name}
+                            style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <span>
+                            {member.name} <span style={{ opacity: 0.7 }}>({member.role})</span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeMember(id)}
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              color: 'var(--color-primary-deep)',
+                              cursor: 'pointer',
+                              padding: '0 2px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Member Search & Multi-select Box */}
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-color)',
+                      background: 'var(--bg-surface)'
+                    }}
+                  >
+                    <Search size={14} color="var(--color-text-secondary)" />
+                    <input
+                      type="text"
+                      placeholder={`Search ${targetType === 'MEMBERS' ? 'team members' : targetType.toLowerCase()} by name, role, department...`}
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      style={{
+                        border: 'none',
+                        outline: 'none',
+                        width: '100%',
+                        fontSize: '0.825rem',
+                        background: 'transparent',
+                        color: 'var(--color-text-primary)'
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery('')}
+                        style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filtered Member Selection List */}
+                  <div
+                    style={{
+                      maxHeight: '160px',
+                      overflowY: 'auto',
+                      marginTop: '4px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--bg-surface)'
+                    }}
+                  >
+                    {filteredSearchMembers.length === 0 ? (
+                      <div
+                        style={{
+                          padding: '0.85rem',
+                          textAlign: 'center',
+                          fontSize: '0.75rem',
+                          color: 'var(--color-text-muted)'
+                        }}
+                      >
+                        No matching team members found.
+                      </div>
+                    ) : (
+                      filteredSearchMembers.map(m => {
+                        const mId = m.id || (m as any)._id;
+                        const isSelected = selectedMemberIds.includes(mId);
+
+                        return (
+                          <div
+                            key={mId}
+                            onClick={() => toggleMemberSelection(mId)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '6px 10px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid var(--border-color)',
+                              background: isSelected ? 'var(--color-soft-green)' : 'transparent',
+                              transition: 'background 0.1s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <img
+                                src={
+                                  m.profilePhoto ||
+                                  m.avatar ||
+                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                                }
+                                alt={m.name}
+                                style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                              />
+                              <div>
+                                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                  {m.name}
+                                </div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
+                                  {m.designation || m.role} • {m.department}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                borderRadius: '4px',
+                                border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                                background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                            >
+                              {isSelected && <Check size={12} color="#FFFFFF" />}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section 3: PRIORITY */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--color-text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
               3. Urgency & Priority
             </div>
 
@@ -325,7 +843,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                   padding: '0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   border: priority === 'HIGH' ? '2px solid #DC2626' : '1px solid var(--border-color)',
-                  background: priority === 'HIGH' ? '#FEF2F2' : '#FFFFFF',
+                  background: priority === 'HIGH' ? '#FEF2F2' : 'var(--bg-surface)',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -342,7 +860,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                   padding: '0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   border: priority === 'MEDIUM' ? '2px solid #B45309' : '1px solid var(--border-color)',
-                  background: priority === 'MEDIUM' ? '#FEF3C7' : '#FFFFFF',
+                  background: priority === 'MEDIUM' ? '#FEF3C7' : 'var(--bg-surface)',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -359,7 +877,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                   padding: '0.65rem',
                   borderRadius: 'var(--radius-sm)',
                   border: priority === 'LOW' ? '2px solid #16A34A' : '1px solid var(--border-color)',
-                  background: priority === 'LOW' ? '#F0FDF4' : '#FFFFFF',
+                  background: priority === 'LOW' ? '#F0FDF4' : 'var(--bg-surface)',
                   textAlign: 'center',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
@@ -373,13 +891,28 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
 
           {/* Section 4: DEADLINE */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: 'var(--color-text-secondary)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em'
+              }}
+            >
               4. Deadline Target *
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: '3px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--color-text-secondary)',
+                    marginBottom: '3px'
+                  }}
+                >
                   Target Date *
                 </label>
                 <input
@@ -394,14 +927,22 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                     border: '1px solid var(--border-color)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-surface)',
+                    color: 'var(--color-text-primary)'
                   }}
                   required
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginBottom: '3px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.75rem',
+                    color: 'var(--color-text-secondary)',
+                    marginBottom: '3px'
+                  }}
+                >
                   Target Time
                 </label>
                 <input
@@ -415,7 +956,8 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                     border: '1px solid var(--border-color)',
                     fontSize: '0.85rem',
                     outline: 'none',
-                    background: '#FFFFFF'
+                    background: 'var(--bg-surface)',
+                    color: 'var(--color-text-primary)'
                   }}
                 />
               </div>
@@ -430,22 +972,28 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
               borderTop: '1px solid var(--border-color)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'flex-end',
+              justifyContent: 'space-between',
               gap: '0.75rem'
             }}
           >
-            <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              disabled={submitting}
-              icon={<CheckSquare size={16} />}
-            >
-              {submitting ? 'Assigning...' : 'Assign Task'}
-            </Button>
+            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              1 shared task document • Canonical status
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={submitting}
+                icon={<CheckSquare size={16} />}
+              >
+                {submitting ? 'Assigning...' : `Assign (${effectiveAssigneesCount})`}
+              </Button>
+            </div>
           </div>
         </form>
       </motion.div>

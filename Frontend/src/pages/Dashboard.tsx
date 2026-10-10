@@ -21,6 +21,7 @@ import { AnnouncementCreateDrawer } from '../components/announcements/Announceme
 import { Button } from '../components/ui/Button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { getAuthToken } from '../services/apiClient';
+import { socketService } from '../services/socketService';
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -53,6 +54,28 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard, activeRole]);
+
+  // Real-time synchronization for new tasks and announcements
+  useEffect(() => {
+    const socket = socketService.connect();
+    if (!socket) return;
+
+    const handleRealtimeUpdate = () => {
+      fetchDashboard();
+    };
+
+    socket.on('task_assigned', handleRealtimeUpdate);
+    socket.on('task_updated', handleRealtimeUpdate);
+    socket.on('task_deleted', handleRealtimeUpdate);
+    socket.on('notification_created', handleRealtimeUpdate);
+
+    return () => {
+      socket.off('task_assigned', handleRealtimeUpdate);
+      socket.off('task_updated', handleRealtimeUpdate);
+      socket.off('task_deleted', handleRealtimeUpdate);
+      socket.off('notification_created', handleRealtimeUpdate);
+    };
+  }, [fetchDashboard]);
 
   const handleAction = (actionKey: string) => {
     if (actionKey === 'assign_task' || actionKey === 'view_tasks' || actionKey === 'view_my_tasks') {

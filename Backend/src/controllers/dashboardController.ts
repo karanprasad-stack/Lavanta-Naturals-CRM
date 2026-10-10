@@ -200,20 +200,22 @@ export const dashboardController = {
           TaskModel.find({
             $or: [
               { department: 'HR' },
+              { assignees: user._id },
               { assignedTo: user._id }
             ],
             status: { $nin: ['COMPLETED', 'CANCELLED'] }
           })
             .populate('assignedTo', 'name role department designation profilePhoto')
+            .populate('assignees', 'name role department designation profilePhoto')
             .populate('assignedBy', 'name role')
             .sort({ deadline: 1 })
             .limit(6),
           TaskModel.countDocuments({
-            $or: [{ department: 'HR' }, { assignedTo: user._id }],
+            $or: [{ department: 'HR' }, { assignees: user._id }, { assignedTo: user._id }],
             status: { $in: ['TODO', 'IN_PROGRESS'] }
           }),
           TaskModel.countDocuments({
-            $or: [{ department: 'HR' }, { assignedTo: user._id }],
+            $or: [{ department: 'HR' }, { assignees: user._id }, { assignedTo: user._id }],
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
@@ -263,7 +265,12 @@ export const dashboardController = {
               id: (t.assignedTo as any)._id,
               name: (t.assignedTo as any).name,
               profilePhoto: (t.assignedTo as any).profilePhoto || ''
-            } : null
+            } : null,
+            assignees: (t.assignees || []).map((a: any) => ({
+              id: a._id,
+              name: a.name,
+              profilePhoto: a.profilePhoto || ''
+            }))
           })),
           recentJoiners: recentJoiners.slice(0, 5).map(u => ({
             id: u._id,
@@ -312,47 +319,89 @@ export const dashboardController = {
           recentDeptActivities
         ] = await Promise.all([
           TaskModel.countDocuments({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: { $ne: 'CANCELLED' }
           }),
           TaskModel.countDocuments({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: 'IN_PROGRESS'
           }),
           TaskModel.countDocuments({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: 'COMPLETED'
           }),
           TaskModel.countDocuments({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
           TaskModel.find({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: 'IN_PROGRESS'
           })
             .populate('assignedTo', 'name role department designation profilePhoto')
+            .populate('assignees', 'name role department designation profilePhoto')
             .sort({ deadline: 1 })
             .limit(6),
           TaskModel.find({
-            $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+            $or: [
+              { department },
+              { assignees: { $in: deptMemberIds } },
+              { assignedTo: { $in: deptMemberIds } }
+            ],
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           })
             .populate('assignedTo', 'name role department designation profilePhoto')
+            .populate('assignees', 'name role department designation profilePhoto')
             .sort({ deadline: 1 })
             .limit(5),
           TaskModel.aggregate([
             {
               $match: {
-                $or: [{ department }, { assignedTo: { $in: deptMemberIds } }],
+                $or: [
+                  { department },
+                  { assignees: { $in: deptMemberIds } },
+                  { assignedTo: { $in: deptMemberIds } }
+                ],
                 status: { $in: ['TODO', 'IN_PROGRESS'] }
               }
             },
             {
+              $project: {
+                allAssignees: {
+                  $cond: {
+                    if: { $gt: [{ $size: { $ifNull: ['$assignees', []] } }, 0] },
+                    then: '$assignees',
+                    else: ['$assignedTo']
+                  }
+                }
+              }
+            },
+            { $unwind: '$allAssignees' },
+            {
               $group: {
-                _id: '$assignedTo',
+                _id: '$allAssignees',
                 count: { $sum: 1 }
               }
             }
@@ -414,7 +463,12 @@ export const dashboardController = {
               name: (t.assignedTo as any).name,
               designation: (t.assignedTo as any).designation,
               profilePhoto: (t.assignedTo as any).profilePhoto || ''
-            } : null
+            } : null,
+            assignees: (t.assignees || []).map((a: any) => ({
+              id: a._id,
+              name: a.name,
+              profilePhoto: a.profilePhoto || ''
+            }))
           })),
           overdueTasks: overdueTasksList.map(t => ({
             id: t._id,
@@ -428,7 +482,12 @@ export const dashboardController = {
               id: (t.assignedTo as any)._id,
               name: (t.assignedTo as any).name,
               profilePhoto: (t.assignedTo as any).profilePhoto || ''
-            } : null
+            } : null,
+            assignees: (t.assignees || []).map((a: any) => ({
+              id: a._id,
+              name: a.name,
+              profilePhoto: a.profilePhoto || ''
+            }))
           })),
           teamWorkload,
           teamMembers: departmentMembers.map(u => ({
@@ -457,6 +516,13 @@ export const dashboardController = {
 
       // 4. EMPLOYEE DASHBOARD: Personal Workspace
       if (role === 'EMPLOYEE') {
+        const empQuery = {
+          $or: [
+            { assignees: user._id },
+            { assignedTo: user._id }
+          ]
+        };
+
         const [
           myTotalTasks,
           myInProgressTasks,
@@ -466,19 +532,20 @@ export const dashboardController = {
           completedTasksList,
           recentActivities
         ] = await Promise.all([
-          TaskModel.countDocuments({ assignedTo: user._id, status: { $ne: 'CANCELLED' } }),
-          TaskModel.countDocuments({ assignedTo: user._id, status: 'IN_PROGRESS' }),
-          TaskModel.countDocuments({ assignedTo: user._id, status: 'COMPLETED' }),
+          TaskModel.countDocuments({ ...empQuery, status: { $ne: 'CANCELLED' } }),
+          TaskModel.countDocuments({ ...empQuery, status: 'IN_PROGRESS' }),
+          TaskModel.countDocuments({ ...empQuery, status: 'COMPLETED' }),
           TaskModel.countDocuments({
-            assignedTo: user._id,
+            ...empQuery,
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
-          TaskModel.find({ assignedTo: user._id, status: { $in: ['TODO', 'IN_PROGRESS'] } })
+          TaskModel.find({ ...empQuery, status: { $in: ['TODO', 'IN_PROGRESS'] } })
             .populate('assignedBy', 'name role')
+            .populate('assignees', 'name role designation profilePhoto')
             .sort({ deadline: 1 })
             .limit(6),
-          TaskModel.find({ assignedTo: user._id, status: 'COMPLETED' })
+          TaskModel.find({ ...empQuery, status: 'COMPLETED' })
             .sort({ completedAt: -1, updatedAt: -1 })
             .limit(5),
           TaskActivityModel.find({ actorId: user._id })
@@ -538,6 +605,13 @@ export const dashboardController = {
 
       // 5. INTERN DASHBOARD: Assigned Learning & Deliverables
       if (role === 'INTERN') {
+        const internQuery = {
+          $or: [
+            { assignees: user._id },
+            { assignedTo: user._id }
+          ]
+        };
+
         const [
           internTodoTasks,
           internInProgressTasks,
@@ -546,19 +620,20 @@ export const dashboardController = {
           assignedTasksList,
           completedTasksList
         ] = await Promise.all([
-          TaskModel.countDocuments({ assignedTo: user._id, status: 'TODO' }),
-          TaskModel.countDocuments({ assignedTo: user._id, status: 'IN_PROGRESS' }),
-          TaskModel.countDocuments({ assignedTo: user._id, status: 'COMPLETED' }),
+          TaskModel.countDocuments({ ...internQuery, status: 'TODO' }),
+          TaskModel.countDocuments({ ...internQuery, status: 'IN_PROGRESS' }),
+          TaskModel.countDocuments({ ...internQuery, status: 'COMPLETED' }),
           TaskModel.countDocuments({
-            assignedTo: user._id,
+            ...internQuery,
             status: { $nin: ['COMPLETED', 'CANCELLED'] },
             deadline: { $lt: now }
           }),
-          TaskModel.find({ assignedTo: user._id, status: { $in: ['TODO', 'IN_PROGRESS'] } })
+          TaskModel.find({ ...internQuery, status: { $in: ['TODO', 'IN_PROGRESS'] } })
             .populate('assignedBy', 'name role designation profilePhoto')
+            .populate('assignees', 'name role designation profilePhoto')
             .sort({ deadline: 1 })
             .limit(6),
-          TaskModel.find({ assignedTo: user._id, status: 'COMPLETED' })
+          TaskModel.find({ ...internQuery, status: 'COMPLETED' })
             .sort({ completedAt: -1, updatedAt: -1 })
             .limit(5)
         ]);

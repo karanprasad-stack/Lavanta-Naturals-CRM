@@ -16,9 +16,13 @@ import {
   AlertCircle,
   FileText,
   Activity,
-  Award
+  Award,
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { User, UserRole, UserStatus } from '../../types';
+import { Task } from '../../types/task';
+import { taskService } from '../../services/taskService';
 import { userService, UpdateUserData } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -43,6 +47,11 @@ export const EmployeeProfile: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Tasks state
+  const [userTasks, setUserTasks] = useState<Task[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -77,9 +86,30 @@ export const EmployeeProfile: React.FC = () => {
     }
   };
 
+  const loadUserTasks = async () => {
+    if (!id) return;
+    setIsLoadingTasks(true);
+    try {
+      const data = await taskService.getTasks({ assignee: id });
+      setUserTasks(data.tasks || []);
+      setTasksLoaded(true);
+    } catch (err: any) {
+      console.error('Failed to load employee tasks:', err);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
+
   useEffect(() => {
     loadProfile();
+    setTasksLoaded(false);
   }, [id]);
+
+  useEffect(() => {
+    if (activeTab === 'tasks' && !tasksLoaded) {
+      loadUserTasks();
+    }
+  }, [activeTab, id, tasksLoaded]);
 
   if (isLoading) {
     return (
@@ -362,30 +392,201 @@ export const EmployeeProfile: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 2: Tasks (Clean Placeholder) */}
+      {/* Tab 2: Tasks (Live Assigned Tasks) */}
       {activeTab === 'tasks' && (
-        <div
-          style={{
-            background: '#FFFFFF',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-color)',
-            padding: '3.5rem 2rem',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.85rem'
-          }}
-        >
-          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-soft-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-deep)' }}>
-            <Briefcase size={22} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.75rem 1rem',
+              background: '#FFFFFF',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--border-color)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Briefcase size={18} color="var(--color-primary-deep)" />
+              <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)' }}>
+                Assigned Tasks ({userTasks.length})
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<ExternalLink size={13} />}
+              onClick={() => navigate('/tasks')}
+            >
+              Open Full Task Board
+            </Button>
           </div>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-            No tasks assigned yet.
-          </h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '420px', margin: 0 }}>
-            Individual task delegations, Kanban tracking, and deliverables will appear here once the Task Management module is connected.
-          </p>
+
+          {isLoadingTasks ? (
+            <div style={{ padding: '3.5rem', textAlign: 'center', background: '#FFFFFF', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  border: '3px solid #E8D8FF',
+                  borderTopColor: '#69C43F',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  margin: '0 auto 0.75rem'
+                }}
+              />
+              <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Loading assigned tasks...</span>
+            </div>
+          ) : userTasks.length === 0 ? (
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                padding: '3.5rem 2rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.85rem'
+              }}
+            >
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--color-soft-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-deep)' }}>
+                <Briefcase size={22} />
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                No tasks assigned yet
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', maxWidth: '420px', margin: 0 }}>
+                This user currently has no active or past tasks assigned. New tasks delegated to them will appear here immediately.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+              {userTasks.map(task => {
+                const deadline = new Date(task.deadline);
+                const isOverdue = task.isOverdue && task.status !== 'COMPLETED' && task.status !== 'CANCELLED';
+
+                return (
+                  <div
+                    key={task._id}
+                    onClick={() => navigate(`/tasks/${task._id}`)}
+                    style={{
+                      background: '#FFFFFF',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-color)',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      cursor: 'pointer',
+                      boxShadow: 'var(--shadow-xs)',
+                      transition: 'all 0.15s ease'
+                    }}
+                    className="luxury-card"
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {(() => {
+                        const pri = String(task.priority || '').toUpperCase();
+                        const isHigh = pri === 'HIGH' || pri === 'URGENT';
+                        const isMedium = pri === 'MEDIUM';
+                        return (
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              textTransform: 'uppercase',
+                              background: isHigh ? '#FEE2E2' : isMedium ? '#DBEAFE' : '#F3F4F6',
+                              color: isHigh ? '#DC2626' : isMedium ? '#2563EB' : '#4B5563'
+                            }}
+                          >
+                            {task.priority}
+                          </span>
+                        );
+                      })()}
+
+                      <span
+                        style={{
+                          fontSize: '0.725rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 'var(--radius-full)',
+                          background:
+                            task.status === 'COMPLETED'
+                              ? '#DCFCE7'
+                              : isOverdue
+                              ? '#FEE2E2'
+                              : task.status === 'IN_PROGRESS'
+                              ? '#EEF2FF'
+                              : '#F1F5F9',
+                          color:
+                            task.status === 'COMPLETED'
+                              ? '#16A34A'
+                              : isOverdue
+                              ? '#DC2626'
+                              : task.status === 'IN_PROGRESS'
+                              ? '#4F46E5'
+                              : '#475569'
+                        }}
+                      >
+                        {isOverdue ? 'OVERDUE' : task.status.replace('_', ' ')}
+                      </span>
+                    </div>
+
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--color-text-primary)', lineHeight: 1.35 }}>
+                      {task.title}
+                    </div>
+
+                    {task.description && (
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          color: 'var(--color-text-secondary)',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          lineHeight: 1.45
+                        }}
+                      >
+                        {task.description}
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingTop: '0.75rem',
+                        borderTop: '1px solid var(--border-color)',
+                        fontSize: '0.75rem',
+                        color: 'var(--color-text-secondary)'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: isOverdue ? '#DC2626' : undefined }}>
+                        <Clock size={12} />
+                        {deadline.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+
+                      {task.assignees && task.assignees.length > 1 ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, color: 'var(--color-primary-deep)' }}>
+                          <Users size={12} />
+                          Shared ({task.assignees.length})
+                        </span>
+                      ) : (
+                        <span>
+                          By {task.assignedBy?.name}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

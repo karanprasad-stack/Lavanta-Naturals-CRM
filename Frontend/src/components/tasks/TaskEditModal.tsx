@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, AlertCircle, CheckCircle2, UserCheck, Edit3 } from 'lucide-react';
+import { X, Calendar, AlertCircle, Edit3, Search, Check, Users } from 'lucide-react';
 import { Task, TaskPriority, TaskStatus, UpdateTaskPayload } from '../../types/task';
 import { User } from '../../types';
 import { taskService } from '../../services/taskService';
@@ -33,24 +33,55 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('MEDIUM');
   const [status, setStatus] = useState<TaskStatus>('TODO');
   const [deadlineDate, setDeadlineDate] = useState('');
   const [deadlineTime, setDeadlineTime] = useState('18:00');
+  const [selectedAssigneeIds, setSelectedAssigneeIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
+  const currentUserId = currentUser?.id || (currentUser as any)?._id;
+
+  // Eligible assignees based on current user role
+  const eligibleAssignees = useMemo(() => {
+    return teamMembers.filter(m => {
+      const memberId = m.id || (m as any)._id;
+      if (!memberId) return false;
+      if (userRole === 'FOUNDER') return true;
+      if (userRole === 'HR') {
+        const r = (m.role || '').toUpperCase();
+        return r === 'EMPLOYEE' || r === 'INTERN' || r === 'MANAGER';
+      }
+      if (userRole === 'MANAGER') {
+        return m.department === currentUser?.department;
+      }
+      return false;
+    });
+  }, [teamMembers, userRole, currentUser?.department]);
 
   // Populate state whenever task changes
   useEffect(() => {
     if (task && isOpen) {
       setTitle(task.title || '');
       setDescription(task.description || '');
-      setAssignedTo(task.assignedTo?._id || (task.assignedTo as any)?.id || '');
       setPriority(task.priority || 'MEDIUM');
       setStatus(task.status || 'TODO');
+
+      // Initialize assignees from task.assignees or task.assignedTo
+      const initialIds: string[] = [];
+      if (task.assignees && task.assignees.length > 0) {
+        task.assignees.forEach(a => {
+          const id = (a as any)._id || (a as any).id || a;
+          if (id) initialIds.push(id.toString());
+        });
+      } else if (task.assignedTo) {
+        const id = (task.assignedTo as any)._id || (task.assignedTo as any).id || task.assignedTo;
+        if (id) initialIds.push(id.toString());
+      }
+      setSelectedAssigneeIds(Array.from(new Set(initialIds)));
 
       if (task.deadline) {
         const d = new Date(task.deadline);
@@ -62,22 +93,33 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
         setDeadlineDate('');
         setDeadlineTime('18:00');
       }
+      setSearchQuery('');
       setValidationError(null);
     }
   }, [task, isOpen]);
 
-  // Eligible assignees based on current user role
-  const eligibleAssignees = teamMembers.filter(m => {
-    if (userRole === 'FOUNDER') return true;
-    if (userRole === 'HR') {
-      const r = m.role.toUpperCase();
-      return r === 'EMPLOYEE' || r === 'INTERN' || r === 'MANAGER';
-    }
-    if (userRole === 'MANAGER') {
-      return m.department === currentUser?.department;
-    }
-    return false;
-  });
+  // Filtered members for search list
+  const filteredSearchMembers = useMemo(() => {
+    if (!searchQuery.trim()) return eligibleAssignees;
+    const q = searchQuery.toLowerCase().trim();
+    return eligibleAssignees.filter(
+      m =>
+        m.name?.toLowerCase().includes(q) ||
+        m.role?.toLowerCase().includes(q) ||
+        m.department?.toLowerCase().includes(q) ||
+        m.designation?.toLowerCase().includes(q)
+    );
+  }, [eligibleAssignees, searchQuery]);
+
+  const toggleMemberSelection = (id: string) => {
+    setSelectedAssigneeIds(prev =>
+      prev.includes(id) ? prev.filter(mId => mId !== id) : [...prev, id]
+    );
+  };
+
+  const removeMember = (id: string) => {
+    setSelectedAssigneeIds(prev => prev.filter(mId => mId !== id));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,8 +129,8 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
       setValidationError('Task title is required.');
       return;
     }
-    if (!assignedTo) {
-      setValidationError('Please select an assignee.');
+    if (selectedAssigneeIds.length === 0) {
+      setValidationError('Please select at least one assignee for this task.');
       return;
     }
     if (!deadlineDate) {
@@ -105,7 +147,8 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
       const payload: UpdateTaskPayload = {
         title: title.trim(),
         description: description.trim(),
-        assignedTo,
+        assigneeIds: selectedAssigneeIds,
+        assignedTo: selectedAssigneeIds[0],
         priority,
         status,
         deadline: fullDeadline.toISOString()
@@ -146,16 +189,16 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
         onClick={onClose}
       >
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 10 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.96 }}
           onClick={e => e.stopPropagation()}
           style={{
-            background: 'var(--bg-surface)',
-            borderRadius: 'var(--radius-md)',
+            background: 'var(--bg-surface, #FFFFFF)',
+            color: 'var(--color-text-primary, #172235)',
+            borderRadius: '12px',
             border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-xl, 0 20px 25px -5px rgba(0,0,0,0.3))',
+            boxShadow: 'var(--shadow-xl)',
             width: '100%',
             maxWidth: '560px',
             maxHeight: '90vh',
@@ -175,37 +218,37 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
               background: 'var(--bg-surface)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '6px',
-                  background: 'rgba(22, 163, 74, 0.12)',
-                  color: 'var(--color-primary-deep)',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  background: 'var(--color-soft-green)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  color: 'var(--color-primary-deep)'
                 }}
               >
-                <Edit3 size={16} />
+                <Edit3 size={18} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                  Edit Task
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--color-text-primary)' }}>
+                  Edit Task Details
                 </h3>
                 <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                  Authorized management changes for "{task.title.slice(0, 32)}..."
+                  ID: {task._id.slice(-8)} • {selectedAssigneeIds.length} Assigned Member{selectedAssigneeIds.length !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
-
             <button
               onClick={onClose}
+              aria-label="Close Modal"
               style={{
-                background: 'transparent',
+                background: 'none',
                 border: 'none',
-                color: 'var(--color-text-muted)',
+                color: 'var(--color-text-secondary)',
                 cursor: 'pointer',
                 padding: '4px',
                 borderRadius: '4px'
@@ -216,16 +259,25 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
           </div>
 
           {/* Form Body */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', flex: 1, padding: '1.5rem', gap: '1rem' }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{
+              padding: '1.5rem',
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1.25rem'
+            }}
+          >
             {validationError && (
               <div
                 style={{
                   padding: '0.75rem 1rem',
-                  background: 'rgba(220, 38, 38, 0.1)',
-                  border: '1px solid rgba(220, 38, 38, 0.25)',
                   borderRadius: '6px',
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
                   color: '#DC2626',
-                  fontSize: '0.85rem',
+                  fontSize: '0.825rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
@@ -251,7 +303,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                   padding: '0.6rem 0.85rem',
                   borderRadius: '6px',
                   border: '1px solid var(--border-color)',
-                  background: 'var(--bg-surface-elevated, #FAFBF8)',
+                  background: 'var(--bg-surface)',
                   color: 'var(--color-text-primary)',
                   fontSize: '0.875rem',
                   outline: 'none'
@@ -273,7 +325,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                   padding: '0.6rem 0.85rem',
                   borderRadius: '6px',
                   border: '1px solid var(--border-color)',
-                  background: 'var(--bg-surface-elevated, #FAFBF8)',
+                  background: 'var(--bg-surface)',
                   color: 'var(--color-text-primary)',
                   fontSize: '0.85rem',
                   outline: 'none',
@@ -296,7 +348,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                     padding: '0.55rem 0.75rem',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    background: 'var(--bg-surface-elevated, #FAFBF8)',
+                    background: 'var(--bg-surface)',
                     color: 'var(--color-text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
@@ -321,7 +373,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                     padding: '0.55rem 0.75rem',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    background: 'var(--bg-surface-elevated, #FAFBF8)',
+                    background: 'var(--bg-surface)',
                     color: 'var(--color-text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
@@ -334,37 +386,189 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
               </div>
             </div>
 
-            {/* Assignee Selection */}
+            {/* Multi-Member Assignee Selection */}
             <div>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                Assignee *
-              </label>
-              <select
-                value={assignedTo}
-                onChange={e => setAssignedTo(e.target.value)}
-                required
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                  Assigned Team Members *
+                </label>
+                <span style={{ fontSize: '0.725rem', color: 'var(--color-primary-deep)', fontWeight: 600 }}>
+                  {selectedAssigneeIds.length} Member{selectedAssigneeIds.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Selected Member Chips */}
+              {selectedAssigneeIds.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+                  {selectedAssigneeIds.map(id => {
+                    const member =
+                      eligibleAssignees.find(m => (m.id || (m as any)._id) === id) ||
+                      (task.assignees?.find(a => (a as any)._id === id) as any) ||
+                      (task.assignedTo?._id === id ? task.assignedTo : null);
+
+                    return (
+                      <div
+                        key={id}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '4px 8px',
+                          background: 'var(--color-soft-green)',
+                          border: '1px solid var(--color-primary)',
+                          borderRadius: '16px',
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                          color: 'var(--color-primary-deep)'
+                        }}
+                      >
+                        <img
+                          src={
+                            member?.profilePhoto ||
+                            member?.avatar ||
+                            'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                          }
+                          alt={member?.name || 'User'}
+                          style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
+                        />
+                        <span>{member?.name || 'Member'}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeMember(id)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--color-primary-deep)',
+                            cursor: 'pointer',
+                            padding: '0 2px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Search Member input */}
+              <div
                 style={{
-                  width: '100%',
-                  padding: '0.55rem 0.75rem',
-                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
                   border: '1px solid var(--border-color)',
-                  background: 'var(--bg-surface-elevated, #FAFBF8)',
-                  color: 'var(--color-text-primary)',
-                  fontSize: '0.85rem',
-                  outline: 'none'
+                  background: 'var(--bg-surface)'
                 }}
               >
-                <option value="">Select team member...</option>
-                {eligibleAssignees.map(m => (
-                  <option key={m.id || (m as any)._id} value={m.id || (m as any)._id}>
-                    {m.name} — {m.role} ({m.department})
-                  </option>
-                ))}
-              </select>
+                <Search size={14} color="var(--color-text-secondary)" />
+                <input
+                  type="text"
+                  placeholder="Search and add/remove members..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    width: '100%',
+                    fontSize: '0.825rem',
+                    background: 'transparent',
+                    color: 'var(--color-text-primary)'
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-secondary)' }}
+                  >
+                    <X size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Members dropdown list */}
+              <div
+                style={{
+                  maxHeight: '140px',
+                  overflowY: 'auto',
+                  marginTop: '4px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--bg-surface)'
+                }}
+              >
+                {filteredSearchMembers.length === 0 ? (
+                  <div style={{ padding: '0.75rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                    No matching team members.
+                  </div>
+                ) : (
+                  filteredSearchMembers.map(m => {
+                    const mId = m.id || (m as any)._id;
+                    const isSelected = selectedAssigneeIds.includes(mId);
+
+                    return (
+                      <div
+                        key={mId}
+                        onClick={() => toggleMemberSelection(mId)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 10px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid var(--border-color)',
+                          background: isSelected ? 'var(--color-soft-green)' : 'transparent',
+                          transition: 'background 0.1s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <img
+                            src={
+                              m.profilePhoto ||
+                              m.avatar ||
+                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                            }
+                            alt={m.name}
+                            style={{ width: '20px', height: '20px', borderRadius: '50%', objectFit: 'cover' }}
+                          />
+                          <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                              {m.name}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)' }}>
+                              {m.designation || m.role} • {m.department}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '4px',
+                            border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                            background: isSelected ? 'var(--color-primary)' : '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {isSelected && <Check size={11} color="#FFFFFF" />}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
-            {/* Deadline Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '1rem' }}>
+            {/* Deadline */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                   Deadline Date *
@@ -379,7 +583,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                     padding: '0.55rem 0.75rem',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    background: 'var(--bg-surface-elevated, #FAFBF8)',
+                    background: 'var(--bg-surface)',
                     color: 'var(--color-text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
@@ -389,7 +593,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
-                  Time
+                  Target Time
                 </label>
                 <input
                   type="time"
@@ -400,7 +604,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                     padding: '0.55rem 0.75rem',
                     borderRadius: '6px',
                     border: '1px solid var(--border-color)',
-                    background: 'var(--bg-surface-elevated, #FAFBF8)',
+                    background: 'var(--bg-surface)',
                     color: 'var(--color-text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
@@ -409,23 +613,22 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
               </div>
             </div>
 
-            {/* Footer Buttons */}
+            {/* Actions */}
             <div
               style={{
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'flex-end',
-                gap: '8px',
+                gap: '0.75rem',
                 paddingTop: '1rem',
                 borderTop: '1px solid var(--border-color)',
                 marginTop: '0.5rem'
               }}
             >
-              <Button variant="outline" type="button" onClick={onClose} disabled={submitting}>
+              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting}>
                 Cancel
               </Button>
-              <Button variant="primary" type="submit" disabled={submitting}>
-                {submitting ? 'Saving...' : 'Save Changes'}
+              <Button type="submit" variant="primary" size="md" disabled={submitting}>
+                {submitting ? 'Updating...' : 'Save Changes'}
               </Button>
             </div>
           </form>

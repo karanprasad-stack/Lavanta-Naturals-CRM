@@ -300,16 +300,70 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         borderTop: '1px solid var(--border-color)'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <img
-                          src={t.assignedTo?.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                          alt={t.assignedTo?.name || 'User'}
-                          style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                        />
-                        <span style={{ fontSize: '0.725rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
-                          {t.assignedTo?.name}
-                        </span>
-                      </div>
+                      {t.assignees && t.assignees.length > 1 ? (
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                          title={`Assigned to: ${t.assignees.map(a => a.name).join(', ')}`}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {t.assignees.slice(0, 3).map((assignee, idx) => (
+                              <img
+                                key={assignee._id || idx}
+                                src={assignee.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
+                                alt={assignee.name || 'User'}
+                                style={{
+                                  width: '22px',
+                                  height: '22px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '2px solid #FFFFFF',
+                                  marginLeft: idx > 0 ? '-7px' : '0',
+                                  zIndex: 3 - idx
+                                }}
+                              />
+                            ))}
+                            {t.assignees.length > 3 && (
+                              <span
+                                style={{
+                                  width: '22px',
+                                  height: '22px',
+                                  borderRadius: '50%',
+                                  background: 'var(--color-primary-soft, #EEF2F6)',
+                                  color: 'var(--color-primary-deep, #1E3A8A)',
+                                  fontSize: '0.625rem',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '2px solid #FFFFFF',
+                                  marginLeft: '-7px',
+                                  zIndex: 0
+                                }}
+                              >
+                                +{t.assignees.length - 3}
+                              </span>
+                            )}
+                          </div>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                            {t.assignees.length} assignees
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <img
+                            src={
+                              (t.assignees && t.assignees[0]?.profilePhoto) ||
+                              t.assignedTo?.profilePhoto ||
+                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+                            }
+                            alt={(t.assignees && t.assignees[0]?.name) || t.assignedTo?.name || 'User'}
+                            style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                          />
+                          <span style={{ fontSize: '0.725rem', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+                            {(t.assignees && t.assignees[0]?.name) || t.assignedTo?.name || 'Unassigned'}
+                          </span>
+                        </div>
+                      )}
 
                       <div>
                         {/* Worker Action Buttons: Strictly for assignee when not in management role */}

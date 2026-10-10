@@ -16,6 +16,7 @@ import { TaskEditModal } from '../../components/tasks/TaskEditModal';
 import { TaskCompleteModal } from '../../components/tasks/TaskCompleteModal';
 import { TaskSkeleton } from '../../components/tasks/TaskSkeleton';
 import { Button } from '../../components/ui/Button';
+import { socketService } from '../../services/socketService';
 
 export const TaskList: React.FC = () => {
   const navigate = useNavigate();
@@ -110,6 +111,34 @@ export const TaskList: React.FC = () => {
 
   useEffect(() => {
     fetchTasks();
+  }, [fetchTasks]);
+
+  // Real-time synchronization for new task assignments and updates
+  useEffect(() => {
+    const socket = socketService.connect();
+    if (!socket) return;
+
+    const handleTaskChange = () => {
+      fetchTasks();
+    };
+
+    const handleNotification = (notif: any) => {
+      if (notif?.category === 'TASK' || notif?.link?.includes('/tasks')) {
+        fetchTasks();
+      }
+    };
+
+    socket.on('task_assigned', handleTaskChange);
+    socket.on('task_updated', handleTaskChange);
+    socket.on('task_deleted', handleTaskChange);
+    socket.on('notification_created', handleNotification);
+
+    return () => {
+      socket.off('task_assigned', handleTaskChange);
+      socket.off('task_updated', handleTaskChange);
+      socket.off('task_deleted', handleTaskChange);
+      socket.off('notification_created', handleNotification);
+    };
   }, [fetchTasks]);
 
   const handleFilterChange = (key: keyof TaskFilterParams, value: string) => {

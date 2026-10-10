@@ -403,16 +403,19 @@ export const activityController = {
       }
 
       for (const t of tasks) {
-        const assigneeId = t.assignedTo.toString();
-        const stat = workloadMap.get(assigneeId);
-        if (!stat) continue;
+        const taskAssignees = t.assignees && t.assignees.length > 0 ? t.assignees : (t.assignedTo ? [t.assignedTo] : []);
+        for (const a of taskAssignees) {
+          const assigneeId = a.toString();
+          const stat = workloadMap.get(assigneeId);
+          if (!stat) continue;
 
-        stat.assigned++;
-        if (t.status === 'IN_PROGRESS') stat.active++;
-        if (t.status === 'COMPLETED') stat.completed++;
+          stat.assigned++;
+          if (t.status === 'IN_PROGRESS') stat.active++;
+          if (t.status === 'COMPLETED') stat.completed++;
 
-        const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.deadline && new Date(t.deadline).getTime() < now.getTime();
-        if (isOverdue) stat.overdue++;
+          const isOverdue = t.status !== 'COMPLETED' && t.status !== 'CANCELLED' && t.deadline && new Date(t.deadline).getTime() < now.getTime();
+          if (isOverdue) stat.overdue++;
+        }
       }
 
       const result = teamMembers.map(m => ({

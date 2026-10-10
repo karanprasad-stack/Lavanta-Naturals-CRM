@@ -35,7 +35,8 @@ export interface ITask extends Document {
   _id: Types.ObjectId;
   title: string;
   description: string;
-  assignedTo: Types.ObjectId;
+  assignedTo?: Types.ObjectId;
+  assignees: Types.ObjectId[];
   assignedBy: Types.ObjectId;
   department: string;
   priority: TaskPriority;
@@ -95,7 +96,8 @@ const TaskSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, default: '', trim: true },
-    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    assignedTo: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    assignees: [{ type: Schema.Types.ObjectId, ref: 'User', index: true }],
     assignedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     department: { type: String, default: 'General', index: true },
     priority: {
@@ -130,6 +132,42 @@ const TaskSchema = new Schema(
   }
 );
 
+// Pre-validate hook to deduplicate assignees and maintain 100% backward compatibility with assignedTo
+TaskSchema.pre('validate', function (next) {
+  if (this.assignees && this.assignees.length > 0) {
+    const seen = new Set<string>();
+    const unique: Types.ObjectId[] = [];
+    for (const a of this.assignees) {
+      if (a) {
+        const str = a.toString();
+        if (!seen.has(str)) {
+          seen.add(str);
+          unique.push(a as Types.ObjectId);
+        }
+      }
+    }
+    this.assignees = unique;
+    if (!this.assignedTo && unique.length > 0) {
+      this.assignedTo = unique[0];
+    }
+  } else if (this.assignedTo) {
+    this.assignees = [this.assignedTo];
+  }
+
+  // Ensure at least one assignee is defined
+  if ((!this.assignees || this.assignees.length === 0) && !this.assignedTo) {
+    return next(new Error('At least one assignee is required.'));
+  }
+
+  next();
+});
+
+// Indexes for high-performance dashboard and task queries
+TaskSchema.index({ assignees: 1, status: 1 });
+TaskSchema.index({ assignees: 1, deadline: 1 });
+TaskSchema.index({ assignedTo: 1, status: 1 });
+TaskSchema.index({ department: 1, status: 1 });
+
 // Virtual for dynamic overdue calculation
 TaskSchema.virtual('isOverdue').get(function (this: ITask) {
   if (!this.deadline) return false;
@@ -138,3 +176,4 @@ TaskSchema.virtual('isOverdue').get(function (this: ITask) {
 });
 
 export const TaskModel = mongoose.model<ITask>('Task', TaskSchema);
+

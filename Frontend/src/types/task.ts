@@ -42,12 +42,15 @@ export interface TaskProofOfWork {
   uploadedAt: string;
 }
 
+export type AssignmentTargetType = 'INTERNS' | 'EMPLOYEES' | 'HR' | 'MEMBERS';
+
 export interface Task {
   _id: string;
   id?: string;
   title: string;
   description: string;
-  assignedTo: TaskUserSummary;
+  assignedTo?: TaskUserSummary;
+  assignees?: TaskUserSummary[];
   assignedBy: TaskUserSummary;
   department: string;
   priority: TaskPriority;
@@ -107,7 +110,10 @@ export interface TaskFilterParams {
 export interface CreateTaskPayload {
   title: string;
   description?: string;
-  assignedTo: string;
+  assignedTo?: string;
+  assignees?: string[];
+  assigneeIds?: string[];
+  targetType?: AssignmentTargetType;
   priority: TaskPriority;
   deadline: string;
 }
@@ -116,6 +122,9 @@ export interface UpdateTaskPayload {
   title?: string;
   description?: string;
   assignedTo?: string;
+  assignees?: string[];
+  assigneeIds?: string[];
+  targetType?: AssignmentTargetType;
   priority?: TaskPriority;
   status?: TaskStatus;
   deadline?: string;

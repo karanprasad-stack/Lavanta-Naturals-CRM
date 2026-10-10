@@ -6,6 +6,7 @@ import { NotificationModel } from '../models/Notification.js';
 import { UserModel, IUser, UserRole } from '../models/User.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { notificationDispatcher } from '../services/notificationDispatcher.js';
+import { io } from '../socket/index.js';
 
 export const taskController = {
   /**
@@ -14,18 +15,27 @@ export const taskController = {
   canAccessTask(user: IUser, task: ITask): boolean {
     const role = user.role.toUpperCase();
     if (role === 'FOUNDER' || role === 'HR') return true;
+
+    const userIdStr = user._id.toString();
+    const isAssignee =
+      (Array.isArray(task.assignees) &&
+        task.assignees.some((a: any) => (a._id ? a._id.toString() : a.toString()) === userIdStr)) ||
+      Boolean(task.assignedTo && (task.assignedTo._id ? task.assignedTo._id.toString() : task.assignedTo.toString()) === userIdStr);
+
+    const isAssigner = Boolean(
+      task.assignedBy &&
+      (task.assignedBy._id ? task.assignedBy._id.toString() : task.assignedBy.toString()) === userIdStr
+    );
+
     if (role === 'MANAGER') {
       return (
         task.department === user.department ||
-        task.assignedBy.toString() === user._id.toString() ||
-        task.assignedTo.toString() === user._id.toString()
+        isAssigner ||
+        isAssignee
       );
     }
     // Employee & Intern: strictly own tasks
-    return (
-      task.assignedTo.toString() === user._id.toString() ||
-      task.assignedBy.toString() === user._id.toString()
-    );
+    return isAssignee || isAssigner;
   },
 
   /**
@@ -41,12 +51,116 @@ export const taskController = {
         $or: [
           { department: user.department },
           { assignedBy: user._id },
+          { assignees: user._id },
           { assignedTo: user._id }
         ]
       };
     }
-    // EMPLOYEE or INTERN
-    return { assignedTo: user._id };
+    // EMPLOYEE or INTERN: own tasks
+    return {
+      $or: [
+        { assignees: user._id },
+        { assignedTo: user._id }
+      ]
+    };
+  },
+
+  /**
+   * Helper: Resolve and validate recipient user IDs based on targetType and payload
+   */
+  async resolveAssignees(
+    creator: IUser,
+    payload: {
+      targetType?: string;
+      assigneeIds?: string[];
+      assignees?: string[];
+      assignedTo?: string;
+    }
+  ): Promise<{ error?: string; status?: number; users: IUser[] }> {
+    const creatorRole = creator.role.toUpperCase();
+    const creatorIdStr = creator._id.toString();
+
+    // Determine target mode
+    const mode = (payload.targetType || 'MEMBERS').toUpperCase();
+    let targetUsers: IUser[] = [];
+
+    if (mode === 'INTERNS') {
+      const filter: Record<string, any> = { role: 'INTERN', status: 'ACTIVE' };
+      if (creatorRole === 'MANAGER') {
+        filter.department = creator.department;
+      }
+      targetUsers = await UserModel.find(filter);
+    } else if (mode === 'EMPLOYEES') {
+      const filter: Record<string, any> = { role: 'EMPLOYEE', status: 'ACTIVE' };
+      if (creatorRole === 'MANAGER') {
+        filter.department = creator.department;
+      }
+      targetUsers = await UserModel.find(filter);
+    } else if (mode === 'HR') {
+      if (creatorRole === 'MANAGER') {
+        return { error: 'Managers cannot assign tasks to HR.', status: 403, users: [] };
+      }
+      targetUsers = await UserModel.find({ role: 'HR', status: 'ACTIVE' });
+    }
+
+    // If specific members are selected or provided in addition/instead
+    const rawIds: string[] = Array.isArray(payload.assigneeIds)
+      ? payload.assigneeIds
+      : Array.isArray(payload.assignees)
+      ? payload.assignees
+      : payload.assignedTo
+      ? [payload.assignedTo]
+      : [];
+
+    if (mode === 'MEMBERS' || (rawIds.length > 0 && ['INTERNS', 'EMPLOYEES', 'HR'].includes(mode))) {
+      // Validate IDs
+      const uniqueIds = Array.from(new Set(rawIds.map(id => (id ? id.toString().trim() : '')))).filter(Boolean);
+      for (const id of uniqueIds) {
+        if (!Types.ObjectId.isValid(id)) {
+          return { error: `Invalid assignee user ID: ${id}`, status: 400, users: [] };
+        }
+      }
+
+      if (uniqueIds.length === 0 && mode === 'MEMBERS') {
+        return { error: 'Please select at least one assignee.', status: 400, users: [] };
+      }
+
+      if (uniqueIds.length > 0) {
+        const found = await UserModel.find({ _id: { $in: uniqueIds }, status: 'ACTIVE' });
+        if (found.length !== uniqueIds.length) {
+          return { error: 'One or more selected assignees could not be found or are inactive.', status: 404, users: [] };
+        }
+        targetUsers = found;
+      }
+    }
+
+    // Filter out self-assignment
+    const filteredUsers = targetUsers.filter(u => u._id.toString() !== creatorIdStr);
+    if (filteredUsers.length === 0) {
+      if (targetUsers.length > 0) {
+        return { error: 'You cannot assign a task to yourself. Please select team members.', status: 400, users: [] };
+      }
+      return { error: 'No eligible assignees found for the selected target.', status: 400, users: [] };
+    }
+
+    // Role-based permissions checks
+    for (const assignee of filteredUsers) {
+      const aRole = assignee.role.toUpperCase();
+      if (creatorRole === 'HR' && aRole === 'FOUNDER') {
+        return { error: 'HR cannot assign tasks to Founders.', status: 403, users: [] };
+      }
+      if (creatorRole === 'MANAGER') {
+        if (assignee.department !== creator.department) {
+          return {
+            error: `Managers can only assign tasks within their department (${creator.department}). (${assignee.name} is in ${assignee.department})`,
+            status: 403,
+            users: []
+          };
+        }
+      }
+    }
+
+    return { users: filteredUsers };
   },
 
   /**
@@ -82,9 +196,13 @@ export const taskController = {
         query.priority = priority.toUpperCase();
       }
 
-      // Assignee filter
+      // Assignee filter (matches assignees array or legacy assignedTo)
       if (assignee && Types.ObjectId.isValid(assignee)) {
-        query.assignedTo = new Types.ObjectId(assignee);
+        const aOid = new Types.ObjectId(assignee);
+        query.$and = query.$and || [];
+        query.$and.push({
+          $or: [{ assignees: aOid }, { assignedTo: aOid }]
+        });
       }
 
       // Assigned By filter
@@ -146,6 +264,7 @@ export const taskController = {
             { title: regex },
             { description: regex },
             { assignedTo: { $in: userIds } },
+            { assignees: { $in: userIds } },
             { assignedBy: { $in: userIds } }
           ]
         });
@@ -154,6 +273,7 @@ export const taskController = {
       // Execute task query with populated references
       const tasks = await TaskModel.find(query)
         .populate('assignedTo', 'name email role department designation profilePhoto')
+        .populate('assignees', 'name email role department designation profilePhoto')
         .populate('assignedBy', 'name email role department designation profilePhoto')
         .sort({ deadline: 1, createdAt: -1 });
 
@@ -208,6 +328,7 @@ export const taskController = {
 
       const task = await TaskModel.findById(id)
         .populate('assignedTo', 'name email role department designation profilePhoto phone')
+        .populate('assignees', 'name email role department designation profilePhoto phone')
         .populate('assignedBy', 'name email role department designation profilePhoto')
         .populate('comments.author', 'name role profilePhoto')
         .populate('attachments.uploadedBy', 'name role')
@@ -235,7 +356,7 @@ export const taskController = {
 
   /**
    * POST /api/tasks
-   * Create a new task (FOUNDER, HR, MANAGER only)
+   * Create a new task (FOUNDER, HR, MANAGER only) with single or multi-member assignees
    */
   async createTask(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -254,24 +375,11 @@ export const taskController = {
         return;
       }
 
-      const { title, description, assignedTo, priority, deadline } = req.body;
+      const { title, description, priority, deadline, targetType, assigneeIds, assignees, assignedTo } = req.body;
 
       // Validation
       if (!title || !title.trim()) {
         res.status(400).json({ success: false, message: 'Task title is required.' });
-        return;
-      }
-
-      if (!assignedTo || !Types.ObjectId.isValid(assignedTo)) {
-        res.status(400).json({ success: false, message: 'Valid assignee is required.' });
-        return;
-      }
-
-      if (assignedTo.toString() === user._id.toString()) {
-        res.status(400).json({
-          success: false,
-          message: 'You cannot assign a task to yourself. Please select a team member.'
-        });
         return;
       }
 
@@ -298,31 +406,33 @@ export const taskController = {
         return;
       }
 
-      // Check assignee existence and role permission
-      const assigneeUser = await UserModel.findById(assignedTo);
-      if (!assigneeUser) {
-        res.status(404).json({ success: false, message: 'Assignee user not found.' });
+      // Resolve and validate assignees based on targetType / IDs
+      const resolution = await taskController.resolveAssignees(user, {
+        targetType,
+        assigneeIds,
+        assignees,
+        assignedTo
+      });
+
+      if (resolution.error || !resolution.users || resolution.users.length === 0) {
+        res.status(resolution.status || 400).json({
+          success: false,
+          message: resolution.error || 'At least one valid assignee is required.'
+        });
         return;
       }
 
-      // Managers can only assign tasks within their own department
-      if (userRole === 'MANAGER') {
-        if (assigneeUser.department !== user.department) {
-          res.status(403).json({
-            success: false,
-            message: `Managers can only assign tasks within their department (${user.department}).`
-          });
-          return;
-        }
-      }
+      const validAssignees = resolution.users;
+      const primaryAssignee = validAssignees[0];
 
-      // Create the Task
+      // Create the Task canonical document
       const task = new TaskModel({
         title: title.trim(),
         description: (description || '').trim(),
-        assignedTo: assigneeUser._id,
+        assignedTo: primaryAssignee._id,
+        assignees: validAssignees.map(u => u._id),
         assignedBy: user._id,
-        department: assigneeUser.department || user.department || 'General',
+        department: primaryAssignee.department || user.department || 'General',
         priority: taskPriority,
         status: 'TODO',
         deadline: deadlineDate,
@@ -337,6 +447,7 @@ export const taskController = {
       const savedTask = await task.save();
 
       // Create activity logs
+      const assigneeNames = validAssignees.map(u => u.name).join(', ');
       await TaskActivityModel.create([
         {
           taskId: savedTask._id,
@@ -348,26 +459,41 @@ export const taskController = {
           taskId: savedTask._id,
           actorId: user._id,
           type: 'TASK_ASSIGNED',
-          message: `${user.name} assigned this task to ${assigneeUser.name}.`,
-          metadata: { assignedTo: assigneeUser._id, priority: taskPriority, deadline: deadlineDate }
+          message: `${user.name} assigned this task to ${assigneeNames}.`,
+          metadata: {
+            assignees: validAssignees.map(u => u._id),
+            priority: taskPriority,
+            deadline: deadlineDate
+          }
         }
       ]);
 
-      // Create real Notification for assignee
-      await notificationDispatcher.dispatch({
-        recipientId: assigneeUser._id,
-        senderId: user._id,
-        type: 'TASK_ASSIGNED',
-        title: 'NEW TASK ASSIGNED',
-        message: `${user.name} assigned you a new task: "${savedTask.title}". Deadline: ${deadlineDate.toLocaleDateString()}`,
-        relatedEntityType: 'TASK',
-        relatedEntityId: savedTask._id,
-        link: `/tasks/${savedTask._id}`,
-        idempotencyKey: `task_assigned_${savedTask._id}_${assigneeUser._id}`
-      });
+      // Dispatch idempotent Notification & Socket.IO message for each newly assigned member
+      for (const assigneeUser of validAssignees) {
+        await notificationDispatcher.dispatch({
+          recipientId: assigneeUser._id,
+          senderId: user._id,
+          type: 'TASK_ASSIGNED',
+          title: 'NEW TASK ASSIGNED',
+          message: `${user.name} assigned you a new task: "${savedTask.title}". Deadline: ${deadlineDate.toLocaleDateString()}`,
+          relatedEntityType: 'TASK',
+          relatedEntityId: savedTask._id,
+          link: `/tasks/${savedTask._id}`,
+          idempotencyKey: `task_assigned_${savedTask._id}_${assigneeUser._id}`
+        });
+
+        if (io) {
+          io.to(`user:${assigneeUser._id.toString()}`).emit('task_assigned', {
+            taskId: savedTask._id,
+            title: savedTask.title,
+            assignedBy: user.name
+          });
+        }
+      }
 
       const populatedTask = await TaskModel.findById(savedTask._id)
         .populate('assignedTo', 'name email role department designation profilePhoto')
+        .populate('assignees', 'name email role department designation profilePhoto')
         .populate('assignedBy', 'name email role department designation profilePhoto');
 
       res.status(201).json({
@@ -383,7 +509,7 @@ export const taskController = {
 
   /**
    * PATCH /api/tasks/:id
-   * Edit task metadata (FOUNDER, HR, MANAGER)
+   * Edit task metadata and reassign / add / remove members (FOUNDER, HR, MANAGER)
    */
   async updateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -411,7 +537,7 @@ export const taskController = {
         return;
       }
 
-      const { title, description, priority, deadline, assignedTo, status } = req.body;
+      const { title, description, priority, deadline, assignedTo, assignees, assigneeIds, status, targetType } = req.body;
       const updates: Record<string, any> = {};
       const activities: Array<{ type: TaskActivityType; message: string }> = [];
 
@@ -433,6 +559,24 @@ export const taskController = {
             type: 'STATUS_CHANGED' as any,
             message: `${user.name} changed status from ${task.status} to ${s}.`
           });
+
+          // Notify all assignees of status change
+          const allMemberIds: Types.ObjectId[] =
+            task.assignees && task.assignees.length > 0 ? task.assignees : task.assignedTo ? [task.assignedTo] : [];
+          for (const mId of allMemberIds) {
+            if (mId.toString() !== user._id.toString()) {
+              await notificationDispatcher.dispatch({
+                recipientId: mId,
+                senderId: user._id,
+                type: 'TASK_STATUS_CHANGED',
+                title: 'Task Status Updated',
+                message: `Status of "${task.title}" changed to ${s} by ${user.name}.`,
+                relatedEntityType: 'TASK',
+                relatedEntityId: task._id,
+                link: `/tasks/${task._id}`
+              });
+            }
+          }
         }
       }
 
@@ -455,42 +599,94 @@ export const taskController = {
             type: 'DEADLINE_CHANGED',
             message: `${user.name} updated deadline to ${d.toLocaleDateString()}.`
           });
-          // Notify assignee of deadline change
-          if (task.assignedTo && task.assignedTo.toString() !== user._id.toString()) {
-            await notificationDispatcher.dispatch({
-              recipientId: task.assignedTo,
-              senderId: user._id,
-              type: 'TASK_DEADLINE_CHANGED',
-              title: 'Task Deadline Updated',
-              message: `Deadline for "${task.title}" updated to ${d.toLocaleDateString()} by ${user.name}.`,
-              relatedEntityType: 'TASK',
-              relatedEntityId: task._id,
-              link: `/tasks/${task._id}`
-            });
+
+          // Notify all current assignees of deadline change
+          const curAssignees: Types.ObjectId[] =
+            task.assignees && task.assignees.length > 0 ? task.assignees : task.assignedTo ? [task.assignedTo] : [];
+          for (const aId of curAssignees) {
+            if (aId.toString() !== user._id.toString()) {
+              await notificationDispatcher.dispatch({
+                recipientId: aId,
+                senderId: user._id,
+                type: 'TASK_DEADLINE_CHANGED',
+                title: 'Task Deadline Updated',
+                message: `Deadline for "${task.title}" updated to ${d.toLocaleDateString()} by ${user.name}.`,
+                relatedEntityType: 'TASK',
+                relatedEntityId: task._id,
+                link: `/tasks/${task._id}`
+              });
+            }
           }
         }
       }
 
-      if (assignedTo && Types.ObjectId.isValid(assignedTo) && assignedTo !== task.assignedTo.toString()) {
-        const newAssignee = await UserModel.findById(assignedTo);
-        if (newAssignee) {
-          updates.assignedTo = newAssignee._id;
-          updates.department = newAssignee.department;
+      // Member assignment / reassignment
+      const hasAssigneeUpdate = assignedTo !== undefined || assignees !== undefined || assigneeIds !== undefined || targetType !== undefined;
+      if (hasAssigneeUpdate) {
+        const resolution = await taskController.resolveAssignees(user, {
+          targetType,
+          assigneeIds,
+          assignees,
+          assignedTo
+        });
+
+        if (resolution.error || !resolution.users || resolution.users.length === 0) {
+          res.status(resolution.status || 400).json({
+            success: false,
+            message: resolution.error || 'Failed to update assignees.'
+          });
+          return;
+        }
+
+        const newAssignees = resolution.users;
+        const newAssigneeIdStrs = new Set(newAssignees.map(u => u._id.toString()));
+        const oldAssigneeIdStrs = new Set(
+          (task.assignees && task.assignees.length > 0 ? task.assignees.map(a => a.toString()) : [task.assignedTo?.toString()]).filter(Boolean) as string[]
+        );
+
+        // Detect newly added and removed assignees
+        const newlyAdded = newAssignees.filter(u => !oldAssigneeIdStrs.has(u._id.toString()));
+        const removedIds = Array.from(oldAssigneeIdStrs).filter(id => !newAssigneeIdStrs.has(id));
+
+        updates.assignees = newAssignees.map(u => u._id);
+        updates.assignedTo = newAssignees[0]._id;
+        updates.department = newAssignees[0].department || task.department;
+
+        if (newlyAdded.length > 0) {
+          const addedNames = newlyAdded.map(u => u.name).join(', ');
           activities.push({
             type: 'TASK_ASSIGNED',
-            message: `${user.name} reassigned task to ${newAssignee.name}.`
+            message: `${user.name} added ${addedNames} to this task.`
           });
-          // Notify new assignee
-          await notificationDispatcher.dispatch({
-            recipientId: newAssignee._id,
-            senderId: user._id,
-            type: 'TASK_REASSIGNED',
-            title: 'Task Reassigned to You',
-            message: `"${task.title}" was reassigned to you by ${user.name}.`,
-            relatedEntityType: 'TASK',
-            relatedEntityId: task._id,
-            link: `/tasks/${task._id}`,
-            idempotencyKey: `task_reassigned_${task._id}_${newAssignee._id}`
+
+          // Dispatch notification ONLY to newly added assignees
+          for (const newMember of newlyAdded) {
+            await notificationDispatcher.dispatch({
+              recipientId: newMember._id,
+              senderId: user._id,
+              type: 'TASK_ASSIGNED',
+              title: 'NEW TASK ASSIGNED',
+              message: `${user.name} added you to task "${task.title}". Deadline: ${new Date(task.deadline).toLocaleDateString()}`,
+              relatedEntityType: 'TASK',
+              relatedEntityId: task._id,
+              link: `/tasks/${task._id}`,
+              idempotencyKey: `task_assigned_${task._id}_${newMember._id}`
+            });
+
+            if (io) {
+              io.to(`user:${newMember._id.toString()}`).emit('task_assigned', {
+                taskId: task._id,
+                title: task.title,
+                assignedBy: user.name
+              });
+            }
+          }
+        }
+
+        if (removedIds.length > 0) {
+          activities.push({
+            type: 'TASK_UPDATED',
+            message: `${user.name} updated assigned members.`
           });
         }
       }
@@ -501,6 +697,7 @@ export const taskController = {
         { new: true }
       )
         .populate('assignedTo', 'name email role department designation profilePhoto')
+        .populate('assignees', 'name email role department designation profilePhoto')
         .populate('assignedBy', 'name email role department designation profilePhoto');
 
       // Record any changes
@@ -555,16 +752,23 @@ export const taskController = {
         message: `${user.name} cancelled this task.`
       });
 
-      await notificationDispatcher.dispatch({
-        recipientId: task.assignedTo,
-        senderId: user._id,
-        type: 'TASK_STATUS_CHANGED',
-        title: 'Task Cancelled',
-        message: `"${task.title}" was cancelled by ${user.name}.`,
-        relatedEntityType: 'TASK',
-        relatedEntityId: task._id,
-        link: `/tasks/${task._id}`
-      });
+      // Notify all assignees
+      const allAssigneeIds: Types.ObjectId[] =
+        task.assignees && task.assignees.length > 0 ? task.assignees : task.assignedTo ? [task.assignedTo] : [];
+      for (const aId of allAssigneeIds) {
+        if (aId.toString() !== user._id.toString()) {
+          await notificationDispatcher.dispatch({
+            recipientId: aId,
+            senderId: user._id,
+            type: 'TASK_STATUS_CHANGED',
+            title: 'Task Cancelled',
+            message: `"${task.title}" was cancelled by ${user.name}.`,
+            relatedEntityType: 'TASK',
+            relatedEntityId: task._id,
+            link: `/tasks/${task._id}`
+          });
+        }
+      }
 
       res.json({ success: true, message: 'Task cancelled successfully', task });
     } catch (error) {
@@ -592,8 +796,12 @@ export const taskController = {
         return;
       }
 
-      // Check if current user is the assignee or an authorized manager
-      const isAssignee = task.assignedTo.toString() === user._id.toString();
+      const userIdStr = user._id.toString();
+      const isAssignee =
+        (Array.isArray(task.assignees) &&
+          task.assignees.some((a: any) => (a._id ? a._id.toString() : a.toString()) === userIdStr)) ||
+        Boolean(task.assignedTo && (task.assignedTo._id ? task.assignedTo._id.toString() : task.assignedTo.toString()) === userIdStr);
+
       const isManager = ['FOUNDER', 'HR', 'MANAGER'].includes(user.role.toUpperCase());
       if (!isAssignee && !isManager) {
         res.status(403).json({ success: false, message: 'You can only start tasks assigned to you.' });
@@ -644,6 +852,7 @@ export const taskController = {
 
       const populatedTask = await TaskModel.findById(task._id)
         .populate('assignedTo', 'name email role department designation profilePhoto')
+        .populate('assignees', 'name email role department designation profilePhoto')
         .populate('assignedBy', 'name email role department designation profilePhoto');
 
       res.json({ success: true, message: 'Task started successfully', task: populatedTask });
@@ -673,7 +882,12 @@ export const taskController = {
         return;
       }
 
-      const isAssignee = task.assignedTo.toString() === user._id.toString();
+      const userIdStr = user._id.toString();
+      const isAssignee =
+        (Array.isArray(task.assignees) &&
+          task.assignees.some((a: any) => (a._id ? a._id.toString() : a.toString()) === userIdStr)) ||
+        Boolean(task.assignedTo && (task.assignedTo._id ? task.assignedTo._id.toString() : task.assignedTo.toString()) === userIdStr);
+
       const isManager = ['FOUNDER', 'HR', 'MANAGER'].includes(user.role.toUpperCase());
       if (!isAssignee && !isManager) {
         res.status(403).json({ success: false, message: 'You can only complete tasks assigned to you.' });
@@ -734,10 +948,18 @@ export const taskController = {
         message: `${user.name} marked this task completed.`
       });
 
-      // Notify assignor
-      if (task.assignedBy.toString() !== user._id.toString()) {
+      // Notify assignor and fellow assignees
+      const notifyRecipients = new Set<string>();
+      if (task.assignedBy) notifyRecipients.add(task.assignedBy.toString());
+      if (task.assignees) {
+        task.assignees.forEach(a => notifyRecipients.add(a.toString()));
+      }
+      if (task.assignedTo) notifyRecipients.add(task.assignedTo.toString());
+      notifyRecipients.delete(user._id.toString());
+
+      for (const recId of notifyRecipients) {
         await notificationDispatcher.dispatch({
-          recipientId: task.assignedBy,
+          recipientId: recId,
           senderId: user._id,
           type: 'TASK_COMPLETED',
           title: 'TASK COMPLETED',
@@ -750,6 +972,7 @@ export const taskController = {
 
       const populatedTask = await TaskModel.findById(task._id)
         .populate('assignedTo', 'name email role department designation profilePhoto')
+        .populate('assignees', 'name email role department designation profilePhoto')
         .populate('assignedBy', 'name email role department designation profilePhoto')
         .populate('comments.author', 'name role profilePhoto')
         .populate('proofOfWork.uploadedBy', 'name role');
@@ -808,18 +1031,25 @@ export const taskController = {
         message: `${user.name} added a comment.`
       });
 
-      // Notify the other party
-      const notifyRecipientId =
-        task.assignedTo.toString() === user._id.toString() ? task.assignedBy : task.assignedTo;
+      // Notify all participants (assigner and fellow assignees, except the commenter)
+      const notifyRecipientIds = new Set<string>();
+      if (task.assignedBy) notifyRecipientIds.add(task.assignedBy.toString());
+      if (task.assignees && task.assignees.length > 0) {
+        task.assignees.forEach(a => notifyRecipientIds.add(a.toString()));
+      }
+      if (task.assignedTo) notifyRecipientIds.add(task.assignedTo.toString());
+      notifyRecipientIds.delete(user._id.toString());
 
-      if (notifyRecipientId && notifyRecipientId.toString() !== user._id.toString()) {
-        await NotificationModel.create({
-          recipient: notifyRecipientId,
-          sender: user._id,
+      for (const recId of notifyRecipientIds) {
+        await notificationDispatcher.dispatch({
+          recipientId: recId,
+          senderId: user._id,
           type: 'COMMENT_ADDED',
           title: 'New Comment on Task',
           message: `${user.name} commented on "${task.title}": "${message.trim().slice(0, 80)}"`,
-          taskId: task._id
+          relatedEntityType: 'TASK',
+          relatedEntityId: task._id,
+          link: `/tasks/${task._id}`
         });
       }
 
@@ -964,7 +1194,7 @@ export const taskController = {
 
   /**
    * Idempotent check for overdue tasks:
-   * Dispatches TASK_OVERDUE notifications to assignee and assigner if not already notified.
+   * Dispatches TASK_OVERDUE notifications to assignees and assigner if not already notified.
    */
   async checkOverdueTasks(): Promise<number> {
     try {
@@ -979,6 +1209,9 @@ export const taskController = {
       for (const task of overdueTasks) {
         const recipientIds = new Set<string>();
         if (task.assignedTo) recipientIds.add(task.assignedTo.toString());
+        if (task.assignees && task.assignees.length > 0) {
+          task.assignees.forEach(a => recipientIds.add(a.toString()));
+        }
         if (task.assignedBy) recipientIds.add(task.assignedBy.toString());
 
         for (const recipientIdStr of recipientIds) {
@@ -994,15 +1227,15 @@ export const taskController = {
           });
 
           if (!existing) {
-            await NotificationModel.create({
+            await notificationDispatcher.dispatch({
               recipientId,
               type: 'TASK_OVERDUE',
               title: 'TASK OVERDUE',
               message: `"${task.title}" is overdue. (Deadline: ${new Date(task.deadline).toLocaleDateString()})`,
               relatedEntityType: 'TASK',
               relatedEntityId: task._id,
-              isRead: false,
-              createdAt: new Date()
+              link: `/tasks/${task._id}`,
+              idempotencyKey: `task_overdue_${task._id}_${recipientId}`
             });
             alertsCreated++;
           }

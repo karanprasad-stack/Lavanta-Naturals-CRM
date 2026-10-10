@@ -40,7 +40,10 @@ export async function getFounderOverviewData() {
       .lean(),
 
     // 2. Task metrics
-    TaskModel.find().populate('assignedTo', 'name profilePhoto department role').lean(),
+    TaskModel.find()
+      .populate('assignedTo', 'name profilePhoto department role')
+      .populate('assignees', 'name profilePhoto department role')
+      .lean(),
 
     // 3. Goal metrics
     GoalModel.find().select('title type status progress endDate').lean(),

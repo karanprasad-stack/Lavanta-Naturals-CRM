@@ -314,23 +314,101 @@ export const TaskTable: React.FC<TaskTableProps> = ({
                     )}
                   </td>
 
-                  {/* Assigned To */}
+                  {/* Assigned Members */}
                   <td style={{ padding: '0.9rem 1rem', verticalAlign: 'middle' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <img
-                        src={t.assignedTo?.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                        alt={t.assignedTo?.name || 'User'}
-                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
-                      />
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
-                          {t.assignedTo?.name || 'Unassigned'}
+                    {(() => {
+                      const assigneesList =
+                        t.assignees && t.assignees.length > 0 ? t.assignees : t.assignedTo ? [t.assignedTo] : [];
+
+                      if (assigneesList.length === 0) {
+                        return <span style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)' }}>Unassigned</span>;
+                      }
+
+                      if (assigneesList.length === 1) {
+                        const single = assigneesList[0];
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <img
+                              src={
+                                single?.profilePhoto ||
+                                single?.avatar ||
+                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+                              }
+                              alt={single?.name || 'User'}
+                              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }}
+                            />
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
+                                {single?.name || 'User'}
+                              </div>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                                {single?.role}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Multiple assignees: avatar stack + summary
+                      const visibleAvatars = assigneesList.slice(0, 3);
+                      const overflowCount = assigneesList.length - 3;
+                      const namesTooltip = assigneesList.map(a => `${a.name} (${a.role})`).join(', ');
+
+                      return (
+                        <div title={namesTooltip} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            {visibleAvatars.map((a, idx) => (
+                              <img
+                                key={a._id || idx}
+                                src={
+                                  a?.profilePhoto ||
+                                  a?.avatar ||
+                                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'
+                                }
+                                alt={a.name}
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover',
+                                  border: '2px solid #FFFFFF',
+                                  marginLeft: idx > 0 ? '-8px' : 0,
+                                  boxShadow: 'var(--shadow-xs)'
+                                }}
+                              />
+                            ))}
+                            {overflowCount > 0 && (
+                              <span
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '50%',
+                                  background: 'var(--color-primary-subtle)',
+                                  color: 'var(--color-primary-deep)',
+                                  fontSize: '0.675rem',
+                                  fontWeight: 700,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '2px solid #FFFFFF',
+                                  marginLeft: '-8px'
+                                }}
+                              >
+                                +{overflowCount}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--color-text-primary)' }}>
+                              {assigneesList.length} assignees
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                              Shared task
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
-                          {t.assignedTo?.role}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </td>
 
                   {/* Assigned By */}

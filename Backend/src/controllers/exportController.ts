@@ -39,6 +39,7 @@ export const exportController = {
         case 'tasks': {
           const tasks = await TaskModel.find()
             .populate('assignedTo', 'name email')
+            .populate('assignees', 'name email')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -47,8 +48,10 @@ export const exportController = {
             t.title,
             t.status,
             t.priority,
-            t.assignedTo?.name || 'Unassigned',
-            t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : '',
+            t.assignees && t.assignees.length > 0
+              ? t.assignees.map((a: any) => a.name).join(', ')
+              : t.assignedTo?.name || 'Unassigned',
+            t.deadline ? new Date(t.deadline).toISOString().split('T')[0] : (t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : ''),
             new Date(t.createdAt).toISOString().split('T')[0]
           ]);
           break;

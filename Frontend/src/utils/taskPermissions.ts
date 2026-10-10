@@ -57,7 +57,13 @@ export function getTaskPermissions(
 
   const assigneeId = task?.assignedTo?._id || (task?.assignedTo as any)?.id;
   const isAssignee = Boolean(
-    assigneeId && currentUserId && assigneeId.toString() === currentUserId.toString()
+    currentUserId &&
+      ((task?.assignees &&
+        task.assignees.some(a => {
+          const aId = a?._id || (a as any)?.id || a;
+          return aId && aId.toString() === currentUserId.toString();
+        })) ||
+        (assigneeId && assigneeId.toString() === currentUserId.toString()))
   );
 
   // Management scope:
