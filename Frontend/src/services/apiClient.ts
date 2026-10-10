@@ -16,6 +16,35 @@ export function removeAuthToken(): void {
   localStorage.removeItem(TOKEN_STORAGE_KEY);
 }
 
+export function getApiBaseUrl(): string {
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim();
+  if (envUrl) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  return '';
+}
+
+export function buildApiUrl(endpoint: string): string {
+  if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+    return endpoint;
+  }
+  const base = getApiBaseUrl();
+  const normalizedPath = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  if (!base) {
+    return normalizedPath.startsWith('/api') ? normalizedPath : `/api${normalizedPath}`;
+  }
+
+  if (base.endsWith('/api') && normalizedPath.startsWith('/api')) {
+    return `${base}${normalizedPath.substring(4)}`;
+  }
+  if (!base.endsWith('/api') && !normalizedPath.startsWith('/api')) {
+    return `${base}/api${normalizedPath}`;
+  }
+
+  return `${base}${normalizedPath}`;
+}
+
 export async function apiClient<T = any>(
   endpoint: string,
   options: RequestInit = {}
@@ -30,10 +59,7 @@ export async function apiClient<T = any>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Prepend /api if not already included and is a relative endpoint
-  const targetUrl = endpoint.startsWith('http') || endpoint.startsWith('/api')
-    ? endpoint
-    : `/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const targetUrl = buildApiUrl(endpoint);
 
   const response = await fetch(targetUrl, {
     ...options,

@@ -1,4 +1,4 @@
-import { apiClient, getAuthToken } from './apiClient';
+import { apiClient, getAuthToken, buildApiUrl } from './apiClient';
 import { Expense, ExpenseSummary, CreateExpenseInput } from '../types/expenses';
 
 export interface GetExpensesParams {
@@ -68,7 +68,7 @@ export const expenseService = {
       if (input.status) formData.append('status', input.status);
       formData.append('receipt', input.receipt);
 
-      const response = await fetch('/api/expenses', {
+      const response = await fetch(buildApiUrl('/api/expenses'), {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData

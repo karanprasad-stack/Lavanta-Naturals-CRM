@@ -1,4 +1,4 @@
-import { apiClient, getAuthToken } from './apiClient';
+import { apiClient, getAuthToken, buildApiUrl } from './apiClient';
 
 export type DocumentCategory =
   | 'POLICY'
@@ -161,7 +161,7 @@ export const documentService = {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch('/api/documents', {
+    const res = await fetch(buildApiUrl('/api/documents'), {
       method: 'POST',
       headers,
       body: formData
@@ -191,11 +191,11 @@ export const documentService = {
   },
 
   getDownloadUrl(id: string): string {
-    return `/api/documents/${id}/download`;
+    return buildApiUrl(`/api/documents/${id}/download`);
   },
 
   getPreviewUrl(id: string): string {
-    return `/api/documents/${id}/preview`;
+    return buildApiUrl(`/api/documents/${id}/preview`);
   },
 
   // Versioning
@@ -204,7 +204,7 @@ export const documentService = {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/api/documents/${id}/versions`, {
+    const res = await fetch(buildApiUrl(`/api/documents/${id}/versions`), {
       method: 'POST',
       headers,
       body: formData
