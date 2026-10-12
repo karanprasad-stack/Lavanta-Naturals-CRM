@@ -410,18 +410,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileSidebar }) => {
 
           {isNotifOpen && (
             <div
+              className="header-notif-popover"
               style={{
                 position: 'absolute',
-                right: 0,
+                right: '-36px',
                 top: '115%',
-                width: '330px',
+                width: 'min(330px, calc(100vw - 24px))',
+                maxWidth: 'calc(100vw - 24px)',
                 background: 'var(--bg-surface)',
                 border: '1px solid var(--border-strong)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-lg)',
                 zIndex: 50,
                 padding: '0.75rem',
-                maxHeight: '380px',
+                maxHeight: 'min(420px, calc(100dvh - 80px))',
                 overflowY: 'auto'
               }}
             >

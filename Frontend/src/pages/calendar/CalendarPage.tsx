@@ -336,9 +336,10 @@ export const CalendarPage: React.FC = () => {
     const isToday = (d: Date) => d.toDateString() === today.toDateString();
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--cal-border-grid)', backgroundColor: 'var(--cal-bg-header)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div style={{ minWidth: '640px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: '1px solid var(--cal-border-grid)', backgroundColor: 'var(--cal-bg-header)' }}>
           {DAYS_OF_WEEK.map(d => (
             <div key={d} style={{ textAlign: 'center', padding: '0.5rem', fontSize: '0.725rem', fontWeight: 700, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {d}
@@ -447,7 +448,8 @@ export const CalendarPage: React.FC = () => {
           ))}
         </div>
       </div>
-    );
+    </div>
+  );
   };
 
   // ── WEEK VIEW ──────────────────────────
@@ -462,8 +464,9 @@ export const CalendarPage: React.FC = () => {
 
     return (
       <div style={{ flex: 1, overflow: 'auto', backgroundColor: 'var(--cal-bg-grid)' }}>
-        {/* Day headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '2px solid var(--border-color)', position: 'sticky', top: 0, backgroundColor: 'var(--cal-bg-header)', zIndex: 10 }}>
+        <div style={{ minWidth: '680px' }}>
+          {/* Day headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: '60px repeat(7, 1fr)', borderBottom: '2px solid var(--border-color)', position: 'sticky', top: 0, backgroundColor: 'var(--cal-bg-header)', zIndex: 10 }}>
           <div style={{ padding: '0.5rem', borderRight: '1px solid var(--cal-border-grid)' }} />
           {weekDays.map((d, i) => {
             const isToday = d.toDateString() === today.toDateString();
@@ -557,7 +560,8 @@ export const CalendarPage: React.FC = () => {
           </div>
         ))}
       </div>
-    );
+    </div>
+  );
   };
 
   // ── DAY VIEW ──────────────────────────
@@ -767,25 +771,45 @@ export const CalendarPage: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', height: '100%', backgroundColor: 'var(--cal-bg-page)', overflow: 'hidden' }}>
-      {/* 1. Left Sidebar (Collapsible) */}
+      {/* 1. Left Sidebar (Collapsible with mobile drawer overlay) */}
       {isSidebarOpen && (
-        <CalendarSidebar
-          currentDate={currentDate}
-          onSelectDate={d => {
-            setCurrentDate(d);
-            setSelectedDate(d);
-          }}
-          categoryFilters={categoryFilters}
-          onToggleCategory={toggleCategory}
-          events={visibleEvents}
-          onSelectEvent={ev => handleEntryClick(ev)}
-        />
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden backdrop-blur-sm"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          <div className="fixed inset-y-0 left-0 z-50 w-72 lg:static lg:w-auto lg:z-auto bg-[var(--cal-bg-sidebar)] shadow-2xl lg:shadow-none flex flex-col">
+            <div className="flex lg:hidden items-center justify-between p-3 border-b border-[var(--border-color)]">
+              <span className="font-bold text-sm text-[var(--color-text-primary)]">Calendar Filters</span>
+              <button
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-1 rounded text-[var(--color-text-secondary)] hover:bg-[var(--bg-surface-elevated)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <CalendarSidebar
+              currentDate={currentDate}
+              onSelectDate={d => {
+                setCurrentDate(d);
+                setSelectedDate(d);
+              }}
+              categoryFilters={categoryFilters}
+              onToggleCategory={toggleCategory}
+              events={visibleEvents}
+              onSelectEvent={ev => {
+                handleEntryClick(ev);
+                if (window.innerWidth < 1024) setIsSidebarOpen(false);
+              }}
+            />
+          </div>
+        </>
       )}
 
       {/* 2. Main Calendar Area */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden', backgroundColor: 'var(--cal-bg-container)' }}>
         {/* Calendar Toolbar */}
-        <div style={{ padding: '0.85rem 1.5rem', backgroundColor: 'var(--cal-bg-header)', borderBottom: '1px solid var(--cal-border-header)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="p-2.5 sm:p-4 bg-[var(--cal-bg-header)] border-b border-[var(--cal-border-header)] flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Sidebar Toggle & Navigation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <button

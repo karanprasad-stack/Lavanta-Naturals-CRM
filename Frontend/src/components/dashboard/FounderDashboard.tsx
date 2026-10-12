@@ -318,7 +318,7 @@ export const FounderDashboard: React.FC<FounderDashboardProps> = ({
       </div>
 
       {/* 3. Key Metrics (Strictly 6 Compact Cards) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.85rem' }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5">
         {[
           {
             label: 'Team Members',
@@ -402,9 +402,10 @@ export const FounderDashboard: React.FC<FounderDashboardProps> = ({
       </div>
 
       {/* 4. Business Snapshot (Single Revenue Chart) & Work Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Left: Revenue Trend (Last 7 Days) */}
         <div
+          className="min-w-0"
           style={{
             background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',
@@ -523,7 +524,7 @@ export const FounderDashboard: React.FC<FounderDashboardProps> = ({
             </div>
 
             {/* 4 Compact pills */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem', textAlign: 'center' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
               <div
                 onClick={() => navigate('/tasks?status=todo')}
                 style={{ padding: '8px', borderRadius: '6px', background: 'var(--bg-surface-elevated)', border: '1px solid var(--border-color)', cursor: 'pointer' }}
@@ -568,9 +569,10 @@ export const FounderDashboard: React.FC<FounderDashboardProps> = ({
       </div>
 
       {/* 5. Recent Activity & Announcements / Schedule (2 Columns) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '1.25rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Left: Real Unified Recent Activity (Max 5 items) */}
         <div
+          className="min-w-0"
           style={{
             background: 'var(--bg-surface)',
             borderRadius: 'var(--radius-md)',

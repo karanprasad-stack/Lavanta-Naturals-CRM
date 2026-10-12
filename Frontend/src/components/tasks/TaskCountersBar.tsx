@@ -52,13 +52,7 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
   ];
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-        gap: '0.85rem'
-      }}
-    >
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5">
       {items.map(item => {
         const isSelected = activeStatus.toUpperCase() === item.key;
         return (
@@ -72,7 +66,6 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
                 ? '2px solid var(--color-primary)'
                 : '1px solid var(--border-color)',
               borderRadius: 'var(--radius-md)',
-              padding: '1rem 1.25rem',
               cursor: 'pointer',
               boxShadow: isSelected ? 'var(--shadow-sm)' : 'var(--shadow-xs)',
               display: 'flex',
@@ -80,7 +73,7 @@ export const TaskCountersBar: React.FC<TaskCountersBarProps> = ({
               justifyContent: 'space-between',
               transition: 'all 0.15s ease'
             }}
-            className="luxury-card"
+            className="luxury-card p-3 sm:p-4 md:p-5"
           >
             <div>
               <div

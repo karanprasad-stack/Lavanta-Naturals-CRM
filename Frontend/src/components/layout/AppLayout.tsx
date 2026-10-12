@@ -38,8 +38,8 @@ export const AppLayout: React.FC = () => {
         <main
           className={`main-content flex-1 max-w-[1560px] w-full mx-auto ${
             isChatRoute
-              ? 'flex flex-col min-h-0 overflow-hidden p-3 md:p-6 pb-3 md:pb-6'
-              : 'p-6 md:p-8'
+              ? 'flex flex-col min-h-0 overflow-hidden p-2 sm:p-3 md:p-6 pb-2 sm:pb-3 md:pb-6'
+              : 'p-3 sm:p-4 md:p-6 lg:p-8'
           }`}
         >
           <ErrorBoundary>

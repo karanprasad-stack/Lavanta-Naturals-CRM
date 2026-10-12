@@ -25,7 +25,7 @@ export const DashboardSkeleton: React.FC = () => {
       </div>
 
       {/* 4 KPI Cards Skeleton */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {[1, 2, 3, 4].map(k => (
           <div
             key={k}
@@ -47,7 +47,7 @@ export const DashboardSkeleton: React.FC = () => {
       </div>
 
       {/* Two-Column Content Skeleton */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
         <div
           style={{
             background: 'var(--bg-surface)',

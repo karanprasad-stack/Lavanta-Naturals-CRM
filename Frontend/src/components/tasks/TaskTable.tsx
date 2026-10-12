@@ -201,7 +201,8 @@ export const TaskTable: React.FC<TaskTableProps> = ({
         boxShadow: 'var(--shadow-xs)'
       }}
     >
-      <div style={{ overflowX: 'auto' }}>
+      {/* Desktop Table View */}
+      <div className="hidden md:block" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
             <tr
@@ -500,6 +501,179 @@ export const TaskTable: React.FC<TaskTableProps> = ({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="block md:hidden divide-y divide-[var(--border-color)]">
+        {tasks.map(t => {
+          const perms = getTaskPermissions(currentUser, t);
+          const assigneesList =
+            t.assignees && t.assignees.length > 0 ? t.assignees : t.assignedTo ? [t.assignedTo] : [];
+
+          return (
+            <div
+              key={t._id}
+              className="p-3.5 space-y-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-elevated)] transition-colors"
+            >
+              {/* Header: Priority, Status, Deadline */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getPriorityBadge(t.priority)}
+                  {perms.canChangeStatus && perms.isManagement ? (
+                    <select
+                      value={t.status}
+                      onChange={e => onStatusChange?.(t._id, e.target.value as TaskStatus)}
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 'var(--radius-full)',
+                        fontSize: '0.725rem',
+                        fontWeight: 700,
+                        background: 'var(--bg-surface-elevated, #FAFBF8)',
+                        color: 'var(--color-text-primary)',
+                        border: '1px solid var(--border-color)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="TODO">TO DO</option>
+                      <option value="IN_PROGRESS">IN PROGRESS</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                      <option value="CANCELLED">CANCELLED</option>
+                    </select>
+                  ) : (
+                    getStatusBadge(t.status, t.isOverdue)
+                  )}
+                </div>
+                <div className="text-xs text-[var(--color-text-muted)] flex-shrink-0">
+                  {formatDeadline(t.deadline)}
+                </div>
+              </div>
+
+              {/* Title & Description preview */}
+              <div>
+                <h4
+                  onClick={() => navigate(`/tasks/${t._id}`)}
+                  className="font-semibold text-sm text-[var(--color-text-primary)] cursor-pointer hover:text-[var(--color-primary)] transition-colors line-clamp-2"
+                >
+                  {t.title}
+                </h4>
+                {t.description && (
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-1 line-clamp-2">
+                    {t.description}
+                  </p>
+                )}
+              </div>
+
+              {/* Assignees & Meta */}
+              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-[var(--border-color)]/50">
+                <div className="flex items-center gap-2 min-w-0">
+                  {assigneesList.length === 0 ? (
+                    <span className="text-xs text-[var(--color-text-muted)]">Unassigned</span>
+                  ) : (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center -space-x-1.5 flex-shrink-0">
+                        {assigneesList.slice(0, 3).map((u, i) => (
+                          <img
+                            key={u?._id || i}
+                            src={
+                              u?.profilePhoto ||
+                              u?.avatar ||
+                              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+                            }
+                            alt={u?.name || 'User'}
+                            className="w-6 h-6 rounded-full object-cover border-2 border-[var(--bg-surface)]"
+                            title={u?.name}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-[var(--color-text-secondary)] truncate font-medium">
+                        {assigneesList.length === 1 ? assigneesList[0]?.name : `${assigneesList.length} assignees`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Submissions & comments indicator */}
+                <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] flex-shrink-0">
+                  {t.comments && t.comments.length > 0 && (
+                    <span className="flex items-center gap-1">
+                      <MessageSquare size={12} /> {t.comments.length}
+                    </span>
+                  )}
+                  {t.proofOfWork && t.proofOfWork.length > 0 && (
+                    <span className="flex items-center gap-1 text-[var(--color-primary-deep)]">
+                      <Paperclip size={12} /> Proof
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border-color)]/50 flex-wrap">
+                {perms.canEdit && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Edit3 size={13} />}
+                      onClick={() => onEditTask?.(t)}
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={<Trash2 size={13} />}
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to cancel task "${t.title}"?`)) {
+                          onDeleteTask?.(t._id);
+                        }
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', color: '#DC2626' }}
+                    >
+                      Delete
+                    </Button>
+                  </>
+                )}
+
+                {!perms.canEdit && perms.canStart && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={<Play size={13} />}
+                    onClick={() => onStartTask(t._id)}
+                    style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                  >
+                    Start
+                  </Button>
+                )}
+
+                {!perms.canEdit && perms.canComplete && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={<CheckCircle2 size={13} />}
+                    onClick={() => onOpenCompleteModal(t)}
+                    style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                  >
+                    Complete
+                  </Button>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate(`/tasks/${t._id}`)}
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
+                >
+                  Details <ArrowRight size={13} className="ml-1" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

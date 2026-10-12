@@ -159,17 +159,11 @@ export const NotificationsPage: React.FC = () => {
       <div
         key={notif._id}
         onClick={() => handleNotificationClick(notif)}
+        className="p-3 sm:p-4 rounded-xl border flex items-start gap-3 transition-colors shadow-xs"
         style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '12px',
-          padding: '1rem 1.25rem',
-          borderRadius: '10px',
-          border: '1px solid var(--border-color)',
+          borderColor: 'var(--border-color)',
           background: notif.isRead ? 'var(--bg-surface)' : 'var(--color-primary-subtle)',
-          cursor: notif.relatedEntityId || notif.taskId ? 'pointer' : 'default',
-          transition: 'all 0.15s ease',
-          boxShadow: 'var(--shadow-xs)'
+          cursor: notif.relatedEntityId || notif.taskId ? 'pointer' : 'default'
         }}
         onMouseEnter={e => {
           e.currentTarget.style.borderColor = 'var(--color-primary-border)';
@@ -304,15 +298,7 @@ export const NotificationsPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '800px', margin: '0 auto' }}>
       {/* Page Header */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
@@ -341,7 +327,7 @@ export const NotificationsPage: React.FC = () => {
         <button
           onClick={markAllAsRead}
           disabled={unreadCount === 0}
-          className="announcement-detail-btn announcement-detail-back-btn"
+          className="announcement-detail-btn announcement-detail-back-btn w-full sm:w-auto justify-center"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -358,20 +344,9 @@ export const NotificationsPage: React.FC = () => {
 
       {/* Filter Tabs */}
       <div
-        style={{
-          background: 'var(--bg-surface)',
-          borderRadius: '10px',
-          border: '1px solid var(--border-color)',
-          padding: '0.6rem 0.8rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          boxShadow: 'var(--shadow-xs)'
-        }}
+        className="p-2 sm:p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-color)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shadow-xs"
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflowX: 'auto' }}>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {[
             { id: 'ALL', label: 'All Alerts' },
             { id: 'TASKS', label: 'Tasks' },

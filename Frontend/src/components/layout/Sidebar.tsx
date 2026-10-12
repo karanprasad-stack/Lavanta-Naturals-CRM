@@ -26,7 +26,8 @@ import {
   Server,
   ShieldAlert,
   Sliders,
-  Eye
+  Eye,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
@@ -164,18 +165,35 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="sidebar-brand">
           <LavantaLogo variant={isCollapsed ? 'mark' : 'full'} size="sm" />
 
+          {/* Desktop collapse toggle */}
           <button
             onClick={onToggleCollapse}
+            className="hidden md:flex"
+            style={{
+              padding: '6px',
+              borderRadius: 'var(--radius-xs)',
+              color: 'var(--color-text-secondary)',
+              cursor: 'pointer'
+            }}
+            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          >
+            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+          </button>
+
+          {/* Mobile close drawer button */}
+          <button
+            onClick={onCloseMobile}
+            className="flex md:hidden"
+            aria-label="Close navigation menu"
             style={{
               padding: '6px',
               borderRadius: 'var(--radius-xs)',
               color: 'var(--color-text-secondary)',
               cursor: 'pointer',
-              display: window.innerWidth <= 768 ? 'none' : 'flex'
+              background: 'var(--bg-subtle)'
             }}
-            title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
           >
-            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            <X size={18} />
           </button>
         </div>
 

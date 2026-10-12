@@ -97,7 +97,7 @@ export const TaskActivityTimeline: React.FC<TaskActivityTimelineProps> = ({ acti
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                border: '2px solid #FFFFFF'
+                border: '2px solid var(--bg-surface, #FFFFFF)'
               }}
             >
               {getActivityIcon(act.type)}
@@ -105,7 +105,7 @@ export const TaskActivityTimeline: React.FC<TaskActivityTimelineProps> = ({ acti
 
             {/* Content */}
             <div style={{ flex: 1, minWidth: 0, marginTop: '4px' }}>
-              <div style={{ fontSize: '0.825rem', color: 'var(--color-text-primary)', fontWeight: 500 }}>
+              <div style={{ fontSize: '0.825rem', color: 'var(--color-text-primary)', fontWeight: 500, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                 {act.message}
               </div>
               <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>

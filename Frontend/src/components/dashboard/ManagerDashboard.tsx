@@ -107,7 +107,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
       </motion.div>
 
       {/* 2. Key Actionable KPI Cards (4 Cards Max) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Team Tasks In Progress */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -234,9 +234,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
       </div>
 
       {/* 3. Primary Work Section (2-Column Grid) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1.2fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
         {/* LEFT COLUMN: Team Tasks In Progress & Overdue Alerts */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="lg:col-span-7 flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* Overdue Warning Panel (if any exist) */}
           {overdueList.length > 0 && (
             <div
@@ -464,7 +464,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ data, onQuic
         </div>
 
         {/* RIGHT COLUMN: Recent Activity, Announcements & Quick Links */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="lg:col-span-5 flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* Recent Team Activity */}
           <div
             style={{

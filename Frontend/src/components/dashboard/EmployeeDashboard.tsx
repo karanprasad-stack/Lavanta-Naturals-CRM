@@ -100,7 +100,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ data, onQu
       </motion.div>
 
       {/* 2. Personal Work KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Total My Tasks */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -227,9 +227,9 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ data, onQu
       </div>
 
       {/* 3. Main Tasks & Deliverables Layout (2 Columns) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-start">
         {/* LEFT COLUMN: Active Tasks & Completed Deliverables */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* Active Tasks */}
           <div
             style={{
@@ -373,7 +373,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ data, onQu
         </div>
 
         {/* RIGHT COLUMN: Quick Navigation, Announcements & Activity */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* Quick Actions */}
           <div
             style={{
@@ -387,7 +387,7 @@ export const EmployeeDashboard: React.FC<EmployeeDashboardProps> = ({ data, onQu
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
               Quick Navigation
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <Button
                 variant="primary"
                 size="sm"

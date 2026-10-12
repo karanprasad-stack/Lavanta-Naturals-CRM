@@ -202,28 +202,19 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.96 }}
           onClick={e => e.stopPropagation()}
+          className="w-full max-w-[560px] max-h-[92dvh] flex flex-col overflow-hidden"
           style={{
             background: 'var(--bg-surface, #FFFFFF)',
             color: 'var(--color-text-primary, #172235)',
             borderRadius: '12px',
             border: '1px solid var(--border-color)',
-            boxShadow: 'var(--shadow-xl)',
-            width: '100%',
-            maxWidth: '560px',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
+            boxShadow: 'var(--shadow-xl)'
           }}
         >
           {/* Header */}
           <div
+            className="p-3.5 sm:p-5 flex items-center justify-between border-b border-[var(--border-color)]"
             style={{
-              padding: '1.25rem 1.5rem',
-              borderBottom: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
               background: 'var(--bg-surface)'
             }}
           >
@@ -270,13 +261,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
           {/* Form Body */}
           <form
             onSubmit={handleSubmit}
-            style={{
-              padding: '1.5rem',
-              overflowY: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem'
-            }}
+            className="p-3.5 sm:p-6 overflow-y-auto flex flex-col gap-4 sm:gap-5"
           >
             {validationError && (
               <div
@@ -344,7 +329,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             </div>
 
             {/* Status & Priority Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                   Status
@@ -418,16 +403,10 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                     return (
                       <div
                         key={id}
+                        className="inline-flex items-center gap-1.5 py-1 px-2.5 max-w-full rounded-full text-xs font-semibold"
                         style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '4px 8px',
                           background: 'var(--color-soft-green)',
                           border: '1px solid var(--color-primary)',
-                          borderRadius: '16px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
                           color: 'var(--color-primary-deep)'
                         }}
                       >
@@ -440,21 +419,20 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
                           alt={member?.name || 'User'}
                           style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
                         />
-                        <span>{member?.name || 'Member'}{member?.email ? ` (${member.email})` : ''}</span>
+                        <span className="truncate">{member?.name || 'Member'}{member?.email ? ` (${member.email})` : ''}</span>
                         <button
                           type="button"
                           onClick={() => removeMember(id)}
+                          aria-label={`Remove ${member?.name}`}
+                          className="p-1 hover:opacity-75 transition-opacity flex-shrink-0"
                           style={{
                             border: 'none',
                             background: 'transparent',
                             color: 'var(--color-primary-deep)',
-                            cursor: 'pointer',
-                            padding: '0 2px',
-                            display: 'flex',
-                            alignItems: 'center'
+                            cursor: 'pointer'
                           }}
                         >
-                          <X size={12} />
+                          <X size={13} />
                         </button>
                       </div>
                     );
@@ -577,7 +555,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             </div>
 
             {/* Deadline */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                   Deadline Date *
@@ -623,20 +601,11 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             </div>
 
             {/* Actions */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '0.75rem',
-                paddingTop: '1rem',
-                borderTop: '1px solid var(--border-color)',
-                marginTop: '0.5rem'
-              }}
-            >
-              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-4 border-t border-[var(--border-color)] mt-2">
+              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting} className="w-full sm:w-auto justify-center">
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="md" disabled={submitting}>
+              <Button type="submit" variant="primary" size="md" disabled={submitting} className="w-full sm:w-auto justify-center">
                 {submitting ? 'Updating...' : 'Save Changes'}
               </Button>
             </div>

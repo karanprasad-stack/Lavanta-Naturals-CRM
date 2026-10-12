@@ -51,11 +51,11 @@ export const ProfilePage: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '980px', margin: '0 auto' }}>
       {/* Header */}
       <div
+        className="p-4 sm:p-6"
         style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface, #FFFFFF)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.5rem',
           boxShadow: 'var(--shadow-sm)'
         }}
       >
@@ -73,14 +73,14 @@ export const ProfilePage: React.FC = () => {
       </div>
 
       {/* Main Profile Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6 items-start">
         {/* Left Column: Profile Card */}
         <div
+          className="p-4 sm:p-6"
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface, #FFFFFF)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
-            padding: '1.5rem',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -165,11 +165,11 @@ export const ProfilePage: React.FC = () => {
 
         {/* Right Column: Editable Information Form */}
         <div
+          className="md:col-span-2 p-4 sm:p-6"
           style={{
-            background: '#FFFFFF',
+            background: 'var(--bg-surface, #FFFFFF)',
             borderRadius: 'var(--radius-md)',
             border: '1px solid var(--border-color)',
-            padding: '1.75rem',
             boxShadow: 'var(--shadow-xs)'
           }}
         >

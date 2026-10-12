@@ -141,15 +141,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '0.5rem',
-          flexWrap: 'wrap'
-        }}
-      >
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-[var(--border-color)] scrollbar-none">
         <button
           onClick={() => setActiveTab('profile')}
           style={{
@@ -310,7 +302,7 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
             <div>
               <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '4px' }}>
                 Full Name

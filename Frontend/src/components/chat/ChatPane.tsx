@@ -423,16 +423,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
       {/* 1. Header */}
       <div
         id="chat-pane-header"
-        style={{
-          padding: '0.85rem 1.5rem',
-          backgroundColor: 'var(--chat-bg-header)',
-          borderBottom: '1px solid var(--chat-border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          zIndex: 10,
-          flexShrink: 0
-        }}
+        className="p-3 sm:px-6 sm:py-3.5 bg-[var(--chat-bg-header)] border-b border-[var(--chat-border)] flex items-center justify-between z-10 flex-shrink-0"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {/* Mobile Back Button */}
@@ -614,22 +605,13 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
       {/* 2. Messages List Area */}
       <div
         id="chat-messages-scroll-container"
-        className="chat-messages-scroll-container"
+        className="chat-messages-scroll-container p-3 sm:p-5 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[var(--chat-bg-history)]"
         ref={scrollContainerRef}
         onScroll={handleScroll}
         style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
           overscrollBehavior: 'contain',
           overscrollBehaviorY: 'contain',
-          WebkitOverflowScrolling: 'touch',
-          padding: '1.25rem 1.5rem',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.75rem',
-          backgroundColor: 'var(--chat-bg-history)'
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         {/* Load older messages button if more exist */}
@@ -833,10 +815,8 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
 
                   {/* Message Bubble Column */}
                   <div
+                    className="max-w-[86%] sm:max-w-[76%] md:max-w-[68%] flex flex-col"
                     style={{
-                      maxWidth: '68%',
-                      display: 'flex',
-                      flexDirection: 'column',
                       alignItems: isMe ? 'flex-end' : 'flex-start'
                     }}
                   >
@@ -1190,12 +1170,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
       {/* 3. Bottom Message Composer */}
       <div
         id="chat-pane-composer"
-        style={{
-          padding: '0.85rem 1.5rem 1rem',
-          backgroundColor: 'var(--chat-bg-composer)',
-          borderTop: '1px solid var(--chat-border)',
-          flexShrink: 0
-        }}
+        className="p-2 sm:p-4 bg-[var(--chat-bg-composer)] border-t border-[var(--chat-border)] flex-shrink-0"
       >
         {/* Attachment Pills Preview */}
         {attachedFiles.length > 0 && (

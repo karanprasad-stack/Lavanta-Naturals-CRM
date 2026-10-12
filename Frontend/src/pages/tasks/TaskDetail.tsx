@@ -252,11 +252,11 @@ export const TaskDetail: React.FC = () => {
 
       {/* Task Header Banner */}
       <div
+        className="task-header-banner p-4 sm:p-6 md:p-7"
         style={{
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.75rem 2rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-start',
@@ -265,7 +265,7 @@ export const TaskDetail: React.FC = () => {
           boxShadow: 'var(--shadow-sm)'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1, minWidth: '280px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', flex: 1, minWidth: 0, width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             {getPriorityBadge(task.priority)}
             {getStatusBadge(task.status, isOverdue)}
@@ -274,12 +274,23 @@ export const TaskDetail: React.FC = () => {
             </span>
           </div>
 
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.25 }}>
+          <h1
+            style={{
+              fontSize: 'clamp(1.3rem, 4vw, 1.85rem)',
+              fontWeight: 800,
+              color: 'var(--color-text-primary)',
+              margin: 0,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.25,
+              wordBreak: 'break-word',
+              overflowWrap: 'anywhere'
+            }}
+          >
             {task.title}
           </h1>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
-            <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '0.85rem', color: 'var(--color-text-secondary)', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0, wordBreak: 'break-word' }}>
               Assigned to:{' '}
               {uniqueAssignees && uniqueAssignees.length > 1 ? (
                 <>
@@ -317,7 +328,7 @@ export const TaskDetail: React.FC = () => {
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div className="task-actions-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap', width: 'auto' }}>
           {/* Management Status Selector */}
           {perms.canChangeStatus && perms.isManagement && (
             <select
@@ -414,298 +425,302 @@ export const TaskDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* 2-Column Content Layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
-        {/* LEFT COLUMN: Description, Proof of Work, Activity Timeline */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Description Card */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '1.5rem',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
-              Task Requirements & Brief
-            </h3>
-            {task.description ? (
-              <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
-                {task.description}
-              </p>
-            ) : (
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 0 }}>
-                No additional description provided for this task.
-              </p>
-            )}
-          </div>
+      {/* Responsive Content Layout: Single Column on mobile (<1024px), 2 Columns on desktop (>=1024px) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* 1. Requirements & Brief (Order 1 on mobile, left top on desktop) */}
+        <div
+          className="order-1 lg:col-span-2 lg:col-start-1"
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1.25rem 1.5rem',
+            boxShadow: 'var(--shadow-xs)'
+          }}
+        >
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
+            Task Requirements & Brief
+          </h3>
+          {task.description ? (
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {task.description}
+            </p>
+          ) : (
+            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', fontStyle: 'italic', margin: 0 }}>
+              No additional description provided for this task.
+            </p>
+          )}
+        </div>
 
-          {/* Proof of Work Card */}
-          {task.proofOfWork && task.proofOfWork.length > 0 && (
-            <div
-              style={{
-                background: 'var(--bg-surface)',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                padding: '1.5rem',
-                boxShadow: 'var(--shadow-xs)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                  Submitted Proof of Work
-                </h3>
-                <Badge variant="green" size="sm">Deliverable Attached</Badge>
-              </div>
+        {/* 2. Task Information & Assignees (Order 2 on mobile, right top on desktop) */}
+        <div
+          className="order-2 lg:col-span-1 lg:col-start-3 lg:row-start-1"
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1.25rem 1.5rem',
+            boxShadow: 'var(--shadow-xs)'
+          }}
+        >
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
+            Task Information
+          </h3>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {task.proofOfWork.map(p => (
-                  <div
-                    key={p._id}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
+            {/* Deadline */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', flexWrap: 'wrap', gap: '4px' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Deadline</span>
+              <span style={{ fontWeight: 600, color: isOverdue ? '#DC2626' : 'var(--color-text-primary)', textAlign: 'right' }}>
+                {deadlineDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}{' '}
+                {deadlineDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+
+            {/* Department */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <span style={{ color: 'var(--color-text-secondary)' }}>Department</span>
+              <span style={{ fontWeight: 600, color: 'var(--color-primary-deep)' }}>{task.department}</span>
+            </div>
+
+            {/* Assignee(s) Card */}
+            {uniqueAssignees && uniqueAssignees.length > 1 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
+                    Assignees ({uniqueAssignees.length})
+                  </span>
+                  <span
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.85rem 1rem',
-                      borderRadius: 'var(--radius-sm)',
-                      background: 'var(--bg-surface-elevated)',
-                      border: '1px solid var(--border-color)'
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'var(--color-primary-deep)',
+                      background: 'var(--color-primary-soft, #EEF2F6)',
+                      padding: '1px 7px',
+                      borderRadius: '4px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    Shared Task
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {uniqueAssignees.map(a => {
+                    const hasDuplicateName = uniqueAssignees.filter(u => u.name === a.name).length > 1;
+                    return (
                       <div
+                        key={a._id}
                         style={{
-                          width: '36px',
-                          height: '36px',
-                          borderRadius: 'var(--radius-xs)',
-                          background: '#DCFCE7',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#16A34A'
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          borderRadius: 'var(--radius-xs)',
+                          background: 'var(--bg-surface-elevated)',
+                          border: '1px solid var(--border-color)',
+                          gap: '8px'
                         }}
                       >
-                        <FileText size={18} />
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>
-                          {p.filename}
-                        </div>
-                        {p.comment && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
-                            "{p.comment}"
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+                          <img
+                            src={a.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
+                            alt={a.name}
+                            style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                          />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)', display: 'block', wordBreak: 'break-word' }}>
+                              {a.name}
+                            </span>
+                            {hasDuplicateName && a.email && (
+                              <span style={{ fontSize: '0.675rem', color: 'var(--color-text-muted)', display: 'block', wordBreak: 'break-all' }}>
+                                {a.email}
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'capitalize', flexShrink: 0 }}>
+                          {a.role ? a.role.toLowerCase() : ''}
+                        </span>
                       </div>
-                    </div>
-
-                    <a
-                      href={p.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 600,
-                        color: 'var(--color-primary-deep)',
-                        textDecoration: 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
-                      }}
-                    >
-                      <span>View Asset</span>
-                      <ArrowLeft size={13} style={{ transform: 'rotate(180deg)' }} />
-                    </a>
-                  </div>
-                ))}
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
+                  Task status and workflow are shared between all assignees.
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', gap: '8px' }}>
+                <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>Assignee</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                  <img
+                    src={
+                      (uniqueAssignees && uniqueAssignees[0]?.profilePhoto) ||
+                      task.assignedTo?.profilePhoto ||
+                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
+                    }
+                    alt={(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name}
+                    style={{ width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                  <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>
+                    {(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name || 'Unassigned'}
+                  </span>
+                </div>
+              </div>
+            )}
 
-          {/* Activity Timeline Card */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '1.5rem',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
-              Activity Timeline & Audit Trail
-            </h3>
-            <TaskActivityTimeline activities={activities} />
+            {/* Assignor Card */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)', gap: '8px' }}>
+              <span style={{ color: 'var(--color-text-secondary)', flexShrink: 0 }}>Assigned By</span>
+              <span style={{ fontWeight: 600, color: 'var(--color-text-primary)', textAlign: 'right', wordBreak: 'break-word' }}>{task.assignedBy?.name}</span>
+            </div>
+
+            {/* Started At */}
+            {task.startedAt && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Started</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>{new Date(task.startedAt).toLocaleDateString()}</span>
+              </div>
+            )}
+
+            {/* Completed At */}
+            {task.completedAt && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'var(--color-text-secondary)' }}>Completed</span>
+                <span style={{ color: '#16A34A', fontWeight: 600 }}>{new Date(task.completedAt).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Task Metadata & Comments */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Metadata Card */}
+        {/* 3. Proof of Work Card (Order 3 on mobile, left column on desktop) */}
+        {task.proofOfWork && task.proofOfWork.length > 0 && (
           <div
+            className="order-3 lg:col-span-2 lg:col-start-1"
             style={{
               background: 'var(--bg-surface)',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-color)',
-              padding: '1.5rem',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-xs)'
             }}
           >
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
-              Task Information
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '8px' }}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+                Submitted Proof of Work
+              </h3>
+              <Badge variant="green" size="sm">Deliverable Attached</Badge>
+            </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', fontSize: '0.85rem' }}>
-              {/* Deadline */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Deadline</span>
-                <span style={{ fontWeight: 600, color: isOverdue ? '#DC2626' : 'var(--color-text-primary)' }}>
-                  {deadlineDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}{' '}
-                  {deadlineDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-
-              {/* Department */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Department</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-primary-deep)' }}>{task.department}</span>
-              </div>
-
-              {/* Assignee(s) Card */}
-              {uniqueAssignees && uniqueAssignees.length > 1 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '0.65rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: 'var(--color-text-secondary)', fontWeight: 600 }}>
-                      Assignees ({uniqueAssignees.length})
-                    </span>
-                    <span
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {task.proofOfWork.map(p => (
+                <div
+                  key={p._id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-surface-elevated)',
+                    border: '1px solid var(--border-color)',
+                    flexWrap: 'wrap',
+                    gap: '10px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: 1 }}>
+                    <div
                       style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        color: 'var(--color-primary-deep)',
-                        background: 'var(--color-primary-soft, #EEF2F6)',
-                        padding: '1px 7px',
-                        borderRadius: '4px'
+                        width: '36px',
+                        height: '36px',
+                        borderRadius: 'var(--radius-xs)',
+                        background: '#DCFCE7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#16A34A',
+                        flexShrink: 0
                       }}
                     >
-                      Shared Task
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {uniqueAssignees.map(a => {
-                      const hasDuplicateName = uniqueAssignees.filter(u => u.name === a.name).length > 1;
-                      return (
-                        <div
-                          key={a._id}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '6px 8px',
-                            borderRadius: 'var(--radius-xs)',
-                            background: 'var(--bg-surface-elevated)',
-                            border: '1px solid var(--border-color)'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <img
-                              src={a.profilePhoto || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'}
-                              alt={a.name}
-                              style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                            />
-                            <div>
-                              <span style={{ fontWeight: 600, fontSize: '0.825rem', color: 'var(--color-text-primary)', display: 'block' }}>
-                                {a.name}
-                              </span>
-                              {hasDuplicateName && a.email && (
-                                <span style={{ fontSize: '0.675rem', color: 'var(--color-text-muted)' }}>
-                                  {a.email}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', textTransform: 'capitalize' }}>
-                            {a.role ? a.role.toLowerCase() : ''}
-                          </span>
+                      <FileText size={18} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>
+                        {p.filename}
+                      </div>
+                      {p.comment && (
+                        <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px', wordBreak: 'break-word' }}>
+                          "{p.comment}"
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--color-text-muted)', fontStyle: 'italic', marginTop: '2px' }}>
-                    Task status and workflow are shared between all assignees.
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Assignee</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <img
-                      src={
-                        (uniqueAssignees && uniqueAssignees[0]?.profilePhoto) ||
-                        task.assignedTo?.profilePhoto ||
-                        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80'
-                      }
-                      alt={(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name}
-                      style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
-                    />
-                    <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-                      {(uniqueAssignees && uniqueAssignees[0]?.name) || task.assignedTo?.name || 'Unassigned'}
-                    </span>
-                  </div>
-                </div>
-              )}
 
-              {/* Assignor Card */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Assigned By</span>
-                <span style={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>{task.assignedBy?.name}</span>
-              </div>
-
-              {/* Started At */}
-              {task.startedAt && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.5rem', borderBottom: '1px solid var(--border-color)' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Started</span>
-                  <span style={{ color: 'var(--color-text-muted)' }}>{new Date(task.startedAt).toLocaleDateString()}</span>
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      color: 'var(--color-primary-deep)',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span>View Asset</span>
+                    <ArrowLeft size={13} style={{ transform: 'rotate(180deg)' }} />
+                  </a>
                 </div>
-              )}
-
-              {/* Completed At */}
-              {task.completedAt && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>Completed</span>
-                  <span style={{ color: '#16A34A', fontWeight: 600 }}>{new Date(task.completedAt).toLocaleDateString()}</span>
-                </div>
-              )}
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Comments & Discussion Card */}
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              padding: '1.5rem',
-              boxShadow: 'var(--shadow-xs)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
-                Discussion
-              </h3>
-              <Badge variant="neutral" size="sm">
-                {task.comments?.length || 0} comment{task.comments?.length === 1 ? '' : 's'}
-              </Badge>
-            </div>
-
-            <TaskCommentsList
-              comments={task.comments || []}
-              onAddComment={handleAddComment}
-              currentUserId={currentUserId}
-            />
+        {/* 4. Comments & Discussion Card (Order 4 on mobile, right column on desktop) */}
+        <div
+          className="order-4 lg:col-span-1 lg:col-start-3"
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1.25rem 1.5rem',
+            boxShadow: 'var(--shadow-xs)'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>
+              Discussion
+            </h3>
+            <Badge variant="neutral" size="sm">
+              {task.comments?.length || 0} comment{task.comments?.length === 1 ? '' : 's'}
+            </Badge>
           </div>
+
+          <TaskCommentsList
+            comments={task.comments || []}
+            onAddComment={handleAddComment}
+            currentUserId={currentUserId}
+          />
+        </div>
+
+        {/* 5. Activity Timeline Card (Order 5 on mobile, left column below proof/description on desktop) */}
+        <div
+          className="order-5 lg:col-span-2 lg:col-start-1"
+          style={{
+            background: 'var(--bg-surface)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-color)',
+            padding: '1.25rem 1.5rem',
+            boxShadow: 'var(--shadow-xs)'
+          }}
+        >
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 1rem' }}>
+            Activity Timeline & Audit Trail
+          </h3>
+          <TaskActivityTimeline activities={activities} />
         </div>
       </div>
 

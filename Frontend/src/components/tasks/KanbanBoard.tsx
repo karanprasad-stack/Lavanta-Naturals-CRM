@@ -102,11 +102,9 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
   return (
     <div
+      className="flex md:grid overflow-x-auto md:overflow-x-visible pb-4 md:pb-0 gap-3 md:gap-4 items-start snap-x snap-mandatory -mx-3 px-3 sm:mx-0 sm:px-0"
       style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '1rem',
-        alignItems: 'start'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))'
       }}
     >
       {columns.map(col => {
@@ -119,15 +117,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onDragOver={e => handleDragOver(e, col.status)}
             onDragLeave={() => setActiveDragCol(null)}
             onDrop={e => handleDrop(e, col.status)}
+            className="w-[270px] sm:w-[290px] flex-shrink-0 md:w-auto md:flex-shrink snap-center"
             style={{
               background: '#FFFFFF',
               borderRadius: 'var(--radius-md)',
               border: isTarget ? '2px dashed var(--color-primary)' : '1px solid var(--border-color)',
-              padding: '1rem',
+              padding: '0.875rem',
               display: 'flex',
               flexDirection: 'column',
               gap: '0.75rem',
-              minHeight: '480px',
+              minHeight: '440px',
               transition: 'all 0.15s ease',
               boxShadow: 'var(--shadow-xs)'
             }}

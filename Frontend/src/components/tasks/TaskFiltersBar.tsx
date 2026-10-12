@@ -31,11 +31,11 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
 
   return (
     <div
+      className="p-3 sm:p-4"
       style={{
         background: 'var(--bg-surface)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--border-color)',
-        padding: '0.85rem 1.25rem',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
@@ -45,9 +45,9 @@ export const TaskFiltersBar: React.FC<TaskFiltersBarProps> = ({
       }}
     >
       {/* Left: Search and Filters */}
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', flex: 1, minWidth: '280px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem', flex: 1, minWidth: 0, width: '100%' }}>
         {/* Search input */}
-        <div style={{ position: 'relative', minWidth: '220px', flex: 1 }}>
+        <div className="w-full sm:w-auto sm:flex-1" style={{ position: 'relative', minWidth: '160px' }}>
           <Search
             size={16}
             color="var(--color-text-muted)"

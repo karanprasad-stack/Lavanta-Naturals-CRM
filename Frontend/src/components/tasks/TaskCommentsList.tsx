@@ -70,6 +70,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                 <div
                   style={{
                     flex: 1,
+                    minWidth: 0,
                     background: 'var(--bg-surface-elevated)',
                     border: '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-sm)',
@@ -82,15 +83,18 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      marginBottom: '4px'
+                      marginBottom: '4px',
+                      flexWrap: 'wrap',
+                      gap: '4px'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', minWidth: 0 }}>
                       <span
                         style={{
                           fontWeight: 600,
                           fontSize: '0.825rem',
-                          color: 'var(--color-text-primary)'
+                          color: 'var(--color-text-primary)',
+                          wordBreak: 'break-word'
                         }}
                       >
                         {c.author?.name || 'Team Member'}
@@ -112,7 +116,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--color-text-muted)', flexShrink: 0 }}>
                       {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{' '}
                       {dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                     </span>
@@ -124,7 +128,9 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
                       color: 'var(--color-text-primary)',
                       margin: 0,
                       lineHeight: 1.5,
-                      whiteSpace: 'pre-wrap'
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'anywhere'
                     }}
                   >
                     {c.message}
@@ -148,7 +154,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
       </div>
 
       {/* Input Box */}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', marginTop: '0.5rem' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '8px', marginTop: '0.5rem', alignItems: 'center' }}>
         <input
           type="text"
           placeholder="Add a comment or question..."
@@ -156,6 +162,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
           onChange={e => setText(e.target.value)}
           style={{
             flex: 1,
+            minWidth: 0,
             padding: '0.55rem 0.85rem',
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-color)',
@@ -171,6 +178,7 @@ export const TaskCommentsList: React.FC<TaskCommentsListProps> = ({
           size="sm"
           disabled={!text.trim() || submitting}
           icon={<Send size={14} />}
+          style={{ flexShrink: 0, minHeight: '36px' }}
         >
           {submitting ? 'Sending...' : 'Send'}
         </Button>

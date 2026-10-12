@@ -105,14 +105,16 @@ export const AnnouncementList: React.FC = () => {
         </div>
 
         {canCreate && (
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem', padding: '9px 18px' }}
-          >
-            <Plus size={16} />
-            <span>Create Announcement</span>
-          </button>
+          <div className="w-full sm:w-auto">
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="btn btn-primary w-full sm:w-auto justify-center"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.875rem', padding: '9px 18px' }}
+            >
+              <Plus size={16} />
+              <span>Create Announcement</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -132,7 +134,7 @@ export const AnnouncementList: React.FC = () => {
         {/* Top Controls: Search + Priority + Unread Toggle */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
           {/* Search Input */}
-          <div style={{ position: 'relative', minWidth: '240px', flex: 1, maxWidth: '400px' }}>
+          <div className="relative w-full sm:w-auto flex-1 min-w-[160px] max-w-[400px]">
             <Search
               size={15}
               style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)' }}
@@ -209,25 +211,13 @@ export const AnnouncementList: React.FC = () => {
 
       {/* Announcements Content Grid */}
       {loading ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1.25rem'
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {[1, 2, 3, 4, 5, 6].map(i => (
             <AnnouncementCardSkeleton key={i} />
           ))}
         </div>
       ) : announcements.length > 0 ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: '1.25rem'
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {announcements.map(announcement => (
             <AnnouncementCard key={announcement._id} announcement={announcement} />
           ))}

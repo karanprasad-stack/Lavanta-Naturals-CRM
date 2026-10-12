@@ -277,12 +277,8 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
       >
         {/* Drawer Header */}
         <div
+          className="p-3.5 sm:p-5 flex items-center justify-between border-b border-[var(--border-color)]"
           style={{
-            padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid var(--border-color)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             background: 'var(--bg-surface)'
           }}
         >
@@ -332,14 +328,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
         {/* Drawer Body Form */}
         <form
           onSubmit={handleSubmit}
-          style={{
-            padding: '1.5rem',
-            overflowY: 'auto',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem'
-          }}
+          className="p-3.5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-5 sm:gap-6"
         >
           {validationError && (
             <div
@@ -473,11 +462,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
 
             {/* Target Options Tabs */}
             <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: userRole === 'MANAGER' ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
-                gap: '6px'
-              }}
+              className={`grid ${userRole === 'MANAGER' ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} gap-1.5`}
             >
               {/* Option A: Interns */}
               <button
@@ -653,16 +638,10 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                       return (
                         <div
                           key={id}
+                          className="inline-flex items-center gap-1.5 py-1 px-2.5 max-w-full rounded-full text-xs font-semibold"
                           style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '4px 8px',
                             background: 'var(--color-soft-green)',
                             border: '1px solid var(--color-primary)',
-                            borderRadius: '16px',
-                            fontSize: '0.75rem',
-                            fontWeight: 600,
                             color: 'var(--color-primary-deep)'
                           }}
                         >
@@ -675,7 +654,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                             alt={member.name}
                             style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
                           />
-                          <span>
+                          <span className="truncate">
                             {member.name}{' '}
                             <span style={{ opacity: 0.75, fontSize: '0.7rem' }}>
                               ({member.email || member.role})
@@ -684,17 +663,16 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                           <button
                             type="button"
                             onClick={() => removeMember(id)}
+                            aria-label={`Remove ${member.name}`}
+                            className="p-1 hover:opacity-75 transition-opacity flex-shrink-0"
                             style={{
                               border: 'none',
                               background: 'transparent',
                               color: 'var(--color-primary-deep)',
-                              cursor: 'pointer',
-                              padding: '0 2px',
-                              display: 'flex',
-                              alignItems: 'center'
+                              cursor: 'pointer'
                             }}
                           >
-                            <X size={12} />
+                            <X size={13} />
                           </button>
                         </div>
                       );
@@ -909,7 +887,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
               4. Deadline Target *
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label
                   style={{
@@ -972,22 +950,14 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
 
           {/* Footer Actions */}
           <div
-            style={{
-              marginTop: 'auto',
-              paddingTop: '1.5rem',
-              borderTop: '1px solid var(--border-color)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.75rem'
-            }}
+            className="mt-auto pt-4 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3"
           >
             <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
               1 shared task document • Canonical status
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting}>
+            <div className="flex items-center gap-2 justify-end">
+              <Button type="button" variant="outline" size="md" onClick={onClose} disabled={submitting} className="flex-1 sm:flex-initial justify-center">
                 Cancel
               </Button>
               <Button
@@ -996,6 +966,7 @@ export const TaskCreateDrawer: React.FC<TaskCreateDrawerProps> = ({
                 size="md"
                 disabled={submitting}
                 icon={<CheckSquare size={16} />}
+                className="flex-1 sm:flex-initial justify-center"
               >
                 {submitting ? 'Assigning...' : `Assign (${effectiveAssigneesCount})`}
               </Button>

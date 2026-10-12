@@ -129,6 +129,32 @@ export const RoleWorkspaceAccessPage: React.FC = () => {
     return sidebarChanged || widgetsChanged;
   }, [allConfigs, selectedRole, localSidebar, localWidgets]);
 
+  // Group modules by category
+  const categories = ['WORKSPACE', 'CATALOG & SALES', 'SALES & FINANCE', 'COMMUNICATION', 'COMPANY & OPERATIONS'] as const;
+
+  const filteredModulesByCategory = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    const result: Record<string, ModuleDefinition[]> = {};
+
+    categories.forEach(cat => {
+      const list = MODULE_DEFINITIONS.filter(m => m.category === cat).filter(m => {
+        if (!q) return true;
+        return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q);
+      });
+      result[cat] = list;
+    });
+
+    return result;
+  }, [searchQuery]);
+
+  const filteredWidgets = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return WIDGET_DEFINITIONS.filter(w => {
+      if (!q) return true;
+      return w.label.toLowerCase().includes(q) || w.description.toLowerCase().includes(q);
+    });
+  }, [searchQuery]);
+
   // If user is not Founder, redirect with warning
   if (!isFounder) {
     return (
@@ -264,31 +290,6 @@ export const RoleWorkspaceAccessPage: React.FC = () => {
     }
   };
 
-  // Group modules by category
-  const categories = ['WORKSPACE', 'CATALOG & SALES', 'SALES & FINANCE', 'COMMUNICATION', 'COMPANY & OPERATIONS'] as const;
-
-  const filteredModulesByCategory = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    const result: Record<string, ModuleDefinition[]> = {};
-
-    categories.forEach(cat => {
-      const list = MODULE_DEFINITIONS.filter(m => m.category === cat).filter(m => {
-        if (!q) return true;
-        return m.label.toLowerCase().includes(q) || m.description.toLowerCase().includes(q);
-      });
-      result[cat] = list;
-    });
-
-    return result;
-  }, [searchQuery]);
-
-  const filteredWidgets = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    return WIDGET_DEFINITIONS.filter(w => {
-      if (!q) return true;
-      return w.label.toLowerCase().includes(q) || w.description.toLowerCase().includes(q);
-    });
-  }, [searchQuery]);
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

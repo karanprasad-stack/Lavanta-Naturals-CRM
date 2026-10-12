@@ -104,7 +104,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
       </motion.div>
 
       {/* 2. People KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1rem' }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Total Employees */}
         <motion.div
           whileHover={{ y: -2 }}
@@ -231,9 +231,9 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
       </div>
 
       {/* 3. Main Operational Sections (2 Columns) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6 items-start">
         {/* LEFT COLUMN: Pending HR Tasks & Team Directory */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* Pending HR Tasks */}
           <div
             style={{
@@ -402,7 +402,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
         </div>
 
         {/* RIGHT COLUMN: Quick Actions, Recent Activity & Announcements */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="flex flex-col gap-5 sm:gap-6 min-w-0">
           {/* HR Quick Actions */}
           <div
             style={{
@@ -416,7 +416,7 @@ export const HRDashboard: React.FC<HRDashboardProps> = ({ data, onQuickAction })
             <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 0.85rem' }}>
               HR Actions
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <Button
                 variant="primary"
                 size="sm"

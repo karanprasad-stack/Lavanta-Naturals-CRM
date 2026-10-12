@@ -221,24 +221,19 @@ export const TaskList: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: '1440px', margin: '0 auto' }}>
       {/* 1. Page Header */}
       <div
+        className="p-4 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5"
         style={{
           background: 'var(--bg-surface)',
           borderRadius: 'var(--radius-md)',
           border: '1px solid var(--border-color)',
-          padding: '1.5rem 1.75rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
           boxShadow: 'var(--shadow-xs)'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
             Tasks
           </h1>
-          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem', margin: '4px 0 0' }}>
+          <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', margin: '4px 0 0' }}>
             {isManagement
               ? 'Manage and track work across your team.'
               : 'Manage and track your assigned work.'}
@@ -246,14 +241,17 @@ export const TaskList: React.FC = () => {
         </div>
 
         {isManagement && (
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Plus size={16} />}
-            onClick={() => setIsCreateOpen(true)}
-          >
-            + Create Task
-          </Button>
+          <div className="w-full sm:w-auto">
+            <Button
+              variant="primary"
+              size="md"
+              icon={<Plus size={16} />}
+              onClick={() => setIsCreateOpen(true)}
+              className="w-full sm:w-auto justify-center"
+            >
+              + Create Task
+            </Button>
+          </div>
         )}
       </div>
 

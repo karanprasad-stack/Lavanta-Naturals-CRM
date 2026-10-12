@@ -280,7 +280,7 @@ export const ExpenseDetailPage: React.FC = () => {
       </div>
 
       {/* Details & Metadata Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}>
         {/* Description and Justification */}
         <div className="luxury-card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '1rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '0.5rem' }}>

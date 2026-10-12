@@ -280,7 +280,7 @@ export const AnnouncementDetail: React.FC = () => {
         )}
 
         {/* Document Body */}
-        <div style={{ padding: '2rem 2.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div className="p-4 sm:p-6 md:p-8 flex flex-col gap-5">
           {/* Metadata Badges */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span

@@ -543,7 +543,7 @@ export const CreateOrderPage: React.FC = () => {
       </div>
 
       {/* Financials & Order Settings */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '1.5rem' }}>
         {/* Multi-Channel & Fulfillment Settings */}
         <div className="luxury-card" style={{ padding: '1.5rem' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '1rem' }}>
