@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { UserModel } from '../models/User.js';
+import { UserModel, UserRole } from '../models/User.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
 import { generateToken } from '../utils/jwt.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logAuditEvent } from '../utils/auditLogger.js';
+import { isAllowlistedFounderEmail, normalizeEmail } from '../config/founderAllowlist.js';
 
 export const authController = {
   async login(req: Request, res: Response): Promise<void> {
@@ -219,10 +220,12 @@ export const authController = {
         return;
       }
 
-      // Format work email: provided email or fallback corporate handle
-      const userEmail = (email && email.trim()) 
-        ? email.toLowerCase().trim() 
-        : `${cleanDigits.slice(-10)}@team.lavantanaturals.com`;
+      // Normalize email (trim whitespace + lowercase)
+      const rawEmail = (email && typeof email === 'string' && email.trim()) ? email : '';
+      const normalizedEmail = normalizeEmail(rawEmail);
+
+      // Format work email: provided normalized email or fallback corporate handle
+      const userEmail = normalizedEmail || `${cleanDigits.slice(-10)}@team.lavantanaturals.com`;
 
       // Check if user already exists with this email or mobile
       const existingUser = await UserModel.findOne({
@@ -236,7 +239,8 @@ export const authController = {
       if (existingUser) {
         res.status(409).json({
           success: false,
-          message: 'An account with these details already exists.'
+          message: `An account with these details already exists. Current role: ${existingUser.role}. An authorized Founder must approve any role change.`,
+          currentRole: existingUser.role
         });
         return;
       }
@@ -244,15 +248,22 @@ export const authController = {
       // Hash password
       const passwordHash = await hashPassword(password);
 
-      // SECURITY: Default controlled role is EMPLOYEE (ignores any role supplied by client)
+      // SECURITY: Server-side allowlist verification
+      // Any client-supplied `role` is IGNORED to prevent unauthorized privilege escalation.
+      // Only authorized allowlisted emails receive the FOUNDER role; all others receive EMPLOYEE.
+      const isEligibleFounder = isAllowlistedFounderEmail(userEmail);
+      const assignedRole: UserRole = isEligibleFounder ? 'FOUNDER' : 'EMPLOYEE';
+      const assignedDepartment = isEligibleFounder ? 'Executive' : 'Operations';
+      const assignedDesignation = isEligibleFounder ? 'Founder' : 'Workspace Associate';
+
       const newUser = await UserModel.create({
         name: name.trim(),
         email: userEmail,
         passwordHash,
         phone: mobileNumber,
-        role: 'EMPLOYEE', // Controlled default role
-        department: 'Operations',
-        designation: 'Workspace Associate',
+        role: assignedRole,
+        department: assignedDepartment,
+        designation: assignedDesignation,
         joiningDate: new Date().toISOString().split('T')[0],
         status: 'ACTIVE'
       });

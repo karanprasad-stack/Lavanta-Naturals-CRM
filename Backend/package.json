@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "seed": "tsx src/scripts/seedAll.ts",
     "seed:users": "tsx src/scripts/seed.ts",
-    "test:phase13": "tsx src/scripts/verifyPhase13.ts"
+    "test:phase13": "tsx src/scripts/verifyPhase13.ts",
+    "test:founder": "tsx src/scripts/verifyFounderRoleAssignment.ts"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",

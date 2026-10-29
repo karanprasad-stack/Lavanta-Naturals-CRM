@@ -1,5 +1,4 @@
 import { Meeting } from '../types';
-import { mockMeetings } from '../data/mockData';
 
 const STORAGE_KEY = 'lavanta_meetings';
 
@@ -12,8 +11,7 @@ function getStoredMeetings(): Meeting[] {
       // fallback
     }
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockMeetings));
-  return mockMeetings;
+  return [];
 }
 
 function saveMeetings(meetings: Meeting[]): void {

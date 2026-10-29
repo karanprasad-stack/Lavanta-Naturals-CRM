@@ -20,7 +20,6 @@ import {
   X
 } from 'lucide-react';
 import { useCommandPalette } from '../../context/CommandPaletteContext';
-import { mockUsers, mockTasks, mockOrders, mockMeetings, mockNotices, mockIdeas } from '../../data/mockData';
 import { productService } from '../../services/productService';
 import { searchService } from '../../services/searchService';
 import { ProductItem } from '../../types/product';
@@ -55,31 +54,7 @@ export const CommandPalette: React.FC = () => {
   const allItems: SearchResultItem[] = useMemo(() => {
     const list: SearchResultItem[] = [];
 
-    // People
-    mockUsers.forEach(u => {
-      list.push({
-        id: `u-${u.id}`,
-        category: 'PEOPLE',
-        title: u.name,
-        subtitle: `${u.designation} • ${u.department}`,
-        url: `/team/${u.id}`,
-        icon: <Users size={16} color="var(--color-sage)" />
-      });
-    });
-
-    // Tasks
-    mockTasks.forEach(t => {
-      list.push({
-        id: `t-${t.id}`,
-        category: 'TASKS',
-        title: t.title,
-        subtitle: `${t.priority.toUpperCase()} priority • ${t.status}`,
-        url: `/tasks/${t.id}`,
-        icon: <CheckSquare size={16} color="var(--color-primary)" />
-      });
-    });
-
-    // Products (Phase 11 real products from database)
+    // Products (real products from database)
     if (realProducts.length > 0) {
       realProducts.forEach(p => {
         list.push({
@@ -93,7 +68,7 @@ export const CommandPalette: React.FC = () => {
       });
     }
 
-    // Phase 12: Sales, Orders, Expenses, Finance
+    // Navigation & Quick Actions
     list.push({
       id: 'nav-orders',
       category: 'NAVIGATION',
@@ -141,54 +116,6 @@ export const CommandPalette: React.FC = () => {
       subtitle: 'Executive revenue vs expense and net operating reporting',
       url: '/finance',
       icon: <DollarSign size={16} color="#059669" />
-    });
-
-    // Orders
-    mockOrders.forEach(o => {
-      list.push({
-        id: `o-${o.id}`,
-        category: 'ORDERS',
-        title: `${o.orderNumber} - ${o.customerName}`,
-        subtitle: `₹${o.totalAmount.toLocaleString()} • ${o.source}`,
-        url: `/orders`,
-        icon: <ShoppingBag size={16} color="var(--color-primary)" />
-      });
-    });
-
-    // Meetings
-    mockMeetings.forEach(m => {
-      list.push({
-        id: `m-${m.id}`,
-        category: 'MEETINGS',
-        title: m.title,
-        subtitle: `${m.date} at ${m.time} • ${m.participants.join(', ')}`,
-        url: `/meetings/${m.id}`,
-        icon: <Video size={16} color="var(--color-primary)" />
-      });
-    });
-
-    // Notices
-    mockNotices.forEach(n => {
-      list.push({
-        id: `n-${n.id}`,
-        category: 'NOTICES',
-        title: n.title,
-        subtitle: `${n.targetDepartment} • by ${n.authorName}`,
-        url: `/notices/${n.id}`,
-        icon: <Bell size={16} color="var(--color-warning)" />
-      });
-    });
-
-    // Ideas
-    mockIdeas.forEach(i => {
-      list.push({
-        id: `i-${i.id}`,
-        category: 'IDEAS',
-        title: i.title,
-        subtitle: `${i.category} • ${i.votes} votes • ${i.status}`,
-        url: `/ideas/${i.id}`,
-        icon: <Lightbulb size={16} color="var(--color-muted-gold)" />
-      });
     });
 
     return list;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { apiClient } from '../../services/apiClient';
@@ -11,7 +11,6 @@ import {
   Save,
   CheckCircle2,
   AlertCircle,
-  Sliders,
   Sun,
   Moon,
   AlertTriangle,
@@ -20,26 +19,30 @@ import {
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { LavantaLogo } from '../../components/ui/LavantaLogo';
-import { RoleWorkspaceAccessPage } from './RoleWorkspaceAccessPage';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 
-type SettingsTab = 'profile' | 'security' | 'notifications' | 'appearance' | 'workspace';
+type SettingsTab = 'profile' | 'security' | 'notifications' | 'appearance';
 
 export const SettingsPage: React.FC = () => {
   const { currentUser, updateCurrentUser } = useAuth();
   const { theme, setTheme, isDark } = useTheme();
   const { showToast } = useToast();
   const location = useLocation();
-
-  const userRole = (currentUser?.role || 'EMPLOYEE').toUpperCase();
-  const isFounder = userRole === 'FOUNDER';
+  const navigate = useNavigate();
 
   const searchParams = new URLSearchParams(location.search);
-  const initialTab = searchParams.get('tab') as SettingsTab;
+  const tabParam = searchParams.get('tab');
 
+  useEffect(() => {
+    if (tabParam === 'workspace') {
+      navigate('/settings/workspace-access', { replace: true });
+    }
+  }, [tabParam, navigate]);
+
+  const validTabs: SettingsTab[] = ['profile', 'security', 'notifications', 'appearance'];
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    (initialTab === 'workspace' && isFounder) ? 'workspace' : 'profile'
+    validTabs.includes(tabParam as SettingsTab) ? (tabParam as SettingsTab) : 'profile'
   );
 
   // Profile Form State
@@ -225,29 +228,6 @@ export const SettingsPage: React.FC = () => {
           <Palette size={16} />
           Appearance
         </button>
-
-        {isFounder && (
-          <button
-            onClick={() => setActiveTab('workspace')}
-            style={{
-              padding: '0.6rem 1rem',
-              borderRadius: 'var(--radius-sm)',
-              border: 'none',
-              background: activeTab === 'workspace' ? 'var(--color-soft-green)' : 'transparent',
-              color: activeTab === 'workspace' ? (isDark ? '#7BE05C' : 'var(--color-primary-deep)') : 'var(--color-text-secondary)',
-              fontWeight: 600,
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'all 0.15s ease'
-            }}
-          >
-            <Sliders size={16} />
-            Role & Workspace Access
-          </button>
-        )}
       </div>
 
       {/* Tab 1: Profile */}
@@ -769,11 +749,6 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Tab 5: Role & Workspace Access (Founder Only) */}
-      {activeTab === 'workspace' && isFounder && (
-        <RoleWorkspaceAccessPage />
       )}
     </div>
   );

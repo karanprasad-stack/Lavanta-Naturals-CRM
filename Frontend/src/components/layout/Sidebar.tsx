@@ -48,7 +48,23 @@ interface NavItemConfig {
   to: string;
   moduleKey: string;
   badge?: number;
+  exact?: boolean;
 }
+
+const normalizePath = (path: string): string => {
+  return path.replace(/\/+$/, '').toLowerCase() || '/';
+};
+
+const isRouteActive = (currentPathname: string, targetPath: string, exact: boolean): boolean => {
+  const current = normalizePath(currentPathname);
+  const target = normalizePath(targetPath);
+
+  if (exact) {
+    return current === target;
+  }
+
+  return current === target || current.startsWith(`${target}/`);
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isCollapsed,
@@ -71,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Workspace',
       items: [
-        { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard', moduleKey: 'dashboard' },
+        { label: 'Dashboard', icon: <LayoutDashboard size={18} />, to: '/dashboard', moduleKey: 'dashboard', exact: true },
         { 
           label: isManagement ? 'Tasks' : 'My Tasks', 
           icon: <CheckSquare size={18} />, 
@@ -123,10 +139,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { label: 'Security Audit', icon: <ShieldAlert size={18} />, to: '/audit', moduleKey: 'securityAudit' },
         { label: 'System Status', icon: <Server size={18} />, to: '/system', moduleKey: 'systemStatus' },
         ...(realRole === 'FOUNDER' && !previewRole ? [
-          { label: 'Workspace Access', icon: <Sliders size={18} />, to: '/settings/workspace-access', moduleKey: 'settings' }
+          { label: 'Workspace Access', icon: <Sliders size={18} />, to: '/settings/workspace-access', moduleKey: 'settings', exact: true }
         ] : []),
-        { label: 'Profile', icon: <User size={18} />, to: '/profile', moduleKey: 'profile' },
-        { label: 'Settings', icon: <Settings size={18} />, to: '/settings', moduleKey: 'settings' }
+        { label: 'Profile', icon: <User size={18} />, to: '/profile', moduleKey: 'profile', exact: true },
+        { label: 'Settings', icon: <Settings size={18} />, to: '/settings', moduleKey: 'settings', exact: true }
       ]
     }
   ];
@@ -226,19 +242,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {!isCollapsed && <div className="nav-section-title">{section.title}</div>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {section.items.map(item => {
-                  const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+                  const isExact =
+                    Boolean(item.exact) ||
+                    item.to === '/settings' ||
+                    item.to === '/settings/workspace-access' ||
+                    item.to === '/dashboard';
+
+                  const isActive = isRouteActive(location.pathname, item.to, isExact);
+
                   return (
                     <NavLink
                       key={item.to}
                       to={item.to}
-                      onClick={() => isMobileOpen && onCloseMobile()}
-                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      end={isExact}
+                      className={() => `nav-item ${isActive ? 'active' : ''}`}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => {
+                        if (isMobileOpen) {
+                          onCloseMobile();
+                        }
+                      }}
                       title={isCollapsed ? item.label : undefined}
                     >
-                      <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
-                      {!isCollapsed && <span>{item.label}</span>}
+                      <span style={{ display: 'flex', alignItems: 'center', pointerEvents: 'none' }}>{item.icon}</span>
+                      {!isCollapsed && <span style={{ pointerEvents: 'none' }}>{item.label}</span>}
                       {!isCollapsed && item.badge !== undefined && (
-                        <span className="nav-badge">{item.badge}</span>
+                        <span className="nav-badge" style={{ pointerEvents: 'none' }}>{item.badge}</span>
                       )}
                     </NavLink>
                   );
@@ -251,7 +280,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User Profile at Bottom */}
         <NavLink
           to="/profile"
-          className="sidebar-user"
+          end
+          className={() => {
+            const isProfileActive = isRouteActive(location.pathname, '/profile', true);
+            return `sidebar-user ${isProfileActive ? 'active' : ''}`;
+          }}
+          aria-current={isRouteActive(location.pathname, '/profile', true) ? 'page' : undefined}
           style={{ textDecoration: 'none', cursor: 'pointer' }}
           title="View My Profile"
         >

@@ -21,13 +21,15 @@ import { Drawer } from '../../components/ui/Drawer';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
-import { mockUsers } from '../../data/mockData';
+import { userService } from '../../services/userService';
+import { User } from '../../types';
 
 export const MeetingList: React.FC = () => {
   const { showToast } = useToast();
   const { currentUser } = useAuth();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [teamUsers, setTeamUsers] = useState<User[]>([]);
 
   // Create Meeting Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -41,9 +43,18 @@ export const MeetingList: React.FC = () => {
   // Convert Decision to Task Modal
   const [convertingDecision, setConvertingDecision] = useState<{ meetingId: string; decision: MeetingDecision } | null>(null);
   const [taskTitle, setTaskTitle] = useState('');
-  const [taskAssigneeId, setTaskAssigneeId] = useState(mockUsers[1].id);
+  const [taskAssigneeId, setTaskAssigneeId] = useState('');
   const [taskDept, setTaskDept] = useState('Operations');
   const [taskDeadline, setTaskDeadline] = useState('2026-09-26');
+
+  useEffect(() => {
+    userService.getAllUsers().then(res => {
+      if (Array.isArray(res)) {
+        setTeamUsers(res);
+        if (res.length > 0) setTaskAssigneeId(res[0].id || (res[0] as any)._id || '');
+      }
+    }).catch(() => {});
+  }, []);
 
   const loadMeetings = async () => {
     const list = await meetingService.getAllMeetings();
@@ -91,7 +102,7 @@ export const MeetingList: React.FC = () => {
     e.preventDefault();
     if (!convertingDecision) return;
 
-    const assignee = mockUsers.find(u => u.id === taskAssigneeId);
+    const assignee = teamUsers.find(u => (u.id || (u as any)._id) === taskAssigneeId);
     const res = await taskService.createTask({
       title: taskTitle,
       description: `Converted directly from decision in meeting "${selectedMeeting?.title}".`,
@@ -325,8 +336,8 @@ export const MeetingList: React.FC = () => {
               onChange={e => setTaskAssigneeId(e.target.value)}
               className="form-select"
             >
-              {mockUsers.map(u => (
-                <option key={u.id} value={u.id}>
+              {teamUsers.map(u => (
+                <option key={u.id || (u as any)._id} value={u.id || (u as any)._id}>
                   {u.name} — {u.designation} ({u.department})
                 </option>
               ))}

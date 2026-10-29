@@ -406,6 +406,15 @@ export const userController = {
         return;
       }
 
+      // Non-Founders cannot modify their own role
+      if (isSelf && !isFounder && req.body.role !== undefined) {
+        res.status(403).json({
+          success: false,
+          message: 'Permission denied. You cannot modify your own role.'
+        });
+        return;
+      }
+
       const updates: Record<string, any> = {};
       const {
         name,
@@ -498,6 +507,15 @@ export const userController = {
     try {
       if (!req.user) {
         res.status(401).json({ success: false, message: 'Not authenticated' });
+        return;
+      }
+
+      // Reject any attempt to modify role via profile updates
+      if (req.body.role !== undefined) {
+        res.status(403).json({
+          success: false,
+          message: 'Permission denied. You cannot modify your role via profile updates.'
+        });
         return;
       }
 

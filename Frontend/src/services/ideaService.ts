@@ -1,5 +1,4 @@
 import { Idea, IdeaStatus } from '../types';
-import { mockIdeas } from '../data/mockData';
 
 const STORAGE_KEY = 'lavanta_ideas';
 
@@ -12,8 +11,7 @@ function getStoredIdeas(): Idea[] {
       // fallback
     }
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockIdeas));
-  return mockIdeas;
+  return [];
 }
 
 function saveIdeas(ideas: Idea[]): void {

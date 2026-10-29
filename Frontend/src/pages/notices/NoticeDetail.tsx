@@ -7,7 +7,8 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { mockUsers } from '../../data/mockData';
+import { userService } from '../../services/userService';
+import { User } from '../../types';
 
 export const NoticeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,13 @@ export const NoticeDetail: React.FC = () => {
   const { currentUser } = useAuth();
   const { showToast } = useToast();
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    userService.getAllUsers().then(res => {
+      if (Array.isArray(res)) setUsers(res);
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -32,7 +40,8 @@ export const NoticeDetail: React.FC = () => {
     return <div style={{ padding: '2rem' }}>Notice not found.</div>;
   }
 
-  const readers = mockUsers.filter(u => notice.readBy.includes(u.id));
+  const readByList = Array.isArray(notice.readBy) ? notice.readBy : [];
+  const readers = users.filter(u => readByList.includes(u.id || (u as any)._id));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>

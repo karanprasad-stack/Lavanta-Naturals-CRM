@@ -1268,7 +1268,7 @@ export const ChatPane: React.FC<ChatPaneProps> = ({ conversation, onBack }) => {
             id="chat-message-composer"
             className="chat-composer-textarea"
             aria-label={`Message ${isCompany ? 'Lavanta Team' : isGroup ? (conversation.name || 'Group Chat') : otherUser?.name || 'colleague'}`}
-            placeholder={`Message ${isCompany ? '#Lavanta Team' : isGroup ? (conversation.name || 'Group Chat') : otherUser?.name || 'colleague'}... (Enter to send, Shift+Enter for new line)`}
+            placeholder="Type Here..."
             value={inputContent}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
